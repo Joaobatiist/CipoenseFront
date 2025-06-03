@@ -19,7 +19,7 @@ const LoginScreen = () => {
   const [senhaAluno, getSenhaAluno] = useState('');
 
   function handleNext() {
-    router.navigate("/Cadastro");
+    router.navigate("./Cadastro/CadastroAlun"); 
   }
 
   const handleLogin = () => {
@@ -42,7 +42,7 @@ const LoginScreen = () => {
           keyboardShouldPersistTaps="handled"
         >
           <Image
-            source={require('../../assets/images/escudo.png')}
+            source={require("../../assets/images/escudo.png")}
             style={{ width: "100%", height: 200, borderRadius: 55 }}
           /> 
 

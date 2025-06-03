@@ -10,12 +10,18 @@ import {
   ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
+  View
 } from 'react-native';
 import { router } from 'expo-router';
 import { TextInputMask } from 'react-native-masked-text';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import DropDownPicker from 'react-native-dropdown-picker';
+
 
 const LoginScreen = () => {
+  const navigation = useNavigation();
   const [nomeAluno, setNomeAluno] = useState('');
   const [senhaAluno, setSenhaAluno] = useState('');
   const [emailAluno, setEmailAluno] = useState('');
@@ -27,18 +33,50 @@ const LoginScreen = () => {
   const [emailResponsavel, setEmailResponsavel] = useState('');
   const [cpfResponsavel, setCpfResponsavel] = useState('');
 
+    const [open, setOpen] = useState(false); // Estado para controlar se o dropdown está aberto
+      const [role, setRole] = useState(null); // Estado para o cargo selecionado
+      const [items, setItems] = useState([
+          { label: 'Aluno', value: 'Aluno' },
+         
+      ]);
+
+  function handleNext (){
+   router.navigate("./funcionarios/Tecnico");
+   
+  }
+
 const formatarData = (data: string): string => {
   const [dia, mes, ano] = data.split('/');
   return `${ano}-${mes}-${dia}`;
 };
+const PreencherFormulario = async () => {
+    if (
+        !nomeAluno ||
+        !senhaAluno ||
+        !emailAluno ||
+        !dataNascimentoAluno ||
+        !cpfAluno ||
+        !nomeResponsavel ||
+        !telefoneResponsavel ||
+        !emailResponsavel ||
+        !cpfResponsavel ||
+        !role
+    ) {
+        alert("Por favor, preencha todos os campos!");
+        return;
+    }
+  }
+
 
   const enviarDados = async () => {
+     await PreencherFormulario();
      console.log("Dados a serem enviados:", {
     nome: nomeAluno,
     senha: senhaAluno,
     email: emailAluno,
     dataNascimento: formatarData(dataNascimentoAluno),
     cpfResponsavel: cpfAluno,
+    cargo: role,
     responsavel: {
       nome: nomeResponsavel,
       telefone: telefoneResponsavel,
@@ -46,13 +84,15 @@ const formatarData = (data: string): string => {
       cpf: cpfResponsavel
     }
   });
+
     try {
      await axios.post('http://192.168.0.10:8080/alunos', {
      nome: nomeAluno,
     senha: senhaAluno,
     email: emailAluno,
      dataNascimento: formatarData(dataNascimentoAluno),
-    cpfResponsavel: cpfAluno,                                                                                                                                                                                                                                                                                                                                                                                          
+    cpfResponsavel: cpfAluno,  
+    cargo: role,                                                                                                                                                                                                                                                                                                                                                                                        
     responsavel: {
     nome: nomeResponsavel,
     telefone: telefoneResponsavel,
@@ -72,15 +112,24 @@ const formatarData = (data: string): string => {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
     >
+      <View style={styles.header}>
+              <TouchableOpacity 
+                onPress={() => navigation.goBack()} 
+                style={styles.btnVoltar}
+                accessibilityLabel="Voltar"
+              >
+                <MaterialIcons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
           <Image
-            source={require('../../assets/images/escudo.png')}
+            source={require('../../../assets/images/escudo.png')}
             style={{ width: "100%", height: 200, borderRadius: 55 }}
           />
 
@@ -124,7 +173,17 @@ const formatarData = (data: string): string => {
             placeholder="000.000.000-00"
             keyboardType="numeric"
           />
-
+            <DropDownPicker
+                        open={open}
+                        value={role}
+                        items={items}
+                        setOpen={setOpen}
+                        setValue={setRole}
+                        setItems={setItems}
+                        placeholder="Selecione um cargo..."
+                        style={styles.dropdown}
+                        dropDownContainerStyle={styles.dropdownContainer}
+                    />
           <Text style={styles.title}>Responsável do Aluno</Text>
 
           <TextInput
@@ -163,7 +222,7 @@ const formatarData = (data: string): string => {
           />
 
           <TouchableOpacity style={styles.button} onPress={enviarDados}>
-            <Text style={styles.buttonText}>Enviar</Text>
+            <Text style={styles.buttonText} onPress={handleNext}>Enviar</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -172,6 +231,34 @@ const formatarData = (data: string): string => {
 };
 
 const styles = StyleSheet.create({
+   header: {
+    backgroundColor: "#1c348e",
+    padding: 10,
+    paddingTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228',
+  },
+  btnVoltar: {
+    padding: 5,
+    
+  },
+    dropdown: {
+        width: '100%',
+        borderColor: '#1c348e',
+        borderWidth: 1,
+        borderRadius: 8,
+        marginBottom: 15,
+        backgroundColor: '#fff',
+    },
+    dropdownContainer: {
+        width: '100%',
+        borderColor: '#1c348e',
+        borderWidth: 1,
+        borderRadius: 8,
+        backgroundColor: '#fafafa',
+    },
   container: {
     flexGrow: 1,
     justifyContent: 'center',

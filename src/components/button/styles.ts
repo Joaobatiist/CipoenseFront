@@ -1,20 +1,24 @@
-
-import { StyleSheet } from "react-native";
+import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
     button: {
-        width: "60%",
-        height: 52,
-        backgroundColor: "#E15610",
-        borderRadius: 10,
-        justifyContent: "center",
-        alignItems: "center"
-
+        backgroundColor: '#1c348e', // Cor azul padrão
+        padding: 12,
+        borderRadius: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    buttonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     title: {
+        color: '#1c348e', // Cor branca padrão
+        fontWeight: 'bold',
         fontSize: 16,
-        fontWeight: "bold",
-        color: "#FFFFF",
-    
-    }
-})
+        margin: "auto"
+    },
+    icon: {
+        marginRight: 0,
+    },
+});

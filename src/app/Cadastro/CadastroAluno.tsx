@@ -1,3 +1,5 @@
+// SEU ARQUIVO REACT NATIVE (CadastroAlunoScreen.tsx)
+
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -10,7 +12,8 @@ import {
   ScrollView,
   Keyboard,
   TouchableWithoutFeedback,
-  View
+  View,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
 import { TextInputMask } from 'react-native-masked-text';
@@ -19,110 +22,114 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import DropDownPicker from 'react-native-dropdown-picker';
 
+const BASE_URL = 'http://192.168.0.10:8080';
 
-const LoginScreen = () => {
+const CadastroAlunoScreen = () => {
   const navigation = useNavigation();
   const [nomeAluno, setNomeAluno] = useState('');
   const [senhaAluno, setSenhaAluno] = useState('');
   const [emailAluno, setEmailAluno] = useState('');
   const [dataNascimentoAluno, setDataNascimentoAluno] = useState('');
-  const [cpfAluno, setCpfAluno] = useState('');
+  const [cpfAluno, setCpfAluno] = useState(''); // CPF do Aluno
 
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
   const [emailResponsavel, setEmailResponsavel] = useState('');
-  const [cpfResponsavel, setCpfResponsavel] = useState('');
+  const [cpfResponsavel, setCpfResponsavel] = useState(''); // CPF do Responsável
 
-    const [open, setOpen] = useState(false); // Estado para controlar se o dropdown está aberto
-      const [role, setRole] = useState(null); // Estado para o cargo selecionado
-      const [items, setItems] = useState([
-          { label: 'Aluno', value: 'Aluno' },
-         
-      ]);
+  const [open, setOpen] = useState(false);
+  const [role, setRole] = useState(null);
+  const [items, setItems] = useState([
+    { label: 'Aluno', value: 'ALUNO' },
+  ]);
 
-  function handleNext (){
-   router.navigate("./funcionarios/Tecnico");
-   
-  }
+  const formatarData = (data: string): string => {
+    const [dia, mes, ano] = data.split('/');
+    return `${ano}-${mes}-${dia}`;
+  };
 
-const formatarData = (data: string): string => {
-  const [dia, mes, ano] = data.split('/');
-  return `${ano}-${mes}-${dia}`;
-};
-const PreencherFormulario = async () => {
+  const validarCampos = () => {
     if (
-        !nomeAluno ||
-        !senhaAluno ||
-        !emailAluno ||
-        !dataNascimentoAluno ||
-        !cpfAluno ||
-        !nomeResponsavel ||
-        !telefoneResponsavel ||
-        !emailResponsavel ||
-        !cpfResponsavel ||
-        !role
+      !nomeAluno ||
+      !senhaAluno ||
+      !emailAluno ||
+      !dataNascimentoAluno ||
+      !cpfAluno ||
+      !nomeResponsavel ||
+      !telefoneResponsavel ||
+      !emailResponsavel ||
+      !cpfResponsavel ||
+      !role
     ) {
-        alert("Por favor, preencha todos os campos!");
-        return;
+      Alert.alert("Erro", "Por favor, preencha todos os campos!");
+      return false;
     }
-  }
-
+    return true;
+  };
 
   const enviarDados = async () => {
-     await PreencherFormulario();
-     console.log("Dados a serem enviados:", {
-    nome: nomeAluno,
-    senha: senhaAluno,
-    email: emailAluno,
-    dataNascimento: formatarData(dataNascimentoAluno),
-    cpfResponsavel: cpfAluno,
-    cargo: role,
-    responsavel: {
-      nome: nomeResponsavel,
-      telefone: telefoneResponsavel,
-      email: emailResponsavel,
-      cpf: cpfResponsavel
+    if (!validarCampos()) {
+      return;
     }
-  });
+
+    const alunoData = {
+      // Campos do Aluno - Mapear diretamente para a entidade Aluno
+      nome: nomeAluno,
+      senha: senhaAluno,
+      email: emailAluno,
+      dataNascimento: formatarData(dataNascimentoAluno),
+      cpf: cpfAluno, // Mapeado para o novo campo 'cpf' na entidade Aluno
+      roles: role, // Mapeado para o campo 'roles' na entidade Aluno
+
+      // Objeto Responsavel aninhado - Mapear diretamente para a entidade Responsavel
+      responsavel: {
+        nome: nomeResponsavel,
+        telefone: telefoneResponsavel,
+        email: emailResponsavel,
+        cpf: cpfResponsavel
+      }
+    };
+
+    console.log("Dados a serem enviados:", alunoData);
 
     try {
-     await axios.post('http://192.168.0.10:8080/alunos', {
-     nome: nomeAluno,
-    senha: senhaAluno,
-    email: emailAluno,
-     dataNascimento: formatarData(dataNascimentoAluno),
-    cpfResponsavel: cpfAluno,  
-    cargo: role,                                                                                                                                                                                                                                                                                                                                                                                        
-    responsavel: {
-    nome: nomeResponsavel,
-    telefone: telefoneResponsavel,
-    email: emailResponsavel,
-    cpf: cpfResponsavel
-  }
-});
+      const response = await axios.post(`${BASE_URL}/api/cadastro`, alunoData);
 
-      alert("Cadastro feito com sucesso!");
+      console.log("Resposta do backend:", response.data);
+      Alert.alert("Sucesso", "Cadastro feito com sucesso!");
       router.back();
     } catch (error) {
-      console.error(error);
-      alert("Erro ao cadastrar aluno.");
+      console.error("Erro ao cadastrar aluno:", error);
+      if (axios.isAxiosError(error)) {
+        if (error.response) {
+          console.error("Dados do erro:", error.response.data);
+          console.error("Status do erro:", error.response.status);
+          Alert.alert("Erro", `Falha no cadastro: ${error.response.data.message || 'Erro desconhecido do servidor.'}`);
+        } else if (error.request) {
+          Alert.alert("Erro", "Não foi possível conectar ao servidor. Verifique sua conexão ou tente mais tarde.");
+        } else {
+          Alert.alert("Erro", `Erro na requisição: ${error.message}`);
+        }
+      } else {
+        Alert.alert("Erro", "Ocorreu um erro inesperado. Tente novamente.");
+      }
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
-              <TouchableOpacity 
-                onPress={() => navigation.goBack()} 
-                style={styles.btnVoltar}
-                accessibilityLabel="Voltar"
-              >
-                <MaterialIcons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.btnVoltar}
+          accessibilityLabel="Voltar"
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+      </View>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.container}
@@ -153,6 +160,7 @@ const PreencherFormulario = async () => {
             value={emailAluno}
             onChangeText={setEmailAluno}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
           <TextInputMask
             style={styles.input}
@@ -162,7 +170,7 @@ const PreencherFormulario = async () => {
             }}
             value={dataNascimentoAluno}
             onChangeText={setDataNascimentoAluno}
-            placeholder="Data de Nascimento"
+            placeholder="Data de Nascimento (DD/MM/YYYY)"
             keyboardType="numeric"
           />
           <TextInputMask
@@ -170,25 +178,29 @@ const PreencherFormulario = async () => {
             type={'cpf'}
             value={cpfAluno}
             onChangeText={setCpfAluno}
-            placeholder="000.000.000-00"
+            placeholder="CPF do Aluno (000.000.000-00)"
             keyboardType="numeric"
           />
-            <DropDownPicker
-                        open={open}
-                        value={role}
-                        items={items}
-                        setOpen={setOpen}
-                        setValue={setRole}
-                        setItems={setItems}
-                        placeholder="Selecione um cargo..."
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
-                    />
-          <Text style={styles.title}>Responsável do Aluno</Text>
+          <DropDownPicker
+            open={open}
+            value={role}
+            items={items}
+            setOpen={setOpen}
+            setValue={setRole}
+            setItems={setItems}
+            placeholder="Selecione um cargo..."
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            zIndex={3000}
+            zIndexInverse={1000}
+          />
+          {open && <View style={{ height: 200 }} />}
+
+          <Text style={styles.title}>Dados do Responsável</Text>
 
           <TextInput
             style={styles.input}
-            placeholder="Nome"
+            placeholder="Nome do Responsável"
             value={nomeResponsavel}
             onChangeText={setNomeResponsavel}
           />
@@ -202,27 +214,28 @@ const PreencherFormulario = async () => {
             }}
             value={telefoneResponsavel}
             onChangeText={setTelefoneResponsavel}
-            placeholder="(99) 99999-9999"
+            placeholder="Telefone do Responsável (99) 99999-9999"
             keyboardType="phone-pad"
           />
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Email do Responsável"
             value={emailResponsavel}
             onChangeText={setEmailResponsavel}
             keyboardType="email-address"
+            autoCapitalize="none"
           />
           <TextInputMask
             style={styles.input}
             type={'cpf'}
             value={cpfResponsavel}
             onChangeText={setCpfResponsavel}
-            placeholder="000.000.000-00"
+            placeholder="CPF do Responsável (000.000.000-00)"
             keyboardType="numeric"
           />
 
           <TouchableOpacity style={styles.button} onPress={enviarDados}>
-            <Text style={styles.buttonText} onPress={handleNext}>Enviar</Text>
+            <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -231,10 +244,10 @@ const PreencherFormulario = async () => {
 };
 
 const styles = StyleSheet.create({
-   header: {
+  header: {
     backgroundColor: "#1c348e",
     padding: 10,
-    paddingTop: 10,
+    paddingTop: Platform.OS === 'android' ? 30 : 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -242,23 +255,23 @@ const styles = StyleSheet.create({
   },
   btnVoltar: {
     padding: 5,
-    
   },
-    dropdown: {
-        width: '100%',
-        borderColor: '#1c348e',
-        borderWidth: 1,
-        borderRadius: 8,
-        marginBottom: 15,
-        backgroundColor: '#fff',
-    },
-    dropdownContainer: {
-        width: '100%',
-        borderColor: '#1c348e',
-        borderWidth: 1,
-        borderRadius: 8,
-        backgroundColor: '#fafafa',
-    },
+  dropdown: {
+    width: '100%',
+    borderColor: '#1c348e',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    minHeight: 50,
+  },
+  dropdownContainer: {
+    width: '100%',
+    borderColor: '#1c348e',
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+  },
   container: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -290,6 +303,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e8c020',
     alignItems: 'center',
+    marginTop: 10,
   },
   buttonText: {
     color: '#ffffff',
@@ -305,4 +319,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default CadastroAlunoScreen;

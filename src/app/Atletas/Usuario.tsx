@@ -68,7 +68,7 @@ const MinimalScreen: React.FC = () => {
   
 
   function Perfil() {
-    router.navigate("./Perfil");
+    router.navigate("./index");
   }
  
   const toggleSidebar = () => {

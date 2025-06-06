@@ -32,7 +32,7 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
 
   function handleNext() {
-    router.navigate("./Cadastro/CadastroAluno");
+    router.navigate("./Cadastro/CadastroAlun");
   }
 
   const handleLogin = async () => {
@@ -49,25 +49,18 @@ const LoginScreen = () => {
         senha: senhaAluno,
       });
 
-      // --- INÍCIO DAS MUDANÇAS RECOMENDADAS ---
-
-      // 1. Log a resposta completa para depuração
       console.log('Resposta COMPLETA do servidor:', response.data);
       console.log('Status da resposta HTTP:', response.status);
 
-      // 2. Ajuste o nome da propriedade 'token' aqui, se o backend estiver enviando 'jwtToken' ou outro nome
-      //    No seu backend, o AuthResponse.java deve ter "private String token;" ou "private String jwtToken;".
-      //    Se no Postman você vê "jwtToken": "...", então mude a linha abaixo para:
-      //    const { jwtToken } = response.data;
-      //    E use jwtToken nas próximas linhas.
-      const { jwt } = response.data; // Mantenha assim se o backend envia 'token'
-      // const { jwtToken } = response.data; // Descomente e use este se o backend envia 'jwtToken'
+      const { jwt } = response.data; 
 
-      if (jwt) { // Use 'token' ou 'jwtToken' aqui, conforme o que você desestruturou acima
-        await AsyncStorage.setItem('userToken', jwt); // Use 'token' ou 'jwtToken'
-        console.log('Token armazenado:', jwt); // Use 'token' ou 'jwtToken'
+      if (jwt) { 
+        // ***** AQUI ESTÁ A CORREÇÃO PRINCIPAL *****
+        // Usamos 'jwtToken' para ser consistente com o nome da chave usada em MinimalScreen.tsx
+        await AsyncStorage.setItem('jwtToken', jwt); 
+        console.log('Token armazenado no AsyncStorage (chave jwtToken):', jwt); 
 
-        const decodedToken = jwtDecode<CustomJwtPayload>(jwt); // Use 'token' ou 'jwtToken'
+        const decodedToken = jwtDecode<CustomJwtPayload>(jwt); 
         console.log('Token decodificado:', decodedToken);
 
         const userRole = decodedToken.roles && decodedToken.roles.length > 0
@@ -81,7 +74,8 @@ const LoginScreen = () => {
         if (userRole === 'ALUNO') {
           router.replace('./Atletas/Usuario');
         } else if (userRole === 'TECNICO') {
-          router.replace('./funcionarios/Tecnico');
+          // Este é o redirecionamento para o seu MinimalScreen
+          router.replace('./funcionarios/Tecnico'); 
         } else if (userRole === 'COORDENADOR') {
           router.replace('./Adminstrador/Coordenador');
         } else if (userRole === 'SUPERVISOR') {
@@ -93,16 +87,14 @@ const LoginScreen = () => {
         }
 
       } else {
-        // Esta mensagem será exibida se 'token' for undefined ou null, mesmo com 200 OK
-        Alert.alert('Erro', 'Token não recebido na resposta do servidor.');
-        console.log('Propriedade "token" não encontrada na resposta do servidor ou é nula/vazia.'); // Log adicional
+        Alert.alert('Erro', 'Token JWT não recebido na resposta do servidor.');
+        console.log('Propriedade "jwt" não encontrada na resposta do servidor ou é nula/vazia.'); 
       }
 
     } catch (error) {
       console.error('Erro no login:', error);
       if (axios.isAxiosError(error)) {
         if (error.response) {
-          // Log os detalhes da resposta de erro do servidor
           console.error('Detalhes da resposta de ERRO do servidor:', error.response.data);
           console.error('Status de ERRO do servidor:', error.response.status);
 
@@ -121,8 +113,6 @@ const LoginScreen = () => {
       setLoading(false);
     }
   };
-
-  // --- FIM DAS MUDANÇAS RECOMENDADAS ---
 
   return (
     <KeyboardAvoidingView
@@ -177,7 +167,6 @@ const LoginScreen = () => {
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
-  
 };
 
 const styles = StyleSheet.create({

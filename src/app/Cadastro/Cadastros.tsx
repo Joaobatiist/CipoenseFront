@@ -11,13 +11,14 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     View,
+    Alert, // Using Alert from React Native for better UX
 } from 'react-native';
 import { router } from 'expo-router';
 import { TextInputMask } from 'react-native-masked-text';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import DropDownPicker from 'react-native-dropdown-picker'; // Importando o DropDownPicker
+import DropDownPicker from 'react-native-dropdown-picker';
 
 const Cadastro = () => {
     const navigation = useNavigation();
@@ -25,27 +26,28 @@ const Cadastro = () => {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [dataNascimento, setDataNascimento] = useState('');
-    const [cpf, setCpf] = useState('');
+    const [cpf, setCpf] = useState(''); 
     const [telefone, setTelefone] = useState('');
 
-    const [open, setOpen] = useState(false); // Estado para controlar se o dropdown está aberto
-    const [role, setRole] = useState(null); // Estado para o cargo selecionado
+    const [open, setOpen] = useState(false);
+    const [role, setRole] = useState(null);
     const [items, setItems] = useState([
-        { label: 'Coodernador', value: 'Coodernador' },
-        { label: 'Tecnico', value: 'Tecnico' },
-        {label: 'Supervisor', value: 'Supervisor'}
+        
+        { label: 'Coordenador', value: 'COORDENADOR' },
+        { label: 'Tecnico', value: 'TECNICO' },
+        { label: 'Supervisor', value: 'SUPERVISOR' },
+     
     ]);
 
-    function handleNext() {
-        router.navigate("./funcionarios/Tecnico");
-    }
+  
 
-    const formatarData = (data:string) => {
+    const formatarData = (data:string) => { 
+        if (!data) return '';
         const [dia, mes, ano] = data.split('/');
-        return `${ano}-${mes}-${dia}`;
+        return `${ano}-${mes}-${dia}`; 
     };
 
-    const PreencherFormulario = async () => {
+    const PreencherFormulario = () => { 
         if (
             !nome ||
             !email ||
@@ -53,46 +55,70 @@ const Cadastro = () => {
             !dataNascimento ||
             !cpf ||
             !telefone ||
-            !role 
+            !role
         ) {
-            alert("Por favor, preencha todos os campos!");
+            Alert.alert("Erro", "Por favor, preencha todos os campos!"); 
             return false;
         }
         return true;
     };
 
     const enviarDados = async () => {
-        const formPreenchido = await PreencherFormulario();
+        const formPreenchido = PreencherFormulario(); // Call synchronously
         if (!formPreenchido) return;
 
-        console.log("Dados a serem enviados:", {
+        // Ensure the role is normalized to uppercase to match backend Enum
+        const normalizedRole = role ? String(role).toUpperCase() : '';
+
+        // *** THIS IS THE KEY CHANGE FOR THE UNIFIED ENDPOINT ***
+        // All employees (Coordenador, Tecnico, Supervisor) will use this single endpoint.
+        const apiUrl = 'http://192.168.0.10:8080/cadastro/funcionarios'; // Your unified backend endpoint
+
+        const payload = {
             nome: nome,
             email: email,
             senha: senha,
             dataNascimento: formatarData(dataNascimento),
-            cpfResponsavel: cpf,
+            cpf: cpf, // This CPF is for the employee themselves
             telefone: telefone,
-            cargo: role
-        });
+            roles: normalizedRole, // Send the exact uppercase Enum name
+        };
 
-        try {
-            await axios.post('http://192.168.0.10:8080/alunos', {
-                nome: nome,
-                email: email,
-                senha: senha,
-                dataNascimento: formatarData(dataNascimento),
-                cpfResponsavel: cpf,
-                telefone: telefone,
-                cargo: role
-            });
+        console.log("Enviando para:", apiUrl);
+        console.log("Payload:", payload);
 
-            alert("Cadastro feito com sucesso!");
-            router.back();
-        } catch (error) {
-            console.error(error);
-            alert("Erro ao cadastrar aluno.");
+         try {
+        const response = await axios.post(apiUrl, payload);
+
+        console.log("Resposta do backend:", response.data);
+        Alert.alert("Sucesso", `Cadastro de ${String(role).toLowerCase()} feito com sucesso!`);
+        router.back();
+    } catch (error) {
+        // --- MODIFICAÇÃO AQUI ---
+        let errorMessage = "Ocorreu um erro desconhecido. Por favor, tente novamente.";
+
+       
+        if (axios.isAxiosError(error) && error.response) {
+            if (error.response.data && error.response.data.message) {
+                errorMessage = error.response.data.message;
+            }
+            // Se o backend enviar um objeto de erro mais complexo (ex: validação)
+            else if (error.response.data) {
+                errorMessage = JSON.stringify(error.response.data);
+            }
+            // Fallback para o status HTTP se não houver corpo de erro específico
+            else {
+                errorMessage = `Erro do servidor: ${error.response.status} ${error.response.statusText}`;
+            }
+        } else if (error instanceof Error) {
+            // Para outros tipos de erros JavaScript padrão
+            errorMessage = error.message;
         }
-    };
+
+        console.error("Erro detalhado no cadastro:", error);
+        Alert.alert("Erro", `Não foi possível cadastrar ${String(role).toLowerCase()}: ${errorMessage}`);
+    }
+};
 
     return (
         <KeyboardAvoidingView
@@ -118,7 +144,7 @@ const Cadastro = () => {
                         style={{ width: "100%", height: 200, borderRadius: 55 }}
                     />
 
-                    <Text style={styles.title}>Cadastrar</Text>
+                    <Text style={styles.title}>Cadastrar Novo Usuário</Text> {/* Updated title */}
                     <TextInput
                         style={styles.input}
                         placeholder="Nome"
@@ -145,7 +171,7 @@ const Cadastro = () => {
                         options={{ format: 'DD/MM/YYYY' }}
                         value={dataNascimento}
                         onChangeText={setDataNascimento}
-                        placeholder="Data de Nascimento"
+                        placeholder="DD/MM/YYYY" // Changed placeholder
                         keyboardType="numeric"
                     />
                     <TextInputMask
@@ -176,6 +202,8 @@ const Cadastro = () => {
                         placeholder="Selecione um cargo..."
                         style={styles.dropdown}
                         dropDownContainerStyle={styles.dropdownContainer}
+                        zIndex={3000} // Adjust zIndex to ensure dropdown appears above other elements
+                        zIndexInverse={1000}
                     />
 
                     <TouchableOpacity style={styles.button} onPress={enviarDados}>

@@ -21,6 +21,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import DropDownPicker from 'react-native-dropdown-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
 
 const BASE_URL = 'http://192.168.0.10:8080';
 
@@ -30,7 +31,7 @@ const CadastroAlunoScreen = () => {
   const [senhaAluno, setSenhaAluno] = useState('');
   const [emailAluno, setEmailAluno] = useState('');
   const [dataNascimentoAluno, setDataNascimentoAluno] = useState('');
-  const [cpfAluno, setCpfAluno] = useState(''); // CPF do Aluno
+  const [cpfAluno, setCpfAluno] = useState(''); 
 
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
@@ -78,7 +79,7 @@ const CadastroAlunoScreen = () => {
       senha: senhaAluno,
       email: emailAluno,
       dataNascimento: formatarData(dataNascimentoAluno),
-      cpf: cpfAluno, // Mapeado para o novo campo 'cpf' na entidade Aluno
+      cpf: cpfAluno, 
       roles: role, // Mapeado para o campo 'roles' na entidade Aluno
 
       // Objeto Responsavel aninhado - Mapear diretamente para a entidade Responsavel
@@ -86,14 +87,29 @@ const CadastroAlunoScreen = () => {
         nome: nomeResponsavel,
         telefone: telefoneResponsavel,
         email: emailResponsavel,
-        cpf: cpfResponsavel
+        cpf: cpfResponsavel,
       }
     };
 
     console.log("Dados a serem enviados:", alunoData);
 
     try {
-      const response = await axios.post(`${BASE_URL}/api/cadastro`, alunoData);
+      // 1. Recuperar o token JWT do AsyncStorage
+      const token = await AsyncStorage.getItem('jwtToken');
+
+      if (!token) {
+        Alert.alert("Erro de Autenticação", "Token de autenticação não encontrado. Por favor, faça login novamente.");
+        router.replace('../../'); // Redireciona para a tela de login
+        return;
+      }
+
+      // 2. Adicionar o token ao cabeçalho da requisição
+      const response = await axios.post(`${BASE_URL}/api/cadastro`, alunoData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Adiciona o cabeçalho Authorization com o token
+        }
+      });
 
       console.log("Resposta do backend:", response.data);
       Alert.alert("Sucesso", "Cadastro feito com sucesso!");
@@ -181,6 +197,7 @@ const CadastroAlunoScreen = () => {
             placeholder="CPF do Aluno (000.000.000-00)"
             keyboardType="numeric"
           />
+
           <DropDownPicker
             open={open}
             value={role}

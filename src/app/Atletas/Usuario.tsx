@@ -1,173 +1,314 @@
-import React, { useState, useRef } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, StyleSheet, FlatList } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { Button } from "../../components/button"
+import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+
 import { ptBR } from "../../utils/localendarConfig"
-import { Calendar, LocaleConfig } from 'react-native-calendars'; 
+import { LocaleConfig } from 'react-native-calendars'; 
 import { router } from 'expo-router';
-import { styles } from "./Usuario"
+import { styles } from "./Usuario" 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 LocaleConfig.locales["pt-br"] = ptBR
 LocaleConfig.defaultLocale = "pt-br"
 
 interface SectionOffsets {
-  desempenho?: number;
-  comunicados?: number;
-  perfil?: number;
+    agenda?: number;
+    desempenho?: number;
+    comunicados?: number;
+    perfil?: number;
 }
 
-interface Usuario {
-  id: string;
-  nome: string;
+interface Evento {
+    id: string;
+    data: string;
+    descricao: string;
+    professor: string;
+    local: string;
+    horario: string;
 }
 
-interface Comunicado {
-  id: string;
-  destinatarios: Usuario[];
-  assunto: string;
-  mensagem: string;
-  dataEnvio: string;
+interface DestinatarioResponse {
+    id: number;
+    nome: string;
+    tipo: string;
 }
 
-const MinimalScreen: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null); 
-  const sectionOffsetsRef = useRef<SectionOffsets>({});
-
-  // Estados para agenda de treinos
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    return new Date(today.getTime() - offset).toISOString().split('T')[0];
-  });
-  const [descricao, setDescricao] = useState('');
-  const [eventos, setEventos] = useState<{ data: string; descricao: string }[]>([]);
-
-  // Estados para comunicados
-  const [usuarios, getUsuarios] = useState<Usuario[]>([
-    { id: '1', nome: 'João Silva' },
-    { id: '2', nome: 'Maria Souza' },
-    { id: '3', nome: 'Carlos Oliveira' },
-    { id: '4', nome: 'Ana Santos' },
-    { id: '5', nome: 'Pedro Costa' },
-  ]);
-  
-  const [novoComunicado, setNovoComunicado] = useState<{
-    destinatarios: Usuario[];
+interface ComunicadoResponse {
+    id: number;
     assunto: string;
     mensagem: string;
     dataEnvio: string;
-  }>({
-    destinatarios: [],
-    assunto: '',
-    mensagem: '',
-    dataEnvio: new Date().toLocaleDateString('pt-BR'),
-  });
+    destinatarios: DestinatarioResponse[];
+}
 
-  
+const Usuario: React.FC = () => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const scrollViewRef = useRef<ScrollView>(null); 
+    const sectionOffsetsRef = useRef<SectionOffsets>({});
+    
+    const [comunicadosRecebidos, setComunicadosRecebidos] = useState<ComunicadoResponse[]>([]);
+    const [loadingComunicados, setLoadingComunicados] = useState<boolean>(true);
+    const [errorComunicados, setErrorComunicados] = useState<string | null>(null);
 
-  function Perfil() {
-    router.navigate("./index");
-  }
- 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+    const [eventos, setEventos] = useState<Evento[]>([]);
+    const [loadingEventos, setLoadingEventos] = useState<boolean>(true);
+    const [errorEventos, setErrorEventos] = useState<string | null>(null);
 
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
+    const getToken = async (): Promise<string | null> => {
+        try {
+            const token = await AsyncStorage.getItem('jwtToken');
+            return token;
+        } catch (error) {
+            console.error('DEBUG TOKEN (UsuarioScreen): Erro ao obter token do AsyncStorage:', error);
+            return null;
+        }
+    };
 
-  const scrollToSection = (offsetY: number) => {
-    closeSidebar();
-    scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
-  };
+    const fetchComunicados = async () => {
+        setLoadingComunicados(true);
+        setErrorComunicados(null);
+        try {
+            const token = await getToken();
+            if (!token) {
+                setErrorComunicados("Token JWT não encontrado para comunicados.");
+                setLoadingComunicados(false);
+                return;
+            }
+            
+            const backendUrl = 'http://192.168.0.10:8080/api/comunicados';
+            const response = await fetch(backendUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-  const handleLayout = (event: LayoutChangeEvent, sectionName: keyof SectionOffsets) => {
-    sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
-  };
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Erro HTTP! status: ${response.status}, corpo: ${errorBody}`);
+            }
 
-  const navigateToDesempenho = () => {
-    const desempenhoOffset = sectionOffsetsRef.current.desempenho || 0;
-    scrollToSection(desempenhoOffset);
-  };
+            const data: ComunicadoResponse[] = await response.json();
+            setComunicadosRecebidos(data);
+        } catch (error: any) {
+            console.error('ERRO GERAL NO FETCH_COMUNICADOS:', error);
+            setErrorComunicados(`Falha ao carregar comunicados: ${error.message || 'Erro desconhecido'}`);
+        } finally {
+            setLoadingComunicados(false);
+        }
+    };
 
-  const navigateToComunicados = () => {
-    const comunicadosOffset = sectionOffsetsRef.current.comunicados || 0;
-    scrollToSection(comunicadosOffset);
-  };
+    const fetchEvents = async () => {
+        setLoadingEventos(true);
+        setErrorEventos(null);
+        console.log('FETCH_EVENTS (UsuarioScreen): Iniciando busca de eventos...');
+        try {
+            const token = await getToken();
+            if (!token) {
+                console.warn('FETCH_EVENTS (UsuarioScreen): Token não encontrado para buscar eventos. Interrompendo a busca.');
+                setErrorEventos('Sua sessão expirou ou você não está logado. Por favor, faça login novamente para ver os treinos.');
+                setLoadingEventos(false);
+                return;
+            }
+            console.log('FETCH_EVENTS (UsuarioScreen): Token presente para requisição GET de eventos.');
 
-  const navigateToMeusTreinos = () => {
-    scrollToSection(0);
-  };
+            const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
 
-  // Funções para agenda de treinos
-  
-  
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('FETCH_EVENTS (UsuarioScreen): Erro ao buscar eventos do backend:', response.status, errorText);
+                throw new Error(`Falha ao carregar eventos: ${response.status} - ${errorText}`);
+            }
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
-          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#333" /> 
-        </TouchableOpacity>
-      </View>
+            const data: Evento[] = await response.json();
+            console.log('FETCH_EVENTS (UsuarioScreen): Dados brutos de eventos recebidos:', data); // <--- NOVO LOG
+            const formattedData = data.map(event => ({
+                ...event,
+                data: new Date(event.data + 'T00:00:00').toLocaleDateString('pt-BR'), 
+            }));
+            setEventos(formattedData);
+            console.log('FETCH_EVENTS (UsuarioScreen): Eventos carregados e formatados com sucesso. Quantidade:', formattedData.length); // <--- NOVO LOG
+        } catch (error: any) {
+            console.error("FETCH_EVENTS (UsuarioScreen): Falha ao buscar eventos:", error);
+            setErrorEventos(`Não foi possível carregar a agenda de treinos. ${error.message || 'Tente novamente.'}`);
+            setEventos([]); // Garante que a lista esteja vazia em caso de erro
+        } finally {
+            setLoadingEventos(false);
+            console.log('FETCH_EVENTS (UsuarioScreen): Finalizado. loadingEventos:', false, 'errorEventos:', errorEventos); // <--- NOVO LOG
+        }
+    };
 
-      {sidebarOpen && (
-        <View style={styles.sidebar}>
-          <TouchableOpacity style={styles.closeButton} onPress={closeSidebar}>
-            <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
-          </TouchableOpacity>
+    useEffect(() => {
+        fetchComunicados();
+        fetchEvents();
+    }, []);
 
-          <Text style={styles.logo}>Associação Desportiva Cipoense</Text>
+    function Perfil() {
+        router.navigate("./index");
+    }
 
-          <TouchableOpacity style={styles.navItem} onPress={navigateToMeusTreinos}>
-            <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Agenda de Treinos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={navigateToDesempenho}>
-            <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Meu Desempenho</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={navigateToComunicados}>
-            <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Comunicados</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={Perfil}>
-            <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Meu Perfil</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={closeSidebar}>
-            <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Sair</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+    const handleLogout = async () => {
+        try {
+            await AsyncStorage.removeItem('jwtToken');
+            console.log('Token JWT removido com sucesso!');
+            closeSidebar();
+            router.replace('../../'); 
+        } catch (error) {
+            console.error('Erro ao fazer logout:', error);
+            Alert.alert('Erro ao Sair', 'Não foi possível sair no momento. Tente novamente.');
+        }
+    };
+    
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
 
-      <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
-        {/* Seção Agenda de Treinos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
+    const closeSidebar = () => {
+        setSidebarOpen(false);
+    };
 
-         
-          </View>
-        
+    const scrollToSection = (sectionName: keyof SectionOffsets) => {
+        closeSidebar();
+        const offset = sectionOffsetsRef.current[sectionName];
+        if (offset !== undefined) {
+            scrollViewRef.current?.scrollTo({ y: offset, animated: true });
+        } else {
+            console.warn(`Seção '${sectionName}' offset não encontrado.`);
+        }
+    };
 
-        {/* Seção Meu Desempenho */}
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
-          <Text style={styles.sectionTitle}>Meu Desempenho</Text>
-          <Text>Conteúdo da seção Meu Desempenho...</Text>
-        </View>
+    const handleLayout = (event: LayoutChangeEvent, sectionName: keyof SectionOffsets) => {
+        sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
+    };
 
-        {/* Seção Comunicados */}
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'comunicados')}>
-          <Text style={styles.sectionTitle}>Comunicados</Text>
-          
-         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
+    const navigateToMeusTreinos = () => {
+        scrollToSection('agenda');
+    };
+
+    const navigateToDesempenho = () => {
+        scrollToSection('desempenho');
+    };
+
+    const navigateToComunicados = () => {
+        scrollToSection('comunicados');
+    };
+
+    const navigateToPerfil = () => {
+        scrollToSection('perfil');
+    };
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.header}>
+                <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
+                    <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#333" /> 
+                </TouchableOpacity>
+            </View>
+
+            {sidebarOpen && (
+                <View style={styles.sidebar}>
+                    <TouchableOpacity style={styles.closeButton} onPress={closeSidebar}>
+                        <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
+                    </TouchableOpacity>
+
+                    <Text style={styles.logo}>Associação Desportiva Cipoense</Text>
+
+                    <TouchableOpacity style={styles.navItem} onPress={navigateToMeusTreinos}>
+                        <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
+                        <Text style={styles.navText}>Agenda de Treinos</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.navItem} onPress={navigateToDesempenho}>
+                        <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
+                        <Text style={styles.navText}>Meu Desempenho</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.navItem} onPress={navigateToComunicados}>
+                        <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
+                        <Text style={styles.navText}>Comunicados</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.navItem} onPress={navigateToPerfil}>
+                        <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
+                        <Text style={styles.navText}>Meu Perfil</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
+                        <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
+                        <Text style={styles.navText}>Sair</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
+                {/* Seção Agenda de Treinos para Alunos */}
+                <View style={styles.section} onLayout={(event) => handleLayout(event, 'agenda')}>
+                    <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
+                    
+                    {loadingEventos ? (
+                        <Text style={styles.loadingMessage}>Carregando agenda de treinos...</Text>
+                    ) : errorEventos ? (
+                        <Text style={[styles.errorMessage, { color: 'red' }]}>{errorEventos}</Text>
+                    ) : eventos.length === 0 ? (
+                        <Text style={styles.emptyMessage}>Nenhum treino agendado para você.</Text>
+                    ) : (
+                        // <Text>Debug: {JSON.stringify(eventos, null, 2)}</Text> {/* <--- NOVO: Para ver os dados */}
+                        <FlatList
+                            data={eventos}
+                            keyExtractor={item => item.id}
+                            renderItem={({ item }) => (
+                                <View style={styles.eventCard}>
+                                    <Text style={styles.eventDate}>📅 {item.data}</Text>
+                                    <Text style={styles.eventDescription}>📝 {item.descricao}</Text>
+                                    <Text style={styles.eventDetail}>👨‍🏫 Professor: {item.professor}</Text>
+                                    <Text style={styles.eventDetail}>📍 Local: {item.local}</Text>
+                                    <Text style={styles.eventDetail}>⏰ Horário: {item.horario}</Text>
+                                </View>
+                            )}
+                            scrollEnabled={false}
+                            contentContainerStyle={styles.eventListContainer}
+                        />
+                    )}
+                </View>
+                
+                <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
+                    <Text style={styles.sectionTitle}>Meu Desempenho</Text>
+                    <Text style={styles.emptyMessage}>Conteúdo da seção Meu Desempenho será implementado aqui.</Text>
+                </View>
+
+                <View style={styles.section} onLayout={(event) => handleLayout(event, 'comunicados')}>
+                    <Text style={styles.sectionTitle}>Comunicados</Text>
+                    
+                    {loadingComunicados ? (
+                        <Text style={styles.loadingMessage}>Carregando comunicados...</Text>
+                    ) : errorComunicados ? (
+                        <Text style={[styles.errorMessage, { color: 'red' }]}>{errorComunicados}</Text>
+                    ) : comunicadosRecebidos.length === 0 ? (
+                        <Text style={styles.emptyMessage}>Nenhum comunicado disponível.</Text>
+                    ) : (
+                        <View>
+                            {comunicadosRecebidos.map((comunicado) => (
+                                <View key={comunicado.id} style={styles.comunicadoCard}>
+                                    <Text style={styles.comunicadoAssunto}>{comunicado.assunto}</Text>
+                                    <Text style={styles.comunicadoMensagem}>{comunicado.mensagem}</Text>
+                                    <Text style={styles.comunicadoData}>Data de Envio: {new Date(comunicado.dataEnvio).toLocaleDateString('pt-BR')}</Text>
+                                </  View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.section} onLayout={(event) => handleLayout(event, 'perfil')}>
+                    <Text style={styles.sectionTitle}>Meu Perfil</Text>
+                    <Text style={styles.emptyMessage}>Detalhes do perfil do aluno serão exibidos aqui.</Text>
+                </View>
+
+            </ScrollView>
+        </SafeAreaView>
+    );
 };
 
-export default MinimalScreen;
+export default Usuario;

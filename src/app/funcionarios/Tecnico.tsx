@@ -1,81 +1,131 @@
-import React, { useState, useRef } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faPlus, faIdCard } from '@fortawesome/free-solid-svg-icons';
-import { Button } from "../../components/button"
-import { ptBR } from "../../utils/localendarConfig"
-import { Calendar, LocaleConfig } from 'react-native-calendars'; 
-import { router } from 'expo-router';
-import { styles } from "./styles"
+import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard } from '@fortawesome/free-solid-svg-icons';
+import { Button } from "../../components/button";
+import { ptBR } from "../../utils/localendarConfig";
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { router } from 'expo-router'; // Preservando expo-router
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { styles } from "./styles"; // Importa os estilos CENTRALIZADOS
+import ComunicadosSection from './Comunicado'; // IMPORTA O NOVO COMPONENTE
 
-LocaleConfig.locales["pt-br"] = ptBR
-LocaleConfig.defaultLocale = "pt-br"
+LocaleConfig.locales["pt-br"] = ptBR;
+LocaleConfig.defaultLocale = "pt-br";
 
 interface SectionOffsets {
-  desempenho?: number;
+  agenda?: number; // Adicionei agenda para consistência, se for usar scroll para ela
   comunicados?: number;
+  desempenho?: number;
   perfil?: number;
 }
 
-interface Usuario {
+// Interfaces (manter no Tecnico.tsx apenas o que é relevante para ele, ou em um arquivo comum)
+interface Evento {
   id: string;
-  nome: string;
+  data: string;
+  descricao: string;
+  professor: string;
+  local: string;
+  horario: string;
 }
 
-interface Comunicado {
-  id: string;
-  destinatarios: Usuario[];
-  assunto: string;
-  mensagem: string;
-  dataEnvio: string;
-}
-
-const MinimalScreen: React.FC = () => {
+const Tecnico: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null); 
+  const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<SectionOffsets>({});
 
-  // Estados para agenda de treinos
+  // Estados para agenda de treinos (MANTIDOS AQUI)
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
     return new Date(today.getTime() - offset).toISOString().split('T')[0];
   });
   const [descricao, setDescricao] = useState('');
-  const [eventos, setEventos] = useState<{ data: string; descricao: string }[]>([]);
+  const [professor, setProfessor] = useState('');
+  const [local, setLocal] = useState('');
+  const [horario, setHorario] = useState('');
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-  // Estados para comunicados
-  const [usuarios, getUsuarios] = useState<Usuario[]>([
-    { id: '1', nome: 'João Silva' },
-    { id: '2', nome: 'Maria Souza' },
-    { id: '3', nome: 'Carlos Oliveira' },
-    { id: '4', nome: 'Ana Santos' },
-    { id: '5', nome: 'Pedro Costa' },
-  ]);
-  
-  const [novoComunicado, setNovoComunicado] = useState<{
-    destinatarios: Usuario[];
-    assunto: string;
-    mensagem: string;
-    dataEnvio: string;
-  }>({
-    destinatarios: [],
-    assunto: '',
-    mensagem: '',
-    dataEnvio: new Date().toLocaleDateString('pt-BR'),
-  });
+  // --- Helper to get JWT token (Mantido aqui, mas também no ComunicadosSection) ---
+  // Idealmente, seria um utilitário global para evitar duplicação.
+  const getToken = async (): Promise<string | null> => {
+    try {
+      const token = await AsyncStorage.getItem('jwtToken');
+      console.log('DEBUG TOKEN (TecnicoScreen): Chamada getToken()');
+      if (token) {
+        console.log('DEBUG TOKEN (TecnicoScreen): Token recuperado do AsyncStorage. Tamanho:', token.length, 'Inicia com:', token.substring(0, 20), '...');
+      } else {
+        console.log('DEBUG TOKEN (TecnicoScreen): Token NÃO encontrado no AsyncStorage (é null ou undefined).');
+      }
+      return token;
+    } catch (error) {
+      console.error('DEBUG TOKEN (TecnicoScreen): Erro ao obter token do AsyncStorage:', error);
+      return null;
+    }
+  };
 
-  const [comunicadosEnviados, setComunicadosEnviados] = useState<Comunicado[]>([]);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  // --- useEffect to fetch events ---
+  useEffect(() => {
+    const fetchEvents = async () => {
+      console.log('FETCH_EVENTS (TecnicoScreen): Iniciando busca de eventos...');
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.warn('FETCH_EVENTS (TecnicoScreen): Token não encontrado para buscar eventos. Interrompendo a busca.');
+          Alert.alert('Erro de Autenticação', 'Sua sessão expirou ou você não está logado. Por favor, faça login novamente para ver os treinos.');
+          return;
+        }
+        console.log('FETCH_EVENTS (TecnicoScreen): Token presente para requisição GET de eventos.');
+
+        const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('FETCH_EVENTS (TecnicoScreen): Erro ao buscar eventos do backend:', response.status, errorText);
+          throw new Error(`Falha ao carregar eventos: ${response.status} - ${errorText}`);
+        }
+
+        const data: Evento[] = await response.json();
+        const formattedData = data.map(event => ({
+          ...event,
+          data: new Date(event.data + 'T00:00:00').toLocaleDateString('pt-BR'),
+        }));
+        setEventos(formattedData);
+        console.log('FETCH_EVENTS (TecnicoScreen): Eventos carregados com sucesso.');
+      } catch (error) {
+        console.error("FETCH_EVENTS (TecnicoScreen): Falha ao buscar eventos:", error);
+        Alert.alert("Erro", `Não foi possível carregar a agenda de treinos. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
+        setEventos([]);
+      }
+    };
+
+    fetchEvents();
+  }, []);
 
   function Perfil() {
     router.navigate("./Perfil");
   }
-  function Relatorio(){
-    router.navigate("./Relatorios")
+  function Relatorio() {
+    router.navigate("./Relatorios");
   }
-  
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('jwtToken');
+      console.log('LOGOUT (TecnicoScreen): Token JWT removido com sucesso!');
+      closeSidebar();
+      router.replace('../../');
+    } catch (error) {
+      console.error('LOGOUT (TecnicoScreen): Erro ao fazer logout:', error);
+      Alert.alert('Erro ao Sair', 'Não foi possível sair no momento. Tente novamente.');
+    }
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -85,88 +135,227 @@ const MinimalScreen: React.FC = () => {
     setSidebarOpen(false);
   };
 
-  const scrollToSection = (offsetY: number) => {
+  const scrollToSection = (sectionName: keyof SectionOffsets) => {
     closeSidebar();
-    scrollViewRef.current?.scrollTo({ y: offsetY, animated: true });
+    const offset = sectionOffsetsRef.current[sectionName];
+    if (offset !== undefined) {
+      scrollViewRef.current?.scrollTo({ y: offset, animated: true });
+    } else {
+      console.warn(`Seção '${sectionName}' offset não encontrado.`);
+    }
   };
 
   const handleLayout = (event: LayoutChangeEvent, sectionName: keyof SectionOffsets) => {
     sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
   };
 
-  
+  // Funções de navegação para as seções na mesma página
+  const navigateToMeusTreinos = () => {
+    scrollToSection('agenda'); // Rola para o topo da seção Agenda
+  };
 
   const navigateToComunicados = () => {
-    const comunicadosOffset = sectionOffsetsRef.current.comunicados || 0;
-    scrollToSection(comunicadosOffset);
+    scrollToSection('comunicados'); // Rola para a seção Comunicados
   };
 
-  const navigateToMeusTreinos = () => {
-    scrollToSection(0);
-  };
-
-  // Funções para agenda de treinos
-  const adicionarTreino = () => {
-    if (descricao.trim() === '') return;
-
-    const novoEvento = {
-      data: new Date(selectedDate).toLocaleDateString('pt-BR'),
-      descricao,
-    };
-
-    setEventos([...eventos, novoEvento]);
-    setDescricao('');
-  };
-
-  // Funções para comunicados
-  const adicionarDestinatario = (usuario: Usuario) => {
-    if (!novoComunicado.destinatarios.some(d => d.id === usuario.id)) {
-      setNovoComunicado({
-        ...novoComunicado,
-        destinatarios: [...novoComunicado.destinatarios, usuario],
-      });
-    }
-  };
-
-  const removerDestinatario = (usuarioId: string) => {
-    setNovoComunicado({
-      ...novoComunicado,
-      destinatarios: novoComunicado.destinatarios.filter(d => d.id !== usuarioId),
-    });
-  };
-
-  const enviarComunicado = () => {
-    if (
-      novoComunicado.assunto.trim() === '' ||
-      novoComunicado.mensagem.trim() === '' ||
-      novoComunicado.destinatarios.length === 0
-    ) {
-      alert('Preencha todos os campos obrigatórios');
+  // --- Funções para agenda de treinos (ADICIONAR/CRIAR) ---
+  const adicionarTreino = async () => {
+    if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
+      Alert.alert('Erro', 'Preencha todos os campos do treino: Descrição, Professor, Local e Horário.');
       return;
     }
 
-    const novoComunicadoCompleto: Comunicado = {
-      id: Date.now().toString(),
-      ...novoComunicado,
-      dataEnvio: new Date().toLocaleDateString('pt-BR'),
+    const formattedDateForBackend = new Date(selectedDate + 'T00:00:00').toISOString().split('T')[0];
+
+    const novoEventoBackend = {
+      data: formattedDateForBackend,
+      descricao: descricao,
+      professor: professor,
+      local: local,
+      horario: horario,
     };
 
-    setComunicadosEnviados([...comunicadosEnviados, novoComunicadoCompleto]);
-    setNovoComunicado({
-      destinatarios: [],
-      assunto: '',
-      mensagem: '',
-      dataEnvio: new Date().toLocaleDateString('pt-BR'),
-    });
-    setMostrarFormulario(false);
-    setSearchTerm('');
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
+        return;
+      }
+      console.log('ADICIONAR_TREINO: Token presente para requisição POST.');
+
+      const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(novoEventoBackend),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('ADICIONAR_TREINO: Erro ao adicionar treino no backend:', response.status, errorText);
+        throw new Error(`Falha ao adicionar treino: ${response.status} - ${errorText}`);
+      }
+
+      const eventoSalvo: Evento = await response.json();
+
+      const formattedEventoSaved: Evento = {
+        ...eventoSalvo,
+        // Garante que a data salva é formatada corretamente para exibição,
+        // partindo de um formato de data ISO.
+        data: new Date(eventoSalvo.data + 'T00:00:00').toLocaleDateString('pt-BR'),
+      };
+
+      setEventos(prevEventos => [...prevEventos, formattedEventoSaved]);
+
+      setDescricao('');
+      setProfessor('');
+      setLocal('');
+      setHorario('');
+      Alert.alert('Sucesso', 'Treino adicionado com sucesso!');
+      console.log('ADICIONAR_TREINO: Treino adicionado com sucesso.');
+
+    } catch (error) {
+      console.error("ADICIONAR_TREINO: Erro ao adicionar treino:", error);
+      Alert.alert("Erro", `Não foi possível adicionar o treino. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
+    }
+  };
+
+  // --- Funções para agenda de treinos (EDITAR/ATUALIZAR) ---
+  const startEditingTreino = (eventToEdit: Evento) => {
+    setEditingEventId(eventToEdit.id);
+    // Converte a data de 'dd/mm/yyyy' para 'yyyy-mm-dd' para o calendário
+    const dateParts = eventToEdit.data.split('/');
+    const formattedDateForInput = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+    setSelectedDate(formattedDateForInput);
+    setDescricao(eventToEdit.descricao);
+    setProfessor(eventToEdit.professor);
+    setLocal(eventToEdit.local);
+    setHorario(eventToEdit.horario);
+  };
+
+  const saveEditedTreino = async () => {
+    if (editingEventId === null) return;
+    if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
+      Alert.alert('Erro', 'Preencha todos os campos do treino para atualizar.');
+      return;
+    }
+
+    const formattedDateForBackend = new Date(selectedDate + 'T00:00:00').toISOString().split('T')[0];
+
+    const updatedEventBackend = {
+      id: editingEventId,
+      data: formattedDateForBackend,
+      descricao: descricao,
+      professor: professor,
+      local: local,
+      horario: horario,
+    };
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
+        return;
+      }
+      console.log('SALVAR_EDITAR_TREINO: Token presente para requisição PUT.');
+
+      const response = await fetch(`http://192.168.0.10:8080/api/eventos/${editingEventId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedEventBackend),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('SALVAR_EDITAR_TREINO: Erro ao atualizar treino no backend:', response.status, errorText);
+        throw new Error(`Falha ao atualizar treino: ${response.status} - ${errorText}`);
+      }
+
+      const eventoAtualizado: Evento = await response.json();
+
+      const formattedEventoUpdated: Evento = {
+        ...eventoAtualizado,
+        data: new Date(eventoAtualizado.data + 'T00:00:00').toLocaleDateString('pt-BR'),
+      };
+
+      setEventos(prevEventos =>
+        prevEventos.map(event => (event.id === editingEventId ? formattedEventoUpdated : event))
+      );
+
+      setEditingEventId(null);
+      setDescricao('');
+      setProfessor('');
+      setLocal('');
+      setHorario('');
+      Alert.alert('Sucesso', 'Treino atualizado com sucesso!');
+      console.log('SALVAR_EDITAR_TREINO: Treino atualizado com sucesso.');
+
+    } catch (error) {
+      console.error("SALVAR_EDITAR_TREINO: Erro ao atualizar treino:", error);
+      Alert.alert("Erro", `Não foi possível atualizar o treino. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
+    }
+  };
+
+  // --- Funções para agenda de treinos (EXCLUIR) ---
+  const excluirTreino = (idTreino: string) => {
+    Alert.alert(
+      'Confirmar Exclusão',
+      'Tem certeza que deseja excluir este treino?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          onPress: async () => {
+            try {
+              const token = await getToken();
+              if (!token) {
+                Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
+                return;
+              }
+              console.log('EXCLUIR_TREINO: Token presente para requisição DELETE.');
+
+              const response = await fetch(`http://192.168.0.10:8080/api/eventos/${idTreino}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error('EXCLUIR_TREINO: Erro ao deletar treino no backend:', response.status, errorText);
+                throw new Error(`Falha ao deletar treino: ${response.status} - ${errorText}`);
+              }
+
+              setEventos(prevEventos => prevEventos.filter(evento => evento.id !== idTreino));
+              Alert.alert('Sucesso', 'Treino excluído com sucesso!');
+              console.log('EXCLUIR_TREINO: Treino excluído com sucesso.');
+
+            } catch (error) {
+              console.error("EXCLUIR_TREINO: Erro ao excluir treino:", error);
+              Alert.alert("Erro", `Não foi possível excluir o treino. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
+            }
+          },
+          style: 'destructive',
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
-          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#333" /> 
+          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
@@ -178,7 +367,8 @@ const MinimalScreen: React.FC = () => {
 
           <Text style={styles.logo}>Associação Desportiva Cipoense</Text>
 
-          <TouchableOpacity style={styles.navItem} onPress={navigateToMeusTreinos}>
+          {/* Navegação para as seções da mesma página */}
+          <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('agenda')}>
             <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Agenda de Treinos</Text>
           </TouchableOpacity>
@@ -186,15 +376,15 @@ const MinimalScreen: React.FC = () => {
             <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Relatorio de Desempenho</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={navigateToComunicados}>
+          <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('comunicados')}>
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Comunicados</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={Perfil}>
+          <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('perfil')}>
             <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Meu Perfil</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={closeSidebar}>
+          <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Sair</Text>
           </TouchableOpacity>
@@ -203,7 +393,7 @@ const MinimalScreen: React.FC = () => {
 
       <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
         {/* Seção Agenda de Treinos */}
-        <View style={styles.section}>
+        <View style={styles.section} onLayout={(event) => handleLayout(event, 'agenda')}>
           <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
 
           <Calendar
@@ -211,8 +401,8 @@ const MinimalScreen: React.FC = () => {
               setSelectedDate(day.dateString);
             }}
             markedDates={{
-              [selectedDate]: { 
-                selected: true, 
+              [selectedDate]: {
+                selected: true,
                 selectedColor: 'blue',
                 selectedTextColor: 'white'
               }
@@ -232,156 +422,103 @@ const MinimalScreen: React.FC = () => {
             value={descricao}
             onChangeText={setDescricao}
             placeholder="Descrição do treino"
-            style={{
-              borderColor: '#ccc',
-              borderWidth: 1,
-              borderRadius: 5,
-              padding: 10,
-              marginVertical: 5,
-            }}
+            style={styles.input}
+          />
+          <TextInput
+            value={professor}
+            onChangeText={setProfessor}
+            placeholder="Nome do Professor"
+            style={styles.input}
+          />
+          <TextInput
+            value={local}
+            onChangeText={setLocal}
+            placeholder="Local do Treino"
+            style={styles.input}
+          />
+          <TextInput
+            value={horario}
+            onChangeText={setHorario}
+            placeholder="Horário (ex: 10:00)"
+            style={styles.input}
           />
 
-          <Button  title="Salvar" textColor="#fff"  onPress={adicionarTreino} />
+          {/* Buttons for Add/Update and Cancel */}
+          <View style={styles.trainingButtonsContainer}>
+            <Button
+              title={editingEventId ? "Atualizar treino" : "Adicionar treino"}
+              textColor="#fff"
+              onPress={editingEventId ? saveEditedTreino : adicionarTreino}
+              style={styles.trainingActionButton}
+            />
+            {editingEventId && (
+              <Button
+                title="Cancelar Edição"
+                textColor="#fff"
+                onPress={() => {
+                  setEditingEventId(null);
+                  setDescricao('');
+                  setProfessor('');
+                  setLocal('');
+                  setHorario('');
+                }}
+                style={styles.trainingCancelButton}
+              />
+            )}
+          </View>
 
-          <View style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>Treinos marcados:</Text>
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.subTitle}>Treinos Marcados:</Text>
             <FlatList
               data={eventos}
-              keyExtractor={(_, index) => index.toString()}
+              keyExtractor={item => item.id}
               renderItem={({ item }) => (
-                <Text style={{ paddingVertical: 5 }}>
-                  📅 {item.data} - {item.descricao}
-                </Text>
+                <View style={styles.eventCard}>
+                  <Text style={styles.eventDate}>📅 {item.data}</Text>
+                  <Text style={styles.eventDescription}>📝 {item.descricao}</Text>
+                  <Text style={styles.eventDetail}>👨‍🏫 Professor: {item.professor}</Text>
+                  <Text style={styles.eventDetail}>📍 Local: {item.local}</Text>
+                  <Text style={styles.eventDetail}>⏰ Horário: {item.horario}</Text>
+                  <View style={styles.eventActions}>
+                    <TouchableOpacity onPress={() => startEditingTreino(item)} style={styles.editButton}>
+                      <FontAwesomeIcon icon={faIdCard} size={16} color="#fff" />
+                      <Text style={styles.buttonText}> Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => excluirTreino(item.id)} style={styles.deleteButton}>
+                      <FontAwesomeIcon icon={faTimes} size={16} color="#fff" />
+                      <Text style={styles.buttonText}> Excluir</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               )}
-              ListEmptyComponent={<Text>Nenhum treino marcado ainda.</Text>}
+              ListEmptyComponent={<Text style={styles.emptyMessage}>Nenhum treino marcado ainda.</Text>}
+              scrollEnabled={false} // Para evitar scroll aninhado com o ScrollView principal
             />
           </View>
         </View>
 
-        {/* Seção Comunicados */}
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'comunicados')}>
-          <Text style={styles.sectionTitle}>Comunicados</Text>
+        
+        <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
+          <Text style={styles.sectionTitle}>Relatório de Desempenho</Text>
           
-          {!mostrarFormulario ? (
-            <Button 
-              title="Adicionar Comunicado"
-             onPress={() => setMostrarFormulario(true)}
-             icon={faPlus}
-              style={{ marginBottom: 15 }}
-                />
-          ) : (
-            <View style={styles.formContainer}>
-              <Text style={styles.formTitle}>Adicionando Comunicado</Text>
-              
-              {/* Data automática */}
-              <Text style={styles.label}>
-                Data: {new Date().toLocaleDateString('pt-BR')}
-              </Text>
-              
-              {/* Destinatários selecionados */}
-              <Text style={styles.label}>Destinatários:</Text>
-              <View style={styles.destinatariosContainer}>
-                {novoComunicado.destinatarios.map(destinatario => (
-                  <View key={destinatario.id} style={styles.destinatarioTag}>
-                    <Text style={styles.destinatarioText}>{destinatario.nome}</Text>
-                    <TouchableOpacity onPress={() => removerDestinatario(destinatario.id)}>
-                      <FontAwesomeIcon icon={faTimes} size={12} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-              
-              {/* Barra de pesquisa */}
-              <Text style={styles.label}>Adicionar destinatário:</Text>
-              <TextInput
-                placeholder="Pesquisar usuários..."
-                style={styles.searchInput}
-                value={searchTerm}
-                onChangeText={setSearchTerm}
-              />
-              
-              {/* Lista filtrada de usuários */}
-              <ScrollView style={styles.dropdownContainer}>
-                {usuarios
-                  .filter(u => 
-                    !novoComunicado.destinatarios.some(d => d.id === u.id) &&
-                    u.nome.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map(usuario => (
-                    <TouchableOpacity
-                      key={usuario.id}
-                      style={styles.usuarioItem}
-                      onPress={() => adicionarDestinatario(usuario)}
-                    >
-                      <Text>{usuario.nome}</Text>
-                    </TouchableOpacity>
-                  ))}
-              </ScrollView>
-              
-              {/* Campos do formulário */}
-              <Text style={styles.label}>Assunto:</Text>
-              <TextInput
-                value={novoComunicado.assunto}
-                onChangeText={text => setNovoComunicado({...novoComunicado, assunto: text})}
-                placeholder="Digite o assunto"
-                style={styles.input}
-              />
-              
-              <Text style={styles.label}>Mensagem:</Text>
-              <TextInput
-                value={novoComunicado.mensagem}
-                onChangeText={text => setNovoComunicado({...novoComunicado, mensagem: text})}
-                placeholder="Digite a mensagem"
-                multiline
-                numberOfLines={4}
-                style={[styles.input, styles.textArea]}
-              />
-              
-              {/* Botões de ação */}
-              <View style={styles.buttonGroup}>
-                <Button 
-                  title="Cancelar" 
-                  onPress={() => {
-                    setMostrarFormulario(false);
-                    setSearchTerm('');
-                  }} 
-                  textColor='#fff'
-                  style={styles.cancelButton}
-                />
-                <Button 
-                  title="Enviar" 
-                  onPress={enviarComunicado} 
-                  style={styles.submitButton}
-                  textColor='#fff'
-                />
-              </View>
-            </View>
-          )}
-          
-          {/* Lista de comunicados enviados */}
-          <Text style={styles.subTitle}>Comunicados Enviados</Text>
-          {comunicadosEnviados.length === 0 ? (
-            <Text style={styles.emptyMessage}>Nenhum comunicado enviado ainda.</Text>
-          ) : (
-            <FlatList
-              data={comunicadosEnviados}
-              keyExtractor={item => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.comunicadoCard}>
-                  <Text style={styles.comunicadoAssunto}>{item.assunto}</Text>
-                  <Text style={styles.comunicadoData}>Enviado em: {item.dataEnvio}</Text>
-                  <Text style={styles.comunicadoMensagem}>{item.mensagem}</Text>
-                  <Text style={styles.comunicadoDestinatarios}>
-                    Para: {item.destinatarios.map(d => d.nome).join(', ')}
-                  </Text>
-                </View>
-              )}
-            />
-          )}
+          <Text style={styles.emptyMessage}>Conteúdo do relatório de desempenho será implementado aqui.</Text>
         </View>
+
+        {/* Seção Comunicados (AGORA RENDERIZADA COMO UM COMPONENTE SEPARADO) */}
+        <View onLayout={(event) => handleLayout(event, 'comunicados')}>
+          <ComunicadosSection />
+        </View>
+
+        {/* Seção Meu Perfil (Exemplo) */}
+        <View style={styles.section} onLayout={(event) => handleLayout(event, 'perfil')}>
+          <Text style={styles.sectionTitle}>Meu Perfil</Text>
+         
+          <Text style={styles.emptyMessage}>Detalhes do perfil do técnico serão exibidos aqui.</Text>
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-export default MinimalScreen;
+export default Tecnico;

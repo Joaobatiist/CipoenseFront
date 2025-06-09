@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faPlus, faTimes, faIdCard, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { Button } from "../../components/button";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from "./styles";
+import { styles } from "./Tecnico";
 import { jwtDecode } from 'jwt-decode';
 
 interface Usuario {

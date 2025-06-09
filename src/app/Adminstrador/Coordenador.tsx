@@ -7,7 +7,7 @@ import { ptBR } from "../../utils/localendarConfig";
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router'; // Preservando expo-router
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from "./Coordenador"; // Importa os estilos CENTRALIZADOS
+import { styles } from "../../Styles/Coordenador"; // Importa os estilos CENTRALIZADOS
 import ComunicadosSection from '../funcionarios/Comunicado'; // IMPORTA O NOVO COMPONENTE
 
 LocaleConfig.locales["pt-br"] = ptBR;

@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, StyleSheet, FlatList } from 'react-native';
+import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, FlatList } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
 import { ptBR } from "../../utils/localendarConfig"
 import { LocaleConfig } from 'react-native-calendars'; 
 import { router } from 'expo-router';
-import { styles } from "./Usuario" 
+import { styles } from "../../Styles/Aluno" 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 LocaleConfig.locales["pt-br"] = ptBR

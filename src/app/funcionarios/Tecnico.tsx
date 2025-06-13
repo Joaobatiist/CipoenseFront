@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { Button } from "../../components/button";
 import { ptBR } from "../../utils/localendarConfig";
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { router } from 'expo-router'; // Preservando expo-router
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from "./styles"; // Importa os estilos CENTRALIZADOS
-import ComunicadosSection from './Comunicado'; // IMPORTA O NOVO COMPONENTE
+import { styles } from "../../Styles/Tecnico"; 
+import ComunicadosSection from './Comunicado';
 
 LocaleConfig.locales["pt-br"] = ptBR;
 LocaleConfig.defaultLocale = "pt-br";
 
 interface SectionOffsets {
-  agenda?: number; // Adicionei agenda para consistência, se for usar scroll para ela
+  agenda?: number; 
   comunicados?: number;
   desempenho?: number;
   perfil?: number;
 }
 
-// Interfaces (manter no Tecnico.tsx apenas o que é relevante para ele, ou em um arquivo comum)
+
 interface Evento {
   id: string;
   data: string;
@@ -108,7 +108,9 @@ const Tecnico: React.FC = () => {
 
     fetchEvents();
   }, []);
-
+function Presenca () {
+  router.navigate("../Tarefas/Presenca")
+}
   function Perfil() {
     router.navigate("./Perfil");
   }
@@ -380,7 +382,11 @@ const Tecnico: React.FC = () => {
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Comunicados</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('perfil')}>
+           <TouchableOpacity style={styles.navItem} onPress={Presenca}>
+            <FontAwesomeIcon icon={faCheck} size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Lista de Presença</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={Perfil}>
             <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Meu Perfil</Text>
           </TouchableOpacity>

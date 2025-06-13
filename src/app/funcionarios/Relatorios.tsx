@@ -7,13 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { router } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 
-function GoBack  ()  {
-router.navigate("./funcionarios/Tecnico");
-}
 
 const AthleteEvaluationForm = () => {
+  const navigation = useNavigation();
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [nomeAvaliador, setNomeAvaliador] = useState('');
   const [nascimento, setNascimento] = useState('');
@@ -279,7 +277,7 @@ const AthleteEvaluationForm = () => {
     <TouchableOpacity style={styles.button} onPress={handleSubmit}>
       <Text style={styles.buttonText}>Salvar Avaliação</Text>
     </TouchableOpacity>
-    <TouchableOpacity style={styles.button} onPress={GoBack}>
+    <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
       <Text style={styles.buttonText}>Voltar</Text>
     </TouchableOpacity>
   </View>

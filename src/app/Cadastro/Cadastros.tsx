@@ -144,7 +144,7 @@ const Cadastro = () => {
                         style={{ width: "100%", height: 200, borderRadius: 55 }}
                     />
 
-                    <Text style={styles.title}>Cadastrar Novo Usuário</Text> {/* Updated title */}
+                    <Text style={styles.title}>Cadastrar Funcionario</Text> {/* Updated title */}
                     <TextInput
                         style={styles.input}
                         placeholder="Nome"
@@ -204,6 +204,7 @@ const Cadastro = () => {
                         dropDownContainerStyle={styles.dropdownContainer}
                         zIndex={3000} // Adjust zIndex to ensure dropdown appears above other elements
                         zIndexInverse={1000}
+                        listMode="SCROLLVIEW" 
                     />
 
                     <TouchableOpacity style={styles.button} onPress={enviarDados}>

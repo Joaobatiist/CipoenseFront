@@ -1,6 +1,5 @@
-// SEU ARQUIVO REACT NATIVE (CadastroAlunoScreen.tsx)
+import React, { useState, useCallback } from 'react';
 
-import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -32,6 +31,23 @@ const CadastroAlunoScreen = () => {
   const [emailAluno, setEmailAluno] = useState('');
   const [dataNascimentoAluno, setDataNascimentoAluno] = useState('');
   const [cpfAluno, setCpfAluno] = useState(''); 
+  const [subOpen, setSubOpen] = useState (false);
+  const [subDivisao, setSubDivisao] = useState(null);
+  const [subItems, setSubItems] = useState([ 
+    {label: 'Sub-10', value: 'SUB_10'},
+    {label: 'Sub-11', value: 'SUB_11'},
+    {label: 'Sub-12', value: 'SUB_12'},
+    {label: 'Sub-13', value: 'SUB_13'},
+    {label: 'Sub-14', value: 'SUB_14'},
+    {label: 'Sub-15', value: 'SUB_15'},
+    {label: 'Sub-16', value: 'SUB_16'},
+    {label: 'Sub-17', value: 'SUB_17'},
+    {label: 'Sub-18', value: 'SUB_18'},
+  ]);
+
+  
+  const [massa, setMassa] = useState('');
+ 
 
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
@@ -41,7 +57,7 @@ const CadastroAlunoScreen = () => {
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState(null);
   const [items, setItems] = useState([
-    { label: 'Aluno', value: 'ALUNO' },
+    { label: 'Atleta', value: 'ATLETA' },
   ]);
 
   const formatarData = (data: string): string => {
@@ -56,6 +72,8 @@ const CadastroAlunoScreen = () => {
       !emailAluno ||
       !dataNascimentoAluno ||
       !cpfAluno ||
+      !subDivisao ||
+      !massa ||
       !nomeResponsavel ||
       !telefoneResponsavel ||
       !emailResponsavel ||
@@ -80,6 +98,8 @@ const CadastroAlunoScreen = () => {
       email: emailAluno,
       dataNascimento: formatarData(dataNascimentoAluno),
       cpf: cpfAluno, 
+      subDivisao: subDivisao,
+      massa: massa,
       roles: role, // Mapeado para o campo 'roles' na entidade Aluno
 
       // Objeto Responsavel aninhado - Mapear diretamente para a entidade Responsavel
@@ -198,20 +218,47 @@ const CadastroAlunoScreen = () => {
             keyboardType="numeric"
           />
 
+           <TextInput
+          style={styles.input}
+          onChangeText={setMassa}
+          value={massa}
+          keyboardType="numeric" 
+          placeholder="Ex: 75.5" 
+          maxLength={6} 
+        />
+        
+         
+            <DropDownPicker
+        open={open}
+        value={role}
+        items={items}
+        setOpen={setOpen} 
+        setValue={setRole}
+        setItems={setItems}
+        placeholder="Selecione um cargo..."
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+        
+        zIndex={open ? 3000 : 1000} 
+        zIndexInverse={open ? 1000 : 3000} 
+        listMode="SCROLLVIEW"
+      />
+          
           <DropDownPicker
-            open={open}
-            value={role}
-            items={items}
-            setOpen={setOpen}
-            setValue={setRole}
-            setItems={setItems}
-            placeholder="Selecione um cargo..."
-            style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
-            zIndex={3000}
-            zIndexInverse={1000}
-          />
-          {open && <View style={{ height: 200 }} />}
+        open={subOpen}
+        value={subDivisao}
+        items={subItems}
+        setOpen={setSubOpen} 
+        setValue={setSubDivisao}
+        setItems={setSubItems}
+        placeholder="Selecione SubDivisao..."
+        style={styles.dropdown}
+        dropDownContainerStyle={styles.dropdownContainer}
+        
+        zIndex={subOpen ? 3000 : 1000} 
+        zIndexInverse={subOpen ? 1000 : 3000} 
+        listMode="SCROLLVIEW"
+      />
 
           <Text style={styles.title}>Dados do Responsável</Text>
 

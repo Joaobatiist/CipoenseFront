@@ -71,8 +71,8 @@ const LoginScreen = () => {
 
         Alert.alert('Sucesso', 'Login realizado com sucesso!');
 
-        if (userRole === 'ALUNO') {
-          router.replace('./Atletas/Aluno');
+        if (userRole === 'ATLETA') {
+          router.replace('./Atletas/Atleta');
         } else if (userRole === 'TECNICO') {
           // Este é o redirecionamento para o seu MinimalScreen
           router.replace('./funcionarios/Tecnico'); 

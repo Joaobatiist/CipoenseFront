@@ -6,7 +6,7 @@ import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutA
 import { ptBR } from "../../utils/localendarConfig"
 import { LocaleConfig } from 'react-native-calendars'; 
 import { router } from 'expo-router';
-import { styles } from "../../Styles/Aluno" 
+import { styles } from "../../Styles/Atleta" 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 LocaleConfig.locales["pt-br"] = ptBR
@@ -200,9 +200,7 @@ const Usuario: React.FC = () => {
         scrollToSection('comunicados');
     };
 
-    const navigateToPerfil = () => {
-        scrollToSection('perfil');
-    };
+    
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -232,7 +230,7 @@ const Usuario: React.FC = () => {
                         <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
                         <Text style={styles.navText}>Comunicados</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem} onPress={navigateToPerfil}>
+                    <TouchableOpacity style={styles.navItem} onPress={Perfil}>
                         <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
                         <Text style={styles.navText}>Meu Perfil</Text>
                     </TouchableOpacity>
@@ -244,7 +242,7 @@ const Usuario: React.FC = () => {
             )}
 
             <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
-                {/* Seção Agenda de Treinos para Alunos */}
+                
                 <View style={styles.section} onLayout={(event) => handleLayout(event, 'agenda')}>
                     <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
                     
@@ -301,10 +299,7 @@ const Usuario: React.FC = () => {
                     )}
                 </View>
 
-                <View style={styles.section} onLayout={(event) => handleLayout(event, 'perfil')}>
-                    <Text style={styles.sectionTitle}>Meu Perfil</Text>
-                    <Text style={styles.emptyMessage}>Detalhes do perfil do aluno serão exibidos aqui.</Text>
-                </View>
+             
 
             </ScrollView>
         </SafeAreaView>

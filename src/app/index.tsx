@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import axios from 'axios';
+import Api from '../Config/Api';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -24,7 +25,6 @@ interface CustomJwtPayload extends JwtPayload {
 }
 
 
-const BASE_URL = 'http://192.168.0.10:8080';
 
 const LoginScreen = () => {
   const [emailAluno, setEmailAluno] = useState('');
@@ -44,7 +44,7 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${BASE_URL}/auth/login`, {
+      const response = await Api.post(`/auth/login`, {
         email: emailAluno,
         senha: senhaAluno,
       });

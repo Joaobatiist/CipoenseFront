@@ -11,6 +11,8 @@ import {
   Platform
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import Api from '../../Config/Api'
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
@@ -25,7 +27,9 @@ type Usuario = {
 const PerfilInstrutor = () => {
   const navigation = useNavigation();
   
-  // Dados do usuário com tipagem explícita
+
+
+ 
   const [usuario, setUsuario] = useState<Usuario>({
     nome: 'João Victor',
     email: 'joao@email.com',
@@ -33,7 +37,7 @@ const PerfilInstrutor = () => {
     foto: 'https://www.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png'
   });
 
-  // Tipagem para os estados
+  
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [editando, setEditando] = useState<boolean>(false);
   const [form, setForm] = useState<Usuario>({ ...usuario });

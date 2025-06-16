@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode'
 import { styles } from "../../Styles/Tecnico";
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 interface Usuario {
     id: number;
@@ -138,7 +139,7 @@ const ComunicadosScreen: React.FC = () => {
                     console.warn('FETCH_USERS_FOR_COMUNICADO: Token ausente. Não será possível buscar usuários.');
                     return;
                 }
-                const response = await fetch('http://192.168.0.10:8080/api/usuarios-para-comunicado', {
+                const response = await fetch(`${API_BASE_URL}/api/usuarios-para-comunicado`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -167,7 +168,7 @@ const ComunicadosScreen: React.FC = () => {
                     console.warn('FETCH_COMUNICADOS: Token não encontrado. Não será possível buscar comunicados.');
                     return;
                 }
-                const response = await fetch('http://192.168.0.10:8080/api/comunicados', {
+                const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -264,7 +265,7 @@ const ComunicadosScreen: React.FC = () => {
             console.log('DEBUG FRONTEND: Request Body sendo enviado (Criar):', JSON.stringify(requestBody, null, 2));
 
 
-            const response = await fetch('http://192.168.0.10:8080/api/comunicados', {
+            const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -342,7 +343,7 @@ const ComunicadosScreen: React.FC = () => {
             console.log('DEBUG FRONTEND: Request Body sendo enviado (Atualizar):', JSON.stringify(requestBody, null, 2));
 
 
-            const response = await fetch(`http://192.168.0.10:8080/api/comunicados/${editingComunicadoId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/comunicados/${editingComunicadoId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -392,7 +393,7 @@ const ComunicadosScreen: React.FC = () => {
                                 Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
                                 return;
                             }
-                            const response = await fetch(`http://192.168.0.10:8080/api/comunicados/${idComunicado}`, {
+                            const response = await fetch(`${API_BASE_URL}/api/comunicados/${idComunicado}`, {
                                 method: 'DELETE',
                                 headers: {
                                     'Authorization': `Bearer ${token}`,

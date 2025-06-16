@@ -5,22 +5,25 @@ import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutA
 import { Button } from "../../components/button";
 import { ptBR } from "../../utils/localendarConfig";
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { router } from 'expo-router'; // Preservando expo-router
+import { router } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from '../../Styles/Supervisor'; // Importa os estilos CENTRALIZADOS
-import ComunicadosSection from '../funcionarios/Comunicado'; // IMPORTA O NOVO COMPONENTE
+import { styles } from '../../Styles/Supervisor'; 
+import ComunicadosSection from '../funcionarios/Comunicado'; 
 
 LocaleConfig.locales["pt-br"] = ptBR;
 LocaleConfig.defaultLocale = "pt-br";
 
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 interface SectionOffsets {
-  agenda?: number; // Adicionei agenda para consistência, se for usar scroll para ela
+  agenda?: number; 
   comunicados?: number;
   desempenho?: number;
   perfil?: number;
 }
 
-// Interfaces (manter no Tecnico.tsx apenas o que é relevante para ele, ou em um arquivo comum)
+
 interface Evento {
   id: string;
   data: string;
@@ -35,7 +38,7 @@ const Coordenador: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<SectionOffsets>({});
 
-  // Estados para agenda de treinos (MANTIDOS AQUI)
+  
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
@@ -48,8 +51,7 @@ const Coordenador: React.FC = () => {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-  // --- Helper to get JWT token (Mantido aqui, mas também no ComunicadosSection) ---
-  // Idealmente, seria um utilitário global para evitar duplicação.
+  
   const getToken = async (): Promise<string | null> => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
@@ -79,7 +81,7 @@ const Coordenador: React.FC = () => {
         }
         console.log('FETCH_EVENTS (TecnicoScreen): Token presente para requisição GET de eventos.');
 
-        const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+        const response = await fetch(`${API_BASE_URL}/api/eventos`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -193,7 +195,7 @@ function Presenca () {
       }
       console.log('ADICIONAR_TREINO: Token presente para requisição POST.');
 
-      const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+      const response = await fetch(`${API_BASE_URL}/api/eventos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -212,8 +214,7 @@ function Presenca () {
 
       const formattedEventoSaved: Evento = {
         ...eventoSalvo,
-        // Garante que a data salva é formatada corretamente para exibição,
-        // partindo de um formato de data ISO.
+        
         data: new Date(eventoSalvo.data + 'T00:00:00').toLocaleDateString('pt-BR'),
       };
 
@@ -232,10 +233,10 @@ function Presenca () {
     }
   };
 
-  // --- Funções para agenda de treinos (EDITAR/ATUALIZAR) ---
+ 
   const startEditingTreino = (eventToEdit: Evento) => {
     setEditingEventId(eventToEdit.id);
-    // Converte a data de 'dd/mm/yyyy' para 'yyyy-mm-dd' para o calendário
+   
     const dateParts = eventToEdit.data.split('/');
     const formattedDateForInput = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
     setSelectedDate(formattedDateForInput);
@@ -271,7 +272,7 @@ function Presenca () {
       }
       console.log('SALVAR_EDITAR_TREINO: Token presente para requisição PUT.');
 
-      const response = await fetch(`http://192.168.0.10:8080/api/eventos/${editingEventId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/eventos/${editingEventId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -332,7 +333,7 @@ function Presenca () {
               }
               console.log('EXCLUIR_TREINO: Token presente para requisição DELETE.');
 
-              const response = await fetch(`http://192.168.0.10:8080/api/eventos/${idTreino}`, {
+              const response = await fetch(`${API_BASE_URL}/api/eventos/${idTreino}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,

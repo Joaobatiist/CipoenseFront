@@ -11,9 +11,10 @@ import {
     Keyboard,
     TouchableWithoutFeedback,
     View,
-    Alert, // Using Alert from React Native for better UX
+    Alert, 
 } from 'react-native';
 import { router } from 'expo-router';
+import Api from '../../Config/Api'
 import { TextInputMask } from 'react-native-masked-text';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
@@ -70,9 +71,7 @@ const Cadastro = () => {
         // Ensure the role is normalized to uppercase to match backend Enum
         const normalizedRole = role ? String(role).toUpperCase() : '';
 
-        // *** THIS IS THE KEY CHANGE FOR THE UNIFIED ENDPOINT ***
-        // All employees (Coordenador, Tecnico, Supervisor) will use this single endpoint.
-        const apiUrl = 'http://192.168.0.10:8080/cadastro/funcionarios'; // Your unified backend endpoint
+       
 
         const payload = {
             nome: nome,
@@ -83,13 +82,12 @@ const Cadastro = () => {
             telefone: telefone,
             roles: normalizedRole, // Send the exact uppercase Enum name
         };
-
-        console.log("Enviando para:", apiUrl);
-        console.log("Payload:", payload);
-
+        
+ 
          try {
-        const response = await axios.post(apiUrl, payload);
-
+       const response = await Api.post('/cadastro/funcionarios', payload); 
+        console.log("Enviando para:", response);
+        console.log("Payload:", payload);
         console.log("Resposta do backend:", response.data);
         Alert.alert("Sucesso", `Cadastro de ${String(role).toLowerCase()} feito com sucesso!`);
         router.back();

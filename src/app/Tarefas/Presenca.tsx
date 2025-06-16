@@ -2,69 +2,107 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   Platform,
-  Modal, // Importar Modal de volta
+  Modal,
 } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { router } from 'expo-router';
 import axios from 'axios';
+import { styles } from '../../Styles/Presenca'; 
+import Api from '../../Config/Api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
+import 'moment/locale/pt-br';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-// --- Configuração ---
-const BASE_URL = 'http://192.168.0.10:8080';
+moment.locale('pt-br');
 
-// --- Interfaces TypeScript ---
+
+interface PresencaRegistro {
+  id: number;
+  data: string; 
+  presente: boolean;
+  atletaId: number;
+  nomeAtleta: string;
+}
 interface Aluno {
   id: number;
   nome: string;
-  presente: boolean | null; // true (presente), false (ausente), null (não marcado)
+  presente: boolean | null; 
   email?: string;
   subDivisao?: string;
 }
-
 interface PresencaData {
   atletaId: number;
   presente: boolean;
-  data: string; // "YYYY-MM-DD"
+  data: string; 
 }
 
 type RootStackParamList = {
   ListaPresenca: undefined;
-  ListaPresencasAnteriores: { initialDate?: string };
 };
 type ListaPresencaScreenNavigationProp = NavigationProp<RootStackParamList, 'ListaPresenca'>;
 
-// --- Componente da Tela ---
 const ListaPresencaScreen = () => {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  // A data padrão agora é o dia atual, não amanhã.
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  // Data temporária para o picker
   const [tempSelectedDate, setTempSelectedDate] = useState<Date>(new Date());
   const [showDatePickerModal, setShowDatePickerModal] = useState(false);
+  const [presencasAgrupadas, setPresencasAgrupadas] = useState<Record<string, PresencaRegistro[]>>({});
+  
+  // NOVO: Estado único para controlar a visualização da tela
+  type ViewMode = 'registro' | 'historico' | 'detalhe';
+  const [viewMode, setViewMode] = useState<ViewMode>('registro');
 
   const navigation = useNavigation<ListaPresencaScreenNavigationProp>();
 
-  // --- Efeito para carregar alunos ao montar e quando a data selecionada muda ---
-  useEffect(() => {
-    // Carrega alunos para a data no estado 'selectedDate'
-    fetchAlunosForDay(moment(selectedDate).format('YYYY-MM-DD'));
-  }, [selectedDate]);
+  useFocusEffect(
+    useCallback(() => {
+      if (viewMode === 'historico') {
+        fetchHistoricoPresencas();
+      } else { 
+        fetchAlunosForDay(moment(selectedDate).format('YYYY-MM-DD'));
+      }
+    }, [viewMode, selectedDate]) 
+  );
 
-  /**
-   * Busca a lista de atletas para uma data específica.
-   * @param dateString A data no formato "YYYY-MM-DD".
-   */
-  const fetchAlunosForDay = async (dateString: string) => {
+ const fetchAlunosForDay = async (dateString: string) => {
+  setLoading(true);
+  try {
+    const token = await AsyncStorage.getItem('jwtToken');
+    const response = await Api.get<any[]>(`/api/presenca/atletas?data=${dateString}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    console.log('✅ Dados brutos do backend:', response.data);
+
+    // Corrige o mapeamento: presenca -> presente
+    const alunosCarregados: Aluno[] = response.data.map((aluno: any) => ({
+      id: aluno.id,
+      nome: aluno.nome,
+      presente: aluno.presenca !== undefined ? aluno.presenca : null, // <-- Aqui está a correção
+      email: aluno.email,
+      subDivisao: aluno.subDivisao
+    }));
+
+    setAlunos(alunosCarregados);
+  } catch (error) {
+    console.error('Erro ao buscar alunos:', error);
+    Alert.alert('Erro', 'Falha ao carregar dados.');
+    setAlunos([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const fetchHistoricoPresencas = async () => {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('jwtToken');
@@ -73,33 +111,36 @@ const ListaPresencaScreen = () => {
         router.replace('../../');
         return;
       }
-
-      const response = await axios.get<Aluno[]>(`${BASE_URL}/api/presenca/atletas?data=${dateString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      
+      const response = await Api.get<PresencaRegistro[]>('/api/presenca/historico', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      const alunosComPresenca: Aluno[] = response.data.map((aluno: Aluno) => ({
-        ...aluno,
-        presente: aluno.presente !== undefined ? aluno.presente : null,
-      }));
-      setAlunos(alunosComPresenca);
+      const grouped: Record<string, PresencaRegistro[]> = {};
+      response.data.forEach(item => {
+        const dateKey = moment(item.data).format('YYYY-MM-DD');
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(item);
+      });
+      
+      const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+      const sortedGrouped: Record<string, PresencaRegistro[]> = {};
+      sortedKeys.forEach(key => {
+        sortedGrouped[key] = grouped[key];
+      });
 
-      const ids = alunosComPresenca.map(a => a.id);
-      const uniqueIds = new Set(ids);
-      if (ids.length !== uniqueIds.size) {
-        console.warn("ATENÇÃO: IDs de alunos duplicados detectados! Isso pode causar comportamento inesperado.");
-      }
+      setPresencasAgrupadas(sortedGrouped);
 
     } catch (error) {
-      console.error(`Erro ao buscar alunos para ${dateString}:`, error);
+      console.error("Erro ao buscar histórico de presenças:", error);
       if (axios.isAxiosError(error) && error.response) {
-        Alert.alert("Erro", `Falha ao carregar alunos para ${dateString}: ${error.response.data.message || 'Erro desconhecido.'}`);
+        Alert.alert("Erro", `Falha ao carregar histórico: ${error.response.data.message || 'Erro desconhecido.'}`);
       } else {
         Alert.alert("Erro", "Não foi possível conectar ao servidor ou erro inesperado.");
       }
-      setAlunos([]);
+      setPresencasAgrupadas({});
     } finally {
       setLoading(false);
     }
@@ -128,7 +169,7 @@ const ListaPresencaScreen = () => {
         .map(aluno => ({
           atletaId: aluno.id,
           presente: aluno.presente!,
-          data: moment(selectedDate).format('YYYY-MM-DD') // Envia a data selecionada
+          data: moment(selectedDate).format('YYYY-MM-DD')
         }));
 
       if (presencasParaEnviar.length === 0) {
@@ -137,7 +178,7 @@ const ListaPresencaScreen = () => {
         return;
       }
 
-      const response = await axios.post(`${BASE_URL}/api/presenca/registrar`, presencasParaEnviar, {
+      await Api.post(`/api/presenca/registrar`, presencasParaEnviar, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -145,8 +186,10 @@ const ListaPresencaScreen = () => {
       });
 
       Alert.alert("Sucesso", "Presenças registradas/atualizadas com sucesso!");
-      console.log("Resposta do backend (salvar presença):", response.data);
-
+      
+    
+      setViewMode('detalhe');
+      
     } catch (error) {
       console.error("Erro ao salvar presença:", error);
       if (axios.isAxiosError(error) && error.response) {
@@ -159,268 +202,227 @@ const ListaPresencaScreen = () => {
     }
   };
 
-  const renderAlunoItem = useCallback(({ item }: { item: Aluno }) => (
-    <View style={styles.alunoItem}>
-      <Text style={styles.alunoNome}>{item.nome}</Text>
-      <View style={styles.iconContainer}>
-        <TouchableOpacity onPress={() => setPresencaStatus(item.id, true)}>
-          <MaterialIcons
-            name="check-circle"
-            size={30}
-            color={item.presente === true ? "green" : "lightgray"}
-          />
-        </TouchableOpacity>
-        <View style={{ width: 15 }} />
-        <TouchableOpacity onPress={() => setPresencaStatus(item.id, false)}>
-          <MaterialIcons
-            name="cancel"
-            size={30}
-            color={item.presente === false ? "red" : "lightgray"}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
-  ), []);
+
+  const renderAlunoItem = useCallback(({ item }: { item: Aluno }) => {
+    const isEditable = viewMode === 'registro';
+    const isDetalhe = viewMode === 'detalhe';   // Modo visualização
+
+    // Define a cor do ícone baseado no status
+    let iconName = "circle"; // Padrão (não registrado)
+    let iconColor = "lightgray";
+
+    if (item.presente === true) {
+        iconName = "check-circle";
+        iconColor = "green";
+    } else if (item.presente === false) {
+        iconName = "cancel";
+        iconColor = "red";
+    }
+
+    return (
+        <View style={styles.alunoItem}>
+            <Text style={styles.alunoNome}>{item.nome}</Text>
+            <View style={styles.iconContainer}>
+                {isEditable ? (
+                    
+                    <>
+                        <TouchableOpacity onPress={() => setPresencaStatus(item.id, true)}>
+                            <MaterialIcons name="check-circle" size={30} color={item.presente === true ? "green" : "lightgray"} />
+                        </TouchableOpacity>
+                        <View style={{ width: 15 }} />
+                        <TouchableOpacity onPress={() => setPresencaStatus(item.id, false)}>
+                            <MaterialIcons name="cancel" size={30} color={item.presente === false ? "red" : "lightgray"} />
+                        </TouchableOpacity>
+                    </>
+                ) : (
+                   
+                    <MaterialIcons
+                        name={iconName}
+                        size={30}
+                        color={iconColor}
+                    />
+                )}
+            </View>
+        </View>
+    );
+  }, [viewMode, setPresencaStatus]);
+  const renderDiaHistoricoItem = useCallback(({ item }: { item: string }) => {
+    const dataFormatada = moment(item).format('DD/MM/YYYY (dddd)');
+    const registrosDoDia = presencasAgrupadas[item];
+    const totalPresentes = registrosDoDia.filter(p => p.presente === true).length;
+    const totalAusentes = registrosDoDia.filter(p => p.presente === false).length;
+    const totalAlunos = registrosDoDia.length;
+
+    return (
+      <TouchableOpacity
+        style={styles.diaCard}
+        onPress={() => {
+          setSelectedDate(moment(item).toDate());
+          setViewMode('detalhe'); 
+        }}
+      >
+        <View style={styles.diaCardContent}>
+          <Text style={styles.diaCardTitle}>{dataFormatada}</Text>
+          <Text style={styles.diaCardSummary}>
+            Presentes: {totalPresentes} | Ausentes: {totalAusentes} | Total: {totalAlunos}
+          </Text>
+        </View>
+        <MaterialIcons name="arrow-forward-ios" size={20} color="#1c348e" />
+      </TouchableOpacity>
+    );
+  }, [presencasAgrupadas]);
 
   const onDateChangeInPicker = (event: any, date?: Date) => {
     const currentDate = date || tempSelectedDate;
-    setTempSelectedDate(currentDate); // Atualiza apenas a data temporária
+    setShowDatePickerModal(Platform.OS === 'ios');
+    setTempSelectedDate(currentDate);
+
     if (Platform.OS === 'android') {
-      setShowDatePickerModal(false);
-      setSelectedDate(currentDate); // Define a data final
+      setSelectedDate(currentDate);
+      setViewMode('registro'); 
     }
+  };
+  
+  const confirmIosDate = () => {
+    setShowDatePickerModal(false);
+    setSelectedDate(tempSelectedDate);
+    setViewMode('registro'); 
+  };
+  
+  const getHeaderTitle = () => {
+      switch (viewMode) {
+          case 'historico':
+              return 'Histórico de Presenças';
+          case 'detalhe':
+              return `Detalhes - ${moment(selectedDate).format('DD/MM/YYYY')}`;
+          case 'registro':
+          default:
+              return `Registro - ${moment(selectedDate).format('DD/MM/YYYY')}`;
+      }
   };
 
  
-
-  // --- Renderização Condicional ---
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1c348e" />
-        <Text>Carregando alunos...</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
+      
       <View style={styles.header}>
+        
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (viewMode === 'detalhe') {
+              setViewMode('historico');
+            } else if (viewMode === 'historico') {
+              setViewMode('registro');
+              setSelectedDate(new Date());
+            } else { // 'registro'
+              navigation.goBack();
+            }
+          }}
           style={styles.btnVoltar}
-          accessibilityLabel="Voltar"
         >
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Presença - {moment(selectedDate).format('DD/MM/YYYY')}
-        </Text>
-        {/* Botão para abrir o DatePicker para selecionar a data do registro */}
-        <TouchableOpacity
-          onPress={() => {
-            setTempSelectedDate(selectedDate); // Inicia o picker com a data atual
-            setShowDatePickerModal(true);
-          }}
-          style={styles.calendarButton}
-        >
-         
-        </TouchableOpacity>
+        
+        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+        
+        {viewMode === 'registro' && (
+          <TouchableOpacity
+            onPress={() => {
+              setTempSelectedDate(selectedDate);
+              setShowDatePickerModal(true);
+            }}
+            style={styles.calendarButton}
+          >
+            
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* Modal para seleção de data de REGISTRO */}
-     
+      {showDatePickerModal && Platform.OS === 'ios' && (
+        <Modal transparent={true} animationType="slide" visible={showDatePickerModal} onRequestClose={() => setShowDatePickerModal(false)}>
+            <View style={styles.modalBackground}>
+              <View style={styles.datePickerContainer}>
+                  <DateTimePicker value={tempSelectedDate} mode="date" display="spinner" onChange={onDateChangeInPicker} />
+                  <TouchableOpacity onPress={confirmIosDate} style={styles.confirmButton}>
+                      <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+              </View>
+            </View>
+        </Modal>
+      )}
+      {showDatePickerModal && Platform.OS === 'android' && (
+          <DateTimePicker value={tempSelectedDate} mode="date" display="default" onChange={onDateChangeInPicker} />
+      )}
 
-      {alunos.length === 0 ? (
-        <View style={styles.emptyListContainer}>
-          <Text style={styles.emptyListText}>
-            Nenhum aluno encontrado para esta data ou não há registros.
-          </Text>
-          <TouchableOpacity
-            style={styles.reloadButton}
-            onPress={() => fetchAlunosForDay(moment(selectedDate).format('YYYY-MM-DD'))}
-          >
-            <Text style={styles.reloadButtonText}>Tentar Novamente</Text>
-          </TouchableOpacity>
+      
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1c348e" />
+          <Text>Carregando...</Text>
         </View>
+      ) : viewMode === 'historico' ? (
+        Object.keys(presencasAgrupadas).length === 0 ? (
+          <View style={styles.emptyListContainer}>
+            <Text style={styles.emptyListText}>Nenhum registro de presença encontrado.</Text>
+            <TouchableOpacity style={styles.reloadButton} onPress={fetchHistoricoPresencas}>
+              <Text style={styles.reloadButtonText}>Recarregar Histórico</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={Object.keys(presencasAgrupadas)}
+            keyExtractor={(item) => item}
+            renderItem={renderDiaHistoricoItem}
+            contentContainerStyle={styles.listContent}
+          />
+        )
       ) : (
-        <FlatList
-          data={alunos}
-          keyExtractor={item => item.id.toString()}
-          renderItem={renderAlunoItem}
-          contentContainerStyle={styles.listContent}
-        />
+        alunos.length === 0 ? (
+          <View style={styles.emptyListContainer}>
+            <Text style={styles.emptyListText}>Nenhum aluno encontrado para esta data.</Text>
+            <TouchableOpacity style={styles.reloadButton} onPress={() => fetchAlunosForDay(moment(selectedDate).format('YYYY-MM-DD'))}>
+              <Text style={styles.reloadButtonText}>Tentar Novamente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={alunos}
+            keyExtractor={item => item.id.toString()}
+            renderItem={renderAlunoItem}
+            contentContainerStyle={styles.listContent}
+          />
+        )
+      )}
+
+      {viewMode === 'registro' && (
+        <TouchableOpacity style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={salvarPresenca} disabled={saving}>
+          {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveButtonText}>Salvar Presenças</Text>}
+        </TouchableOpacity>
+      )}
+      
+      {viewMode === 'detalhe' && (
+        <TouchableOpacity style={styles.saveButton} onPress={() => setViewMode('registro')}>
+          <Text style={styles.saveButtonText}>Editar Presenças</Text>
+        </TouchableOpacity>
       )}
 
       <TouchableOpacity
-        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-        onPress={salvarPresenca}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.saveButtonText}>Salvar Presenças</Text>
-        )}
-      </TouchableOpacity>
-
-     
-      <TouchableOpacity
         style={styles.previousListsButton}
-        
+        onPress={() => {
+          if (viewMode === 'historico') {
+            setViewMode('registro');
+            setSelectedDate(new Date());
+          } else {
+            setViewMode('historico');
+          }
+        }}
       >
-        <Text style={styles.previousListsButtonText}>Ver Histórico</Text>
+        <Text style={styles.previousListsButtonText}>
+          {viewMode === 'historico' ? 'Voltar ao Registro do Dia' : 'Ver Histórico'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-// --- Estilos ---
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    backgroundColor: '#1c348e',
-    padding: 15,
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5c228',
-  },
-  btnVoltar: {
-    position: 'absolute',
-    left: 15,
-    top: Platform.OS === 'android' ? 40 : 20,
-    zIndex: 1,
-  },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  calendarButton: { // Novo estilo para o botão do calendário no cabeçalho
-    position: 'absolute',
-    right: 15,
-    top: Platform.OS === 'android' ? 40 : 20,
-    zIndex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyListText: { fontSize: 18, color: '#666', marginBottom: 10 },
-  reloadButton: {
-    backgroundColor: '#e5c228',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  reloadButtonText: { color: '#1c348e', fontWeight: 'bold' },
-  listContent: { padding: 15 },
-  alunoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  alunoNome: { fontSize: 18, color: '#333', flex: 1 },
-  iconContainer: { flexDirection: 'row', alignItems: 'center' },
-  saveButton: {
-    backgroundColor: '#1c348e',
-    paddingVertical: 15,
-    marginHorizontal: 15,
-    marginTop: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  saveButtonDisabled: { backgroundColor: '#a0a0a0' },
-  previousListsButton: {
-    backgroundColor: '#e5c228',
-    paddingVertical: 15,
-    marginHorizontal: 15,
-    marginBottom: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previousListsButtonText: {
-    color: '#1c348e',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  // Estilos do Modal para DateTimePicker (mantidos)
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  modalButtonsContainer: {
-    flexDirection: 'row',
-    marginTop: 20,
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  modalButton: {
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    flex: 1,
-    marginHorizontal: 5,
-    alignItems: 'center',
-  },
-  buttonClose: {
-    backgroundColor: '#f44336',
-  },
-  buttonConfirm: {
-    backgroundColor: '#4CAF50',
-  },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-});
 
 export default ListaPresencaScreen;

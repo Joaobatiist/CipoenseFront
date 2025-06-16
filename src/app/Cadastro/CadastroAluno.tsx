@@ -19,10 +19,11 @@ import { TextInputMask } from 'react-native-masked-text';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import Api from '../../Config/Api'
 import DropDownPicker from 'react-native-dropdown-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
 
-const BASE_URL = 'http://192.168.0.10:8080';
+
 
 const CadastroAlunoScreen = () => {
   const navigation = useNavigation();
@@ -92,7 +93,7 @@ const CadastroAlunoScreen = () => {
     }
 
     const alunoData = {
-      // Campos do Aluno - Mapear diretamente para a entidade Aluno
+    
       nome: nomeAluno,
       senha: senhaAluno,
       email: emailAluno,
@@ -100,9 +101,9 @@ const CadastroAlunoScreen = () => {
       cpf: cpfAluno, 
       subDivisao: subDivisao,
       massa: massa,
-      roles: role, // Mapeado para o campo 'roles' na entidade Aluno
+      roles: role, 
 
-      // Objeto Responsavel aninhado - Mapear diretamente para a entidade Responsavel
+      
       responsavel: {
         nome: nomeResponsavel,
         telefone: telefoneResponsavel,
@@ -114,17 +115,17 @@ const CadastroAlunoScreen = () => {
     console.log("Dados a serem enviados:", alunoData);
 
     try {
-      // 1. Recuperar o token JWT do AsyncStorage
+     
       const token = await AsyncStorage.getItem('jwtToken');
 
       if (!token) {
         Alert.alert("Erro de Autenticação", "Token de autenticação não encontrado. Por favor, faça login novamente.");
-        router.replace('../../'); // Redireciona para a tela de login
+        router.replace('../../'); 
         return;
       }
 
       // 2. Adicionar o token ao cabeçalho da requisição
-      const response = await axios.post(`${BASE_URL}/api/cadastro`, alunoData, {
+      const response = await Api.post(`/api/cadastro`, alunoData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` // Adiciona o cabeçalho Authorization com o token

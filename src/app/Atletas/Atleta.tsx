@@ -12,6 +12,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 LocaleConfig.locales["pt-br"] = ptBR
 LocaleConfig.defaultLocale = "pt-br"
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 interface SectionOffsets {
     agenda?: number;
     desempenho?: number;
@@ -76,8 +78,8 @@ const Usuario: React.FC = () => {
                 return;
             }
             
-            const backendUrl = 'http://192.168.0.10:8080/api/comunicados';
-            const response = await fetch(backendUrl, {
+            
+            const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -114,7 +116,7 @@ const Usuario: React.FC = () => {
             }
             console.log('FETCH_EVENTS (UsuarioScreen): Token presente para requisição GET de eventos.');
 
-            const response = await fetch('http://192.168.0.10:8080/api/eventos', {
+            const response = await fetch(`${API_BASE_URL}/api/eventos`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

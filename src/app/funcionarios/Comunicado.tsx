@@ -44,14 +44,14 @@ const ComunicadosScreen: React.FC = () => {
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
     const [hiddenComunicados, setHiddenComunicados] = useState<number[]>([]);
 
-    // MODIFIED: Enhanced getReactKey for better debugging and uniqueness
+    
    const getReactKey = useCallback((id: number | null | undefined, prefix: string = "item", typeIdentifier?: string): string => {
     if (id == null || id === 0 || isNaN(id)) {
         const fallbackKey = `${prefix}-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         console.warn(`[GET_REACT_KEY WARN] Problematic ID for '${prefix}'. Original ID: ${id}. Generated fallback: ${fallbackKey}`);
         return fallbackKey;
     }
-    // Incorporate the typeIdentifier if provided
+   
     const typePart = typeIdentifier ? `-${typeIdentifier}` : '';
     const uniqueKey = `${prefix}-${Number(id)}${typePart}`; 
     return uniqueKey;

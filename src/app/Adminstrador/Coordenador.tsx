@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList, Alert } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard, faAddressCard, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard, faAddressCard, faCheck, faBoxes } from '@fortawesome/free-solid-svg-icons';
 import { Button } from "../../components/button";
 import { ptBR } from "../../utils/localendarConfig";
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -55,15 +55,15 @@ const Coordenador: React.FC = () => {
   const getToken = async (): Promise<string | null> => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      console.log('DEBUG TOKEN (TecnicoScreen): Chamada getToken()');
+      console.log('DEBUG TOKEN  Chamada getToken()');
       if (token) {
-        console.log('DEBUG TOKEN (TecnicoScreen): Token recuperado do AsyncStorage. Tamanho:', token.length, 'Inicia com:', token.substring(0, 20), '...');
+        console.log('DEBUG TOKEN  Token recuperado do AsyncStorage. Tamanho:', token.length, 'Inicia com:', token.substring(0, 20), '...');
       } else {
-        console.log('DEBUG TOKEN (TecnicoScreen): Token NÃO encontrado no AsyncStorage (é null ou undefined).');
+        console.log('DEBUG TOKEN  Token NÃO encontrado no AsyncStorage (é null ou undefined).');
       }
       return token;
     } catch (error) {
-      console.error('DEBUG TOKEN (TecnicoScreen): Erro ao obter token do AsyncStorage:', error);
+      console.error('DEBUG TOKEN  Erro ao obter token do AsyncStorage:', error);
       return null;
     }
   };
@@ -71,15 +71,15 @@ const Coordenador: React.FC = () => {
 
   useEffect(() => {
     const fetchEvents = async () => {
-      console.log('FETCH_EVENTS (TecnicoScreen): Iniciando busca de eventos...');
+      console.log('FETCH_EVENTS  Iniciando busca de eventos...');
       try {
         const token = await getToken();
         if (!token) {
-          console.warn('FETCH_EVENTS (TecnicoScreen): Token não encontrado para buscar eventos. Interrompendo a busca.');
+          console.warn('FETCH_EVENTS  Token não encontrado para buscar eventos. Interrompendo a busca.');
           Alert.alert('Erro de Autenticação', 'Sua sessão expirou ou você não está logado. Por favor, faça login novamente para ver os treinos.');
           return;
         }
-        console.log('FETCH_EVENTS (TecnicoScreen): Token presente para requisição GET de eventos.');
+        console.log('FETCH_EVENTS  Token presente para requisição GET de eventos.');
 
         const response = await fetch(`${API_BASE_URL}/api/eventos`, {
           method: 'GET',
@@ -90,7 +90,7 @@ const Coordenador: React.FC = () => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('FETCH_EVENTS (TecnicoScreen): Erro ao buscar eventos do backend:', response.status, errorText);
+          console.error('FETCH_EVENTS  Erro ao buscar eventos do backend:', response.status, errorText);
           throw new Error(`Falha ao carregar eventos: ${response.status} - ${errorText}`);
         }
 
@@ -100,9 +100,9 @@ const Coordenador: React.FC = () => {
           data: new Date(event.data + 'T00:00:00').toLocaleDateString('pt-BR'),
         }));
         setEventos(formattedData);
-        console.log('FETCH_EVENTS (TecnicoScreen): Eventos carregados com sucesso.');
+        console.log('FETCH_EVENTS : Eventos carregados com sucesso.');
       } catch (error) {
-        console.error("FETCH_EVENTS (TecnicoScreen): Falha ao buscar eventos:", error);
+        console.error("FETCH_EVENTS : Falha ao buscar eventos:", error);
         Alert.alert("Erro", `Não foi possível carregar a agenda de treinos. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
         setEventos([]);
       }
@@ -117,6 +117,9 @@ function Presenca () {
   function Perfil() {
     router.navigate("./Perfil");
   }
+   function Estoque (){
+      router.navigate('../Tarefas/ControleEstoque')
+    }
   function Relatorio() {
     router.navigate("./Relatorios");
   }
@@ -127,11 +130,11 @@ function Presenca () {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('jwtToken');
-      console.log('LOGOUT (TecnicoScreen): Token JWT removido com sucesso!');
+      console.log('LOGOUT : Token JWT removido com sucesso!');
       closeSidebar();
       router.replace('../../');
     } catch (error) {
-      console.error('LOGOUT (TecnicoScreen): Erro ao fazer logout:', error);
+      console.error('LOGOUT : Erro ao fazer logout:', error);
       Alert.alert('Erro ao Sair', 'Não foi possível sair no momento. Tente novamente.');
     }
   };
@@ -158,16 +161,16 @@ function Presenca () {
     sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
   };
 
-  // Funções de navegação para as seções na mesma página
+  
   const navigateToMeusTreinos = () => {
-    scrollToSection('agenda'); // Rola para o topo da seção Agenda
+    scrollToSection('agenda'); 
   };
 
   const navigateToComunicados = () => {
-    scrollToSection('comunicados'); // Rola para a seção Comunicados
+    scrollToSection('comunicados');
   };
 
-  // --- Funções para agenda de treinos (ADICIONAR/CRIAR) ---
+ 
   const adicionarTreino = async () => {
     if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
       Alert.alert('Erro', 'Preencha todos os campos do treino: Descrição, Professor, Local e Horário.');
@@ -396,6 +399,10 @@ function Presenca () {
               <FontAwesomeIcon icon={faAddressCard} size={16} color="#fff" style={styles.navIcon} />
              <Text style={styles.navText}>Cadastrar Aluno</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.navItem} onPress={Estoque}>
+                <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
+                <Text style={styles.navText}>estoque</Text>
+               </TouchableOpacity>
               <TouchableOpacity style={styles.navItem} onPress={Perfil}>
             <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Meu Perfil</Text>

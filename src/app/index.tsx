@@ -55,8 +55,7 @@ const LoginScreen = () => {
       const { jwt } = response.data; 
 
       if (jwt) { 
-        // ***** AQUI ESTÁ A CORREÇÃO PRINCIPAL *****
-        // Usamos 'jwtToken' para ser consistente com o nome da chave usada em MinimalScreen.tsx
+       
         await AsyncStorage.setItem('jwtToken', jwt); 
         console.log('Token armazenado no AsyncStorage (chave jwtToken):', jwt); 
 

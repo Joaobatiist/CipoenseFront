@@ -270,9 +270,7 @@ const AthleteEvaluationForm = () => {
     onChangeText={setDataAvaliacao}
   />
   <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
-  {/* Adicione aqui um componente para captura de assinatura, se necessário */}
-
-  {/* Container flex para botões lado a lado */}
+  
   <View style={{ flexDirection: 'row', gap: 10,justifyContent: 'space-between', marginTop: 10 }}>
     <TouchableOpacity style={styles.button} onPress={handleSubmit}>
       <Text style={styles.buttonText}>Salvar Avaliação</Text>

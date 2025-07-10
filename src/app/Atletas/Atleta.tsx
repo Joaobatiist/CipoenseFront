@@ -153,7 +153,7 @@ const Usuario: React.FC = () => {
     }, []);
 
     function Perfil() {
-        router.navigate("./index");
+        router.navigate('../funcionarios/Perfil');
     }
 
     const handleLogout = async () => {

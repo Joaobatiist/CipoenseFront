@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Import useEffect
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,109 +6,102 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  StyleSheet,
+  StyleSheet, // Importar StyleSheet para definir estilos localmente se necessário
   Alert,
-  Platform,
-  ActivityIndicator 
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Api from '../../Config/Api';
-import axios from 'axios'; 
 import * as ImagePicker from 'expo-image-picker';
+import { MediaType } from 'expo-image-picker';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import { router } from 'expo-router'; 
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { styles } from "../../Styles/Perfil"; // Mantém a importação dos estilos principais
 
+const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://seu-backend-url.com';
 
-
-type Usuario = {
+type AtletaProfileDto = {
+  id: number;
+  matricula: string;
   nome: string;
   email: string;
-  bio: string;
-  foto: string;
+  subDivisao: string;
+  dataNascimento: string;
+  foto: string | null;
+  contatoResponsavel: string | null; // Adicionado para exibir o contato do responsável
 };
 
-const PerfilInstrutor = () => {
+const PerfilAtleta = () => {
   const navigation = useNavigation();
-
-  const [usuario, setUsuario] = useState<Usuario>({
-    nome: '', // Initialize empty, will be fetched from API
-    email: '',
-    bio: '',
-    foto: 'https://www.gstatic.com/images/branding/product/1x/avatar_circle_blue_512dp.png' // Default placeholder
-  });
-
-  const [imagemPreview, setImagemPreview] = useState<string | null>(null);
+  const [atleta, setAtleta] = useState<AtletaProfileDto | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [imagemPreview, setImagemPreview] = useState<string | undefined>();
   const [editando, setEditando] = useState<boolean>(false);
-  const [form, setForm] = useState<Usuario>({ ...usuario }); // Initialize form with dummy data
-  const [loading, setLoading] = useState<boolean>(true); // Add loading state for data fetch
+  const [form, setForm] = useState<Partial<AtletaProfileDto>>({});
+  const [uploading, setUploading] = useState<boolean>(false);
 
-  // Function to retrieve the JWT token from AsyncStorage
-  const getToken = async (): Promise<string | null> => {
-    try {
-      const token = await AsyncStorage.getItem('jwtToken');
-      return token;
-    } catch (error) {
-      console.error('Erro ao buscar token no AsyncStorage:', error);
-      return null;
-    }
-  };
-
-  // Function to fetch user data
-  const fetchUserData = async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      if (!token) {
-        Alert.alert('Erro', 'Você não está logado ou sua sessão expirou. Por favor, faça login novamente.');
-        // Optionally redirect to login screen
-        router.navigate('../../'); // Replace with your actual login screen route
-        return;
-      }
-
-      // Assuming your backend has a GET endpoint like /user/profile that returns the logged-in user's data
-      const response = await Api.get<Usuario>('/user/profile');
-      const fetchedUser = response.data;
-
-      setUsuario(fetchedUser);
-      setForm(fetchedUser); // Set form fields with fetched data
-    } catch (error) {
-      console.error('Erro ao buscar dados do usuário:', error);
-      if (axios.isAxiosError(error) && error.response) {
-        Alert.alert('Erro', `Não foi possível carregar o perfil: ${error.response.data.message || 'Erro desconhecido.'}`);
-      } else {
-        Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch user data on component mount
   useEffect(() => {
-    fetchUserData();
+    const fetchAtletaData = async () => {
+      try {
+        setLoading(true);
+        const token = await AsyncStorage.getItem('jwtToken');
+        const response = await axios.get<AtletaProfileDto>(`${API_URL}/api/atleta/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const dados = response.data;
+
+        const fotoParaExibir = dados.foto;
+
+        setAtleta({
+          id: dados.id,
+          matricula: dados.matricula?.toString() || 'Não informada',
+          nome: dados.nome || 'Nome não informado',
+          email: dados.email || 'Email não informado',
+          subDivisao: dados.subDivisao || 'Não informado',
+          dataNascimento: dados.dataNascimento || 'Não informada',
+          foto: fotoParaExibir,
+          contatoResponsavel: dados.contatoResponsavel || 'Não informado', // Adicionado
+        });
+
+        setForm({
+          nome: dados.nome || '',
+          email: dados.email || '',
+          matricula: dados.matricula?.toString() || '',
+          dataNascimento: dados.dataNascimento || '',
+          subDivisao: dados.subDivisao || '',
+          contatoResponsavel: dados.contatoResponsavel || '', // Adicionado
+        });
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+        Alert.alert('Erro', 'Não foi possível carregar os dados do perfil');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAtletaData();
   }, []);
 
-  // Selecionar imagem com tratamento de erros
   const selecionarImagem = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
       if (status !== 'granted') {
         Alert.alert('Permissão necessária', 'Precisamos de acesso à sua galeria para alterar a foto.');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'Images' as any,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.7, 
+        quality: 1,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImagemPreview(result.assets[0].uri);
-   
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        const uri = result.assets[0].uri;
+        setImagemPreview(uri);
+        await uploadImagem(uri);
       }
     } catch (error) {
       console.error('Erro ao selecionar imagem:', error);
@@ -116,359 +109,246 @@ const PerfilInstrutor = () => {
     }
   };
 
- 
-  const alternarEdicao = () => {
-    setEditando(!editando);
-    if (!editando) {
-    
-      setForm(usuario);
-      setImagemPreview(null);
-    } else {
-  
-      setForm(usuario);
+  const uploadImagem = async (uri: string) => {
+    try {
+      setUploading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: 'profile.jpg',
+        type: 'image/jpeg',
+      } as any);
+
+      const response = await axios.post<string>(`${API_URL}/api/atleta/profile/photo`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const uploadedFotoBase64 = response.data;
+
+      if (atleta) {
+        setAtleta({
+          ...atleta,
+          foto: uploadedFotoBase64,
+        });
+        setImagemPreview(undefined);
+      }
+
+      Alert.alert('Sucesso', 'Foto atualizada com sucesso!');
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      Alert.alert('Erro', 'Falha ao atualizar a foto');
+    } finally {
+      setUploading(false);
     }
   };
 
-  // Salvar alterações com validação e upload de imagem
+  const alternarEdicao = () => {
+    setEditando(!editando);
+    if (!editando && atleta) {
+      setForm({
+        nome: atleta.nome,
+        email: atleta.email,
+        matricula: atleta.matricula,
+        dataNascimento: atleta.dataNascimento,
+        subDivisao: atleta.subDivisao,
+        contatoResponsavel: atleta.contatoResponsavel, // Adicionado
+      });
+    }
+  };
+
+  const formatarData = (dataString: string) => {
+    if (!dataString || dataString === 'Não informada') return dataString;
+    try {
+      const [ano, mes, dia] = dataString.split('-');
+      if (ano && mes && dia) {
+        return `${dia}/${mes}/${ano}`;
+      }
+      return dataString;
+    } catch {
+      return dataString;
+    }
+  };
+
   const salvarAlteracoes = async () => {
-    if (!form.nome.trim() || !form.email.trim()) {
+    if (!form.nome || !form.email) {
       Alert.alert('Erro', 'Nome e email são obrigatórios');
       return;
     }
 
-    setLoading(true); 
     try {
-      const token = await getToken();
-      if (!token) {
-        Alert.alert('Erro', 'Sua sessão expirou. Por favor, faça login novamente.');
-        router.navigate("../../"); 
-        return;
-      }
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
 
-      const formData = new FormData();
-      formData.append('nome', form.nome);
-      formData.append('email', form.email);
-      formData.append('bio', form.bio);
+      const updateDto: Partial<AtletaProfileDto> = {
+        nome: form.nome,
+        email: form.email,
+        dataNascimento: form.dataNascimento,
+        subDivisao: form.subDivisao,
+        contatoResponsavel: form.contatoResponsavel, // Incluído
+      };
 
-
-      if (imagemPreview) {
-        const uriParts = imagemPreview.split('.');
-        const fileType = uriParts[uriParts.length - 1];
-        const fileName = `profile.${fileType}`; 
-
-        formData.append('foto', {
-          uri: imagemPreview,
-          name: fileName,
-          type: `image/${fileType}`,
-        } as any); 
-      }
-
-      
-      const response = await Api.put<Usuario>('/api', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data', 
-        },
+      const response = await axios.put<AtletaProfileDto>(`${API_URL}/api/atleta/profile`, updateDto, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.data) {
-        const updatedUser: Usuario = {
-          nome: response.data.nome || form.nome,
-          email: response.data.email || form.email,
-          bio: response.data.bio || form.bio,
-          
-          foto: response.data.foto || usuario.foto,
-        };
-        setUsuario(updatedUser); 
-        setEditando(false);
-        setImagemPreview(null); 
-        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
-      }
+      setAtleta(prevAtleta => {
+        if (prevAtleta) {
+          return {
+            ...prevAtleta,
+            nome: response.data.nome,
+            email: response.data.email,
+            // A matrícula não é editável, então manter a existente
+            matricula: response.data.matricula?.toString() || prevAtleta.matricula,
+            dataNascimento: response.data.dataNascimento,
+            subDivisao: response.data.subDivisao,
+            contatoResponsavel: response.data.contatoResponsavel, // Atualiza contato
+            foto: prevAtleta.foto
+          };
+        }
+        return null;
+      });
+
+      setEditando(false);
+      Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar alterações:', error);
-      if (axios.isAxiosError(error) && error.response) {
-        Alert.alert('Erro', `Não foi possível salvar as alterações: ${error.response.data.message || 'Erro desconhecido.'}`);
-      } else {
-        Alert.alert('Erro', 'Ocorreu um erro inesperado ao salvar o perfil.');
-      }
+      console.error('Erro ao atualizar:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil');
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
+  if (loading && !atleta) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1c348e" />
-        <Text style={styles.loadingText}>Carregando perfil...</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  if (!atleta) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Erro ao carregar dados do perfil</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Cabeçalho */}
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.btnVoltar}
-          accessibilityLabel="Voltar"
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
+        <Text style={styles.headerTitle}>Meu Perfil</Text> {/* Adicionado título */}
       </View>
 
-      {/* Conteúdo do perfil */}
-      <View style={styles.perfilContainer}>
-        {/* Foto de Perfil */}
-        <View style={styles.fotoContainer}>
-          <Image
-            source={{ uri: imagemPreview || usuario.foto }}
-            style={styles.foto}
-            accessibilityIgnoresInvertColors
-          />
-          {/* Show upload icon only when in editing mode */}
-          {editando && (
-            <TouchableOpacity
-              style={styles.uploadIcone}
-              onPress={selecionarImagem}
-              accessibilityLabel="Alterar foto de perfil"
-            >
-              <MaterialIcons name="photo-camera" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
+      <View style={styles.profileContainer}>
+        <View style={styles.avatarContainer}>
+          <TouchableOpacity onPress={selecionarImagem} disabled={uploading} style={styles.avatarTouchable}> {/* Estilo para o touchable */}
+            {imagemPreview || atleta.foto ? (
+              <Image
+                source={{ uri: imagemPreview || atleta.foto || '' }}
+                style={styles.avatar}
+                onError={(e) => console.log('Erro ao carregar imagem:', e.nativeEvent.error)}
+              />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <MaterialIcons name="add-a-photo" size={40} color="#666" /> {/* Ícone para adicionar foto */}
+                <Text style={styles.avatarPlaceholderText}>Adicionar Foto</Text>
+              </View>
+            )}
+            {uploading && (
+              <View style={styles.uploadOverlay}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* Informações */}
-        <View style={styles.infoContainer}>
-          {editando ? (
+        {/* Informações do Perfil */}
+        <View style={styles.card}> {/* Novo estilo de cartão para agrupar info */}
+          <Text style={styles.cardTitle}>Informações Pessoais</Text>
+          {!editando ? (
             <>
+              <Text style={styles.infoLabel}>Nome:</Text>
+              <Text style={styles.infoValue}>{atleta.nome}</Text>
+
+              <Text style={styles.infoLabel}>Matrícula:</Text>
+              <Text style={styles.infoValue}>{atleta.matricula}</Text>
+
+              <Text style={styles.infoLabel}>Email:</Text>
+              <Text style={styles.infoValue}>{atleta.email}</Text>
+
+              <Text style={styles.infoLabel}>Subdivisão:</Text>
+              <Text style={styles.infoValue}>{atleta.subDivisao}</Text>
+
+              <Text style={styles.infoLabel}>Data de Nascimento:</Text>
+              <Text style={styles.infoValue}>{formatarData(atleta.dataNascimento)}</Text>
+
+              {atleta.contatoResponsavel && atleta.contatoResponsavel !== 'Não informado' && (
+                <>
+                  <Text style={styles.infoLabel}>Contato Responsável:</Text>
+                  <Text style={styles.infoValue}>{atleta.contatoResponsavel}</Text>
+                </>
+              )}
+            </>
+          ) : (
+            <View style={styles.formContainer}>
+              <Text style={styles.inputLabel}>Nome:</Text>
               <TextInput
                 style={styles.input}
                 value={form.nome}
-                onChangeText={(text) => setForm(prev => ({ ...prev, nome: text }))}
-                placeholder="Nome"
-                accessibilityLabel="Campo para editar nome"
+                onChangeText={(text) => setForm({ ...form, nome: text })}
+                placeholder="Nome completo"
               />
+              <Text style={styles.inputLabel}>Email:</Text>
               <TextInput
                 style={styles.input}
                 value={form.email}
-                onChangeText={(text) => setForm(prev => ({ ...prev, email: text }))}
-                placeholder="Email"
+                onChangeText={(text) => setForm({ ...form, email: text })}
+                placeholder="email@example.com"
                 keyboardType="email-address"
-                autoCapitalize="none"
-                accessibilityLabel="Campo para editar email"
+              />
+              <Text style={styles.inputLabel}>Matrícula:</Text>
+              <TextInput
+                style={[styles.input, styles.inputDisabled]} // Estilo para input desabilitado
+                value={form.matricula}
+                editable={false}
+              />
+              <Text style={styles.inputLabel}>Data de Nascimento:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.dataNascimento}
+                onChangeText={(text) => setForm({ dataNascimento: text })}
+                placeholder="DD/MM/AAAA"
+                keyboardType="numeric" // Ajuda a digitar data
+              />
+              <Text style={styles.inputLabel}>Subdivisão:</Text>
+              <TextInput
+                style={styles.input}
+                value={form.subDivisao}
+                onChangeText={(text) => setForm({ ...form, subDivisao: text })}
+                placeholder="Ex: Categoria, Posição"
               />
               <TextInput
-                style={[styles.input, styles.textArea]}
-                value={form.bio}
-                onChangeText={(text) => setForm(prev => ({ ...prev, bio: text }))}
-                placeholder="Bio"
-                multiline
-                numberOfLines={4}
-                accessibilityLabel="Campo para editar biografia"
-              />
-            </>
-          ) : (
-            // Display user info when not editing
-            <>
-              <Text style={styles.nome} accessibilityRole="header">{usuario.nome}</Text>
-              <Text style={styles.email}>{usuario.email}</Text>
-              <Text style={styles.bio}>{usuario.bio}</Text>
-            </>
+              style={styles.input}
+              value={form.contatoResponsavel ?? ''} 
+              onChangeText={(text) => setForm({ ...form, contatoResponsavel: text })}
+              placeholder="(XX) XXXXX-XXXX"
+              keyboardType="phone-pad"
+             />
+            </View>
           )}
         </View>
-
-        {/* Botões de Ação (Editar/Salvar/Cancelar) */}
-        {editando ? (
-          <View style={styles.botoesEdicao}>
-            <TouchableOpacity
-              onPress={salvarAlteracoes}
-              style={[styles.botaoSalvar, styles.botaoEdicaoFlex]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.botaoTexto}>Salvar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={alternarEdicao} // This now acts as Cancel
-              style={[styles.botaoCancelar, styles.botaoEdicaoFlex]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.botaoTexto}>Cancelar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={alternarEdicao}
-            style={styles.botaoEditar}
-            accessibilityRole="button"
-          >
-            <Text style={styles.botaoTexto}>Editar Perfil</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 20, // Add some padding at the bottom for scroll
-  },
-  header: {
-    backgroundColor: "#1c348e",
-    padding: 10,
-    paddingTop: Platform.OS === 'android' ? 30 : 0, // Adjust for Android status bar
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#e5c228',
-  },
-  btnVoltar: {
-    padding: 5,
-  },
-  perfilContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  fotoContainer: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  foto: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 3,
-    borderColor: '#e5c228',
-  },
-  uploadIcone: {
-    position: 'absolute',
-    right: 10,
-    bottom: 10,
-    backgroundColor: '#1c348e',
-    borderRadius: 20,
-    padding: 8,
-    borderWidth: 1, // Add border to the icon
-    borderColor: '#fff', // White border for contrast
-  },
-  infoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    width: '100%',
-  },
-  nome: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    textAlign: 'center',
-    color: '#333',
-  },
-  email: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  bio: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#444',
-    paddingHorizontal: 20,
-    lineHeight: 24, // Improve readability for multi-line text
-  },
-  botaoEditar: {
-    backgroundColor: '#1c348e',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#000', // Add shadow for better visual depth
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  formulario: {
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 15,
-    fontSize: 16,
-    width: '100%',
-    backgroundColor: '#fff', // Ensure input background is white
-    shadowColor: '#000', // Add shadow to inputs
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
-    elevation: 2,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top', // Aligns text to the top for multiline input
-  },
-  botaoSalvar: {
-    backgroundColor: '#28a745', // Green for Save
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  botaoCancelar: {
-    backgroundColor: '#dc3545', // Red for Cancel
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  botaoTexto: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#555',
-  },
-  botoesEdicao: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 20,
-    marginBottom: 20, // Space below buttons
-  },
-  botaoEdicaoFlex: {
-    flex: 1,
-    marginHorizontal: 5, // Space between buttons
-  }
-});
-
-export default PerfilInstrutor;
+export default PerfilAtleta;

@@ -1,14 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, TextInput, FlatList, Alert } from 'react-native';
+import { faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faIdCard, faAddressCard, faCheck, faBoxes } from '@fortawesome/free-solid-svg-icons';
-import { Button } from "../../components/button";
-import { ptBR } from "../../utils/localendarConfig";
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { router } from 'expo-router'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from '../../Styles/Supervisor'; 
-import ComunicadosSection from '../funcionarios/Comunicado'; 
+import { router } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Button } from "../../components/button";
+import { styles } from '../../Styles/Supervisor';
+import { ptBR } from "../../utils/localendarConfig";
+import ComunicadosSection from '../funcionarios/Comunicado';
 
 LocaleConfig.locales["pt-br"] = ptBR;
 LocaleConfig.defaultLocale = "pt-br";
@@ -113,9 +113,6 @@ const Supervisor: React.FC = () => {
 function Presenca () {
   router.navigate("../Tarefas/Presenca")
 }
-  function Perfil() {
-    router.navigate("../funcionarios/Perfil");
-  }
   function Relatorio() {
     router.navigate("../funcionarios/Relatorios");
   }
@@ -412,11 +409,6 @@ function Presenca () {
             <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>estoque</Text>
           </TouchableOpacity>
-
-           <TouchableOpacity style={styles.navItem} onPress={Perfil}>
-            <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Meu Perfil</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Sair</Text>
@@ -542,12 +534,6 @@ function Presenca () {
           <ComunicadosSection />
         </View>
 
-        {/* Seção Meu Perfil (Exemplo) */}
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'perfil')}>
-          <Text style={styles.sectionTitle}>Meu Perfil</Text>
-         
-          <Text style={styles.emptyMessage}>Detalhes do perfil do técnico serão exibidos aqui.</Text>
-        </View>
 
       </ScrollView>
     </SafeAreaView>

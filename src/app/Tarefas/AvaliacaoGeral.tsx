@@ -1,27 +1,27 @@
 // src/app/Relatorios/Relatorios.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-  RefreshControl,
-  Modal,
-  ScrollView,
-  SafeAreaView,
-  Dimensions,
-  Alert,
-} from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native'; // Importar useNavigation
-import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
-import axios from 'axios';
+import Ionicons from '@expo/vector-icons/Ionicons'; // Para o ícone de seta
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useNavigation } from '@react-navigation/native'; // Importar useNavigation
+import axios from 'axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Ionicons from '@expo/vector-icons/Ionicons'; // Para o ícone de seta
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Modal,
+  RefreshControl,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
 
 // --- INTERFACES (Definições de Tipos) ---
 

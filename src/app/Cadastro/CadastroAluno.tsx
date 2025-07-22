@@ -1,27 +1,27 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import { router } from 'expo-router';
 import {
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Keyboard,
   TouchableWithoutFeedback,
-  View,
-  Alert
+  View
 } from 'react-native';
-import { router } from 'expo-router';
+import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
-import Api from '../../Config/Api'
-import DropDownPicker from 'react-native-dropdown-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
+import Api from '../../Config/Api';
 
 
 
@@ -31,24 +31,31 @@ const CadastroAlunoScreen = () => {
   const [senhaAluno, setSenhaAluno] = useState('');
   const [emailAluno, setEmailAluno] = useState('');
   const [dataNascimentoAluno, setDataNascimentoAluno] = useState('');
-  const [cpfAluno, setCpfAluno] = useState(''); 
-  const [subOpen, setSubOpen] = useState (false);
+  const [cpfAluno, setCpfAluno] = useState('');
+  const [subOpen, setSubOpen] = useState(false);
+
+  // Estados para o DropDownPicker de Posição
+  const [posicaoOpen, setPosicaoOpen] = useState(false);
+  const [posicao, setPosicao] = useState(null);
+
+  // Estados para o DropDownPicker de Isenção
+  const [isencaoOpen, setIsencaoOpen] = useState(false);
+  const [isencao, setIsencao] = useState(null);
+
   const [subDivisao, setSubDivisao] = useState(null);
-  const [subItems, setSubItems] = useState([ 
-    {label: 'Sub-10', value: 'SUB_10'},
-    {label: 'Sub-11', value: 'SUB_11'},
-    {label: 'Sub-12', value: 'SUB_12'},
-    {label: 'Sub-13', value: 'SUB_13'},
-    {label: 'Sub-14', value: 'SUB_14'},
-    {label: 'Sub-15', value: 'SUB_15'},
-    {label: 'Sub-16', value: 'SUB_16'},
-    {label: 'Sub-17', value: 'SUB_17'},
-    {label: 'Sub-18', value: 'SUB_18'},
+  const [subItems, setSubItems] = useState([
+    { label: 'Sub-10', value: 'SUB_10' },
+    { label: 'Sub-11', value: 'SUB_11' },
+    { label: 'Sub-12', value: 'SUB_12' },
+    { label: 'Sub-13', value: 'SUB_13' },
+    { label: 'Sub-14', value: 'SUB_14' },
+    { label: 'Sub-15', value: 'SUB_15' },
+    { label: 'Sub-16', value: 'SUB_16' },
+    { label: 'Sub-17', value: 'SUB_17' },
+    { label: 'Sub-18', value: 'SUB_18' },
   ]);
 
-  
   const [massa, setMassa] = useState('');
- 
 
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
@@ -60,6 +67,30 @@ const CadastroAlunoScreen = () => {
   const [items, setItems] = useState([
     { label: 'Atleta', value: 'ATLETA' },
   ]);
+
+  // Itens para o DropDownPicker de Isenção
+  const [isencaoItems, setIsencaoItems] = useState([
+    { label: 'Sim', value: 'SIM' },
+    { label: 'Não', value: 'NAO' },
+  ]);
+
+  // Itens para o DropDownPicker de Posição, baseados no seu Enum `Posicao`
+  const [posicaoItems, setPosicaoItems] = useState([
+    { label: 'Atacante', value: 'ATACANTE' },
+    { label: 'Segundo Atacante', value: 'SEGUNDO_ATACANTE' },
+    { label: 'Ponta Esquerda', value: 'PONTA_ESQUERDA' },
+    { label: 'Ponta Direita', value: 'PONTA_DIREITA' },
+    { label: 'Meia Atacante', value: 'MEIA_ATACANTE' },
+    { label: 'Meia Central', value: 'MEIA_CENTRAL' },
+    { label: 'Volante', value: 'VOLANTE' },
+    { label: 'Ala Defensiva Direita', value: 'ALA_DEFENSIVA_DIREITA' },
+    { label: 'Ala Defensiva Esquerda', value: 'ALA_DEFENSIVA_ESQUERDA' },
+    { label: 'Lateral Esquerdo', value: 'LATERAL_ESQUERDO' },
+    { label: 'Lateral Direito', value: 'LATERAL_DIREITO' },
+    { label: 'Zagueiro', value: 'ZAGUEIRO' },
+    { label: 'Goleiro', value: 'GOLOLEIRO' }, // **Verifique a grafia no seu Enum (GOLOLEIRO ou GOLEIRO)**
+  ]);
+
 
   const formatarData = (data: string): string => {
     const [dia, mes, ano] = data.split('/');
@@ -79,7 +110,9 @@ const CadastroAlunoScreen = () => {
       !telefoneResponsavel ||
       !emailResponsavel ||
       !cpfResponsavel ||
-      !role
+      !role ||
+      posicao === null || // Validação da posição (verifica se algo foi selecionado)
+      isencao === null // Validação da isenção (verifica se algo foi selecionado)
     ) {
       Alert.alert("Erro", "Por favor, preencha todos os campos!");
       return false;
@@ -92,18 +125,21 @@ const CadastroAlunoScreen = () => {
       return;
     }
 
+    // Converter 'SIM'/'NAO' para true/false para o backend
+    const isencaoParaBackend = isencao === 'SIM';
+
     const alunoData = {
-    
       nome: nomeAluno,
       senha: senhaAluno,
       email: emailAluno,
       dataNascimento: formatarData(dataNascimentoAluno),
-      cpf: cpfAluno, 
+      cpf: cpfAluno,
       subDivisao: subDivisao,
       massa: massa,
-      roles: role, 
+      roles: role,
+      posicao: posicao, 
+      isencao: isencaoParaBackend, 
 
-      
       responsavel: {
         nome: nomeResponsavel,
         telefone: telefoneResponsavel,
@@ -115,20 +151,18 @@ const CadastroAlunoScreen = () => {
     console.log("Dados a serem enviados:", alunoData);
 
     try {
-     
       const token = await AsyncStorage.getItem('jwtToken');
 
       if (!token) {
         Alert.alert("Erro de Autenticação", "Token de autenticação não encontrado. Por favor, faça login novamente.");
-        router.replace('../../'); 
+        router.replace('../../');
         return;
       }
 
-      // 2. Adicionar o token ao cabeçalho da requisição
       const response = await Api.post(`/api/cadastro`, alunoData, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Adiciona o cabeçalho Authorization com o token
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -219,47 +253,82 @@ const CadastroAlunoScreen = () => {
             keyboardType="numeric"
           />
 
-           <TextInput
-          style={styles.input}
-          onChangeText={setMassa}
-          value={massa}
-          keyboardType="numeric" 
-          placeholder="Ex: 75.5" 
-          maxLength={6} 
-        />
-        
-         
-            <DropDownPicker
-        open={open}
-        value={role}
-        items={items}
-        setOpen={setOpen} 
-        setValue={setRole}
-        setItems={setItems}
-        placeholder="Selecione um cargo..."
-        style={styles.dropdown}
-        dropDownContainerStyle={styles.dropdownContainer}
-        
-        zIndex={open ? 3000 : 1000} 
-        zIndexInverse={open ? 1000 : 3000} 
-        listMode="SCROLLVIEW"
-      />
-          
+          <TextInput
+            style={styles.input}
+            onChangeText={setMassa}
+            value={massa}
+            keyboardType="numeric"
+            placeholder="Massa (Ex: 75.5)"
+            maxLength={6}
+          />
+
+          {/* DropDownPicker para Posição */}
           <DropDownPicker
-        open={subOpen}
-        value={subDivisao}
-        items={subItems}
-        setOpen={setSubOpen} 
-        setValue={setSubDivisao}
-        setItems={setSubItems}
-        placeholder="Selecione SubDivisao..."
-        style={styles.dropdown}
-        dropDownContainerStyle={styles.dropdownContainer}
-        
-        zIndex={subOpen ? 3000 : 1000} 
-        zIndexInverse={subOpen ? 1000 : 3000} 
-        listMode="SCROLLVIEW"
-      />
+            open={posicaoOpen}
+            value={posicao}
+            items={posicaoItems}
+            setOpen={setPosicaoOpen}
+            setValue={setPosicao}
+            setItems={setPosicaoItems}
+            placeholder="Selecione a Posição..."
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            // Z-index mais alto para que este dropdown apareça na frente de todos
+            zIndex={4000}
+            zIndexInverse={1000}
+            listMode="SCROLLVIEW"
+          />
+
+          {/* DropDownPicker para Cargo (Role) */}
+          <DropDownPicker
+            open={open}
+            value={role}
+            items={items}
+            setOpen={setOpen}
+            setValue={setRole}
+            setItems={setItems}
+            placeholder="Selecione um cargo..."
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            // Z-index ligeiramente menor que a posição
+            zIndex={3000}
+            zIndexInverse={2000}
+            listMode="SCROLLVIEW"
+          />
+          {/* DropDownPicker para SubDivisao */}
+          <DropDownPicker
+            open={subOpen}
+            value={subDivisao}
+            items={subItems}
+            setOpen={setSubOpen}
+            setValue={setSubDivisao}
+            setItems={setSubItems}
+            placeholder="Selecione SubDivisao..."
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            // Z-index menor que cargo
+            zIndex={2000}
+            zIndexInverse={3000}
+            listMode="SCROLLVIEW"
+          />
+
+          {/* DropDownPicker para Isenção */}
+          <DropDownPicker
+            open={isencaoOpen}
+            value={isencao}
+            items={isencaoItems}
+            setOpen={setIsencaoOpen}
+            setValue={setIsencao}
+            setItems={setIsencaoItems}
+            placeholder="Possui Isenção?"
+            style={styles.dropdown}
+            dropDownContainerStyle={styles.dropdownContainer}
+            // Z-index menor que subDivisao
+            zIndex={1000}
+            zIndexInverse={4000}
+            listMode="SCROLLVIEW"
+          />
+
 
           <Text style={styles.title}>Dados do Responsável</Text>
 

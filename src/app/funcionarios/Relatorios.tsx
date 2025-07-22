@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useEffect, useState } from 'react';
@@ -14,9 +13,7 @@ import {
   View,
 } from 'react-native';
 import { TextInputMask } from 'react-native-masked-text';
-
-// Define an interface for the 'avaliacao' state to include all possible attributes
-// and an index signature for dynamic access.
+import DropDownPicker from 'react-native-dropdown-picker'; 
 interface AthleteEvaluation {
   Controle: number;
   recepcao: number;
@@ -40,17 +37,17 @@ interface AthleteEvaluation {
   trabalhoEquipe: number;
   atributosFisicos: number;
   capacidadeSobPressao: number;
-  [key: string]: number; // Index signature to allow dynamic access like avaliacao[attr]
+  [key: string]: number; 
 }
 
 interface CustomJwtPayload extends JwtPayload {
-  sub?: string; // May still contain email
+  sub?: string; 
   userId?: number;
   userType?: string;
-  userName?: string; // ⭐ NEW: Expecting the entity name claim
+  userName?: string; 
 }
 
-// Interface para o DTO de Atleta para seleção
+
 interface AtletaParaSelecao {
   id: number;
   nomeCompleto: string;
@@ -100,9 +97,14 @@ const AthleteEvaluationForm = () => {
   const [isTokenLoaded, setIsTokenLoaded] = useState<boolean>(false);
   const [atletasList, setAtletasList] = useState<AtletaParaSelecao[]>([]);
   const [filteredAtletasList, setFilteredAtletasList] = useState<AtletaParaSelecao[]>([]);
-  const [subdivisoesList, setSubdivisoesList] = useState<string[]>([]); // Lista completa de subdivisões distintas
-  const [subdivisaoOptionsForPicker, setSubdivisaoOptionsForPicker] = useState<string[]>([]); // Opções para o picker de subdivisão
-  const [isSubdivisaoPickerDisabled, setIsSubdivisaoPickerDisabled] = useState<boolean>(false); // Controla se o picker de subdivisão está desabilitado
+  const [subdivisoesList, setSubdivisoesList] = useState<string[]>([]);
+  const [subdivisaoOptionsForPicker, setSubdivisaoOptionsForPicker] = useState<string[]>([]);
+  const [isSubdivisaoPickerDisabled, setIsSubdivisaoPickerDisabled] = useState<boolean>(false);
+
+  // DropDownPicker specific states
+  const [openAtletaPicker, setOpenAtletaPicker] = useState(false);
+  const [openSubdivisaoPicker, setOpenSubdivisaoPicker] = useState(false);
+
   const formatarData = (data: string): string => {
     const [dia, mes, ano] = data.split('/');
     return `${ano}-${mes}-${dia}`;
@@ -120,10 +122,10 @@ const AthleteEvaluationForm = () => {
           try {
             const decodedToken = jwtDecode<CustomJwtPayload>(storedToken);
 
-            if (decodedToken.userName) { // Check for the new 'userName' claim first
+            if (decodedToken.userName) {
               setNomeAvaliador(decodedToken.userName);
               console.log('Nome do Avaliador do token (userName):', decodedToken.userName);
-            } else if (decodedToken.sub) { // Fallback to 'sub' if 'userName' is not present
+            } else if (decodedToken.sub) {
               setNomeAvaliador(decodedToken.sub);
               console.log('Nome do Avaliador do token (sub fallback):', decodedToken.sub);
             }
@@ -133,13 +135,13 @@ const AthleteEvaluationForm = () => {
             if (decodedToken.userType) {
               console.log('Tipo de Usuário do token:', decodedToken.userType);
             }
-
           } catch (decodeError) {
             console.error('Erro ao decodificar o token:', decodeError);
             Alert.alert('Erro de Token', 'Não foi possível decodificar o token de autenticação.');
           }
         } else {
           Alert.alert('Autenticação Necessária', 'Por favor, faça login para enviar avaliações. Você será redirecionado para a tela de login.');
+          // navigation.navigate('Login'); // Uncomment if you have a 'Login' route
         }
       } catch (error) {
         console.error('Erro ao carregar token de autenticação do AsyncStorage:', error);
@@ -155,7 +157,6 @@ const AthleteEvaluationForm = () => {
     const fetchAtletasAndSubdivisoes = async () => {
       if (isTokenLoaded && authToken && API_BASE_URL) {
         try {
-          // Buscar lista de atletas
           const atletasResponse = await fetch(`${API_BASE_URL}/api/atletas/listagem`, {
             headers: { 'Authorization': `Bearer ${authToken}` },
           });
@@ -164,9 +165,8 @@ const AthleteEvaluationForm = () => {
           }
           const atletasData: AtletaParaSelecao[] = await atletasResponse.json();
           setAtletasList(atletasData);
-          setFilteredAtletasList(atletasData); // Inicialmente, a lista filtrada é a lista completa
+          setFilteredAtletasList(atletasData);
 
-          // Buscar lista de subdivisões distintas
           const subdivisoesResponse = await fetch(`${API_BASE_URL}/api/atletas/subdivisoes`, {
             headers: { 'Authorization': `Bearer ${authToken}` },
           });
@@ -174,8 +174,8 @@ const AthleteEvaluationForm = () => {
             throw new Error(`HTTP error! Status: ${subdivisoesResponse.status} ao buscar subdivisões.`);
           }
           const subdivisoesData: string[] = await subdivisoesResponse.json();
-          setSubdivisoesList(subdivisoesData); // Armazena a lista completa de subdivisões
-          setSubdivisaoOptionsForPicker(subdivisoesData); // Inicializa as opções do picker com todas as subdivisões
+          setSubdivisoesList(subdivisoesData);
+          setSubdivisaoOptionsForPicker(subdivisoesData);
 
         } catch (error: any) {
           console.error('Erro ao buscar dados de atletas/subdivisões:', error);
@@ -186,29 +186,27 @@ const AthleteEvaluationForm = () => {
     fetchAtletasAndSubdivisoes();
   }, [isTokenLoaded, authToken, API_BASE_URL]);
 
-
   const handleAvaliacaoChange = (attribute: keyof AthleteEvaluation, value: number) => {
     setAvaliacao({ ...avaliacao, [attribute]: value });
   };
 
-  // Função para lidar com a seleção do atleta
-  const handleAtletaChange = (itemValue: number | null) => {
-    if (itemValue === null) {
+ 
+  const handleAtletaChange = (value: number | null) => {
+    if (value === null) {
       setSelectedAtletaId(null);
       setNomeCompleto('');
-      setSelectedSubdivisao(''); // Resetar a subdivisão selecionada
-      setFilteredAtletasList(atletasList); // Voltar a exibir todos os atletas
-      setSubdivisaoOptionsForPicker(subdivisoesList); // Voltar a exibir todas as opções de subdivisão
-      setIsSubdivisaoPickerDisabled(false); // Habilitar o picker de subdivisão
+      setSelectedSubdivisao('');
+      setFilteredAtletasList(atletasList);
+      setSubdivisaoOptionsForPicker(subdivisoesList);
+      setIsSubdivisaoPickerDisabled(false);
     } else {
-      const selected = atletasList.find(atleta => atleta.id === itemValue);
+      const selected = atletasList.find(atleta => atleta.id === value);
       if (selected) {
         setSelectedAtletaId(selected.id);
         setNomeCompleto(selected.nomeCompleto);
-        setSelectedSubdivisao(selected.subDivisao); // Definir a subdivisão do atleta selecionado
-        setFilteredAtletasList([selected]); // Opcional: filtrar o picker de atletas para mostrar apenas o selecionado
-        setSubdivisaoOptionsForPicker([selected.subDivisao]); // Restringir opções de subdivisão
-        setIsSubdivisaoPickerDisabled(true); // Desabilitar o picker de subdivisão
+        setSelectedSubdivisao(selected.subDivisao);
+        setSubdivisaoOptionsForPicker([selected.subDivisao]);
+        setIsSubdivisaoPickerDisabled(true);
       } else {
         setSelectedAtletaId(null);
         setNomeCompleto('');
@@ -220,19 +218,18 @@ const AthleteEvaluationForm = () => {
     }
   };
 
-  // Função para lidar com a seleção da subdivisão e filtrar atletas
-  const handleSubdivisaoFilterChange = (subdivisao: string) => {
-    // Só permite a filtragem se o picker de subdivisão não estiver desabilitado (ou seja, nenhum atleta foi selecionado e travou a subdivisão)
+ 
+  const handleSubdivisaoFilterChange = (value: string | null) => {
     if (!isSubdivisaoPickerDisabled) {
+      const subdivisao = value || ''; 
       setSelectedSubdivisao(subdivisao);
-      if (subdivisao === '') { // Opção "Todas"
+      if (subdivisao === '') { 
         setFilteredAtletasList(atletasList);
       } else {
         const filtered = atletasList.filter(atleta => atleta.subDivisao === subdivisao);
         setFilteredAtletasList(filtered);
       }
-      // Resetar a seleção do atleta quando a subdivisão muda, pois o filtro pode ter mudado o atleta visível
-      setSelectedAtletaId(null);
+      setSelectedAtletaId(null); 
       setNomeCompleto('');
     }
   };
@@ -240,8 +237,6 @@ const AthleteEvaluationForm = () => {
 
   const handleSubmit = async () => {
     setIsLoading(true);
-
-    console.log('API_BASE_URL utilizada:', API_BASE_URL);
 
     if (!API_BASE_URL) {
       Alert.alert('Erro de Configuração', 'A URL base da API não está configurada. Verifique seu arquivo .env e babel.config.js.');
@@ -273,25 +268,23 @@ const AthleteEvaluationForm = () => {
       return;
     }
 
-    // Common headers for authenticated requests
     const authHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`,
     };
 
-    // Dados para o CriarAvaliacaoRequest no backend
     const requestBody = {
-      atletaId: selectedAtletaId!, // Usando o operador de asserção não nula
-      userName: nomeAvaliador, 
-      dataAvaliacao: formatarData(dataAvaliacao), // Certifique-se de que está no formato correto (YYYY-MM-DD)
+      atletaId: selectedAtletaId,
+      userName: nomeAvaliador,
+      dataAvaliacao: formatarData(dataAvaliacao),
       periodoTreino: periodo,
-      subdivisao: selectedSubdivisao, // Incluir a subdivisão selecionada
+      subdivisao: selectedSubdivisao,
       feedbackTreinador,
       feedbackAvaliador,
       pontosFortes,
       pontosFracos,
       areasAprimoramento,
-      metasObjetivos, // Usando o nome corrigido da variável de estado
+      metasObjetivos,
       relatorioDesempenho: {
         controle: avaliacao.Controle,
         recepcao: avaliacao.recepcao,
@@ -300,9 +293,9 @@ const AthleteEvaluationForm = () => {
         tiro: avaliacao.tiro,
         cruzamento: avaliacao.cruzamento,
         giro: avaliacao.giro,
-        manuseioDeBola: avaliacao.manuseioBola, 
+        manuseioDeBola: avaliacao.manuseioBola,
         forcaChute: avaliacao.forcaChute,
-        gerenciamentoDeGols: avaliacao.GerenciamentoGols, 
+        gerenciamentoDeGols: avaliacao.GerenciamentoGols,
         jogoOfensivo: avaliacao.jogoOfensivo,
         jogoDefensivo: avaliacao.jogoDefensivo,
       },
@@ -322,9 +315,7 @@ const AthleteEvaluationForm = () => {
 
     console.log('Dados enviados para /api/relatoriogeral/cadastrar:', JSON.stringify(requestBody, null, 2));
 
-
     try {
-      // Enviar dados para o endpoint de relatório geral
       const geralResponse = await fetch(`${API_BASE_URL}/api/relatoriogeral/cadastrar`, {
         method: 'POST',
         headers: authHeaders,
@@ -338,7 +329,7 @@ const AthleteEvaluationForm = () => {
       console.log('Avaliação Geral data sent successfully!');
 
       Alert.alert('Sucesso', 'Avaliação enviada com sucesso!');
-      // navigation.goBack(); // Opcional: Voltar para a tela anterior
+      // navigation.goBack();
     } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
       if (error.message.includes('Status: 401')) {
@@ -436,46 +427,60 @@ const AthleteEvaluationForm = () => {
         ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
       </Text>
 
-      <View style={styles.section}>
+      <View style={[styles.section, { zIndex: 2000 }]}> {/* Increased zIndex for dropdowns */}
         <Text style={styles.sectionTitle}>Dados do Atleta</Text>
 
         <Text style={styles.label}>Nome do Atleta:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedAtletaId}
-            onValueChange={(itemValue) => handleAtletaChange(itemValue)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Selecione um Atleta" value={null} />
-            {filteredAtletasList.map((atleta) => (
-              <Picker.Item key={atleta.id} label={atleta.nomeCompleto} value={atleta.id} />
-            ))}
-          </Picker>
-        </View>
+        <DropDownPicker
+          open={openAtletaPicker}
+          value={selectedAtletaId}
+          items={filteredAtletasList.map(atleta => ({
+            label: atleta.nomeCompleto,
+            value: atleta.id,
+          }))}
+          setOpen={setOpenAtletaPicker}
+          setValue={setSelectedAtletaId}
+          onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
+          placeholder="Selecione um Atleta"
+          style={styles.dropdown}
+          containerStyle={styles.dropdownContainer}
+          zIndex={3000} // Ensure this picker is on top
+          listMode="SCROLLVIEW" // Use SCROLLVIEW for better performance with many items
+          // Add a default item at the top of the list
+          itemSeparator={true}
+          itemSeparatorStyle={styles.itemSeparator}
+        />
 
         <Text style={styles.label}>Nome do Avaliador:</Text>
         <TextInput
           style={styles.input}
           value={nomeAvaliador}
-          editable={false} // Nome do avaliador é preenchido pelo token
+          editable={false}
         />
 
         <Text style={styles.label}>Subdivisão:</Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedSubdivisao}
-            onValueChange={(itemValue) => handleSubdivisaoFilterChange(itemValue)}
-            style={styles.picker}
-            enabled={!isSubdivisaoPickerDisabled} // Controla se o picker está habilitado/desabilitado
-          >
-            {/* Renderiza "Selecione uma Subdivisão" apenas se o picker não estiver desabilitado */}
-            {!isSubdivisaoPickerDisabled && <Picker.Item label="Selecione uma Subdivisão" value="" />}
-            {/* As opções são baseadas em subdivisaoOptionsForPicker */}
-            {subdivisaoOptionsForPicker.map((subdivisao, index) => (
-              <Picker.Item key={index} label={subdivisao} value={subdivisao} />
-            ))}
-          </Picker>
-        </View>
+        <DropDownPicker
+          open={openSubdivisaoPicker}
+          value={selectedSubdivisao}
+          items={[
+            { label: 'Selecione uma Subdivisão', value: '' }, // Default option
+            ...subdivisaoOptionsForPicker.map(subdivisao => ({
+              label: subdivisao,
+              value: subdivisao,
+            })),
+          ]}
+          setOpen={setOpenSubdivisaoPicker}
+          setValue={setSelectedSubdivisao}
+          onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
+          placeholder="Selecione uma Subdivisão"
+          style={styles.dropdown}
+          containerStyle={styles.dropdownContainer}
+          disabled={isSubdivisaoPickerDisabled}
+          zIndex={2000} // Ensure this picker is above other elements, but potentially below the athlete picker if both are open
+          listMode="SCROLLVIEW"
+          itemSeparator={true}
+          itemSeparatorStyle={styles.itemSeparator}
+        />
 
         <TextInput
           style={styles.input}
@@ -568,16 +573,16 @@ const AthleteEvaluationForm = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Finalização</Text>
         <TextInputMask
-            style={styles.input}
-            type={'datetime'}
-            options={{
-              format: 'DD/MM/YYYY',
-            }}
-            value={dataAvaliacao}
-            onChangeText={setDataAvaliacao}
-            placeholder="Data da avaliação (DD/MM/YYYY)"
-            keyboardType="numeric"
-          />
+          style={styles.input}
+          type={'datetime'}
+          options={{
+            format: 'DD/MM/YYYY',
+          }}
+          value={dataAvaliacao}
+          onChangeText={setDataAvaliacao}
+          placeholder="Data da avaliação (DD/MM/YYYY)"
+          keyboardType="numeric"
+        />
         <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
 
         <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 10 }}>
@@ -690,16 +695,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  pickerContainer: {
-    borderWidth: 1,
+  dropdownContainer: {
+    height: 50,
+    marginBottom: 10,
+    
+  },
+  dropdown: {
+    backgroundColor: '#fafafa',
     borderColor: '#ccc',
     borderRadius: 5,
-    marginBottom: 10,
-    overflow: 'hidden', // Garante que o Picker não vaze
   },
-  picker: {
-    height: 50,
-    width: '100%',
+  itemSeparator: {
+    height: 1,
+    backgroundColor: '#cccccc',
   },
 });
 

@@ -1,4 +1,4 @@
-import { faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faColumns, faFileInvoice, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -113,6 +113,10 @@ const Supervisor: React.FC = () => {
 function Presenca () {
   router.navigate("../Tarefas/Presenca")
 }
+function AvaliacaoGeral () {
+  router.navigate("../Tarefas/AvaliacaoGeral")
+}
+
   function Relatorio() {
     router.navigate("../funcionarios/Relatorios");
   }
@@ -385,7 +389,7 @@ function Presenca () {
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={Relatorio}>
             <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Relatorio de Desempenho</Text>
+            <Text style={styles.navText}>Avaliação de Desempenho</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('comunicados')}>
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
@@ -408,6 +412,10 @@ function Presenca () {
              <TouchableOpacity style={styles.navItem} onPress={Estoque}>
             <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>estoque</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={AvaliacaoGeral}>
+            <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Relatorio de Desempenho</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />

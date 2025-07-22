@@ -1,4 +1,4 @@
-import { faBars, faBell, faCalendarAlt, faChartLine, faCheck, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faBell, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -111,6 +111,9 @@ const Tecnico: React.FC = () => {
   }, []);
 function Presenca () {
   router.navigate("../Tarefas/Presenca")
+}
+function AvaliacaoGeral () {
+  router.navigate("../Tarefas/AvaliacaoGeral")
 }
   function Relatorio() {
     router.navigate("./Relatorios");
@@ -373,7 +376,7 @@ function Presenca () {
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={Relatorio}>
             <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Relatorio de Desempenho</Text>
+            <Text style={styles.navText}>Avaliação de Desempenho</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('comunicados')}>
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
@@ -383,6 +386,10 @@ function Presenca () {
             <FontAwesomeIcon icon={faCheck} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Lista de Presença</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={AvaliacaoGeral}>
+           <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Relatorio de Desempenho</Text>
+           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Sair</Text>

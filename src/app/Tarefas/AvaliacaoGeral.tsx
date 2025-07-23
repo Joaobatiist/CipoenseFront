@@ -1,5 +1,3 @@
-// src/app/Relatorios/Relatorios.tsx
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -15,13 +13,14 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native'; // Importar useNavigation
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { format } from 'date-fns';
+// MODIFICAÇÃO AQUI: Importar 'parse' junto com 'format'
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import Ionicons from '@expo/vector-icons/Ionicons'; // Para o ícone de seta
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 // --- INTERFACES (Definições de Tipos) ---
 
@@ -45,7 +44,7 @@ export interface RelatorioDesempenho {
   gerenciamentoDeGols: number;
   jogoOfensivo: number;
   jogoDefensivo: number;
-  [key: string]: number; // Adiciona index signature para permitir acesso por string
+  [key: string]: number;
 }
 
 export interface RelatorioTaticoPsicologico {
@@ -60,7 +59,7 @@ export interface RelatorioTaticoPsicologico {
   trabalhoEmEquipe: number;
   atributosFisicos: number;
   atuarSobPressao: number;
-  [key: string]: number; // Adiciona index signature para permitir acesso por string
+  [key: string]: number;
 }
 
 export interface AvaliacaoGeral {
@@ -68,7 +67,7 @@ export interface AvaliacaoGeral {
   atletaId: number;
   nomeAtleta: string;
   userName: string;
-  dataAvaliacao: string;
+  dataAvaliacao: string; // Mantemos como string, mas agora sabemos o formato exato
   periodoTreino: string;
   subDivisao: string;
   feedbackTreinador: string;
@@ -104,11 +103,13 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token.trim()}`;
       }
+      
       return config;
     } catch (error) {
       console.error('Erro ao configurar token de autorização:', error);
       return config;
     }
+    
   },
   (error) => {
     return Promise.reject(error);
@@ -121,6 +122,10 @@ export const fetchHistoricalEvaluations = async (): Promise<AvaliacaoGeral[]> =>
     if (!Array.isArray(response.data)) {
       console.error("Dados recebidos da API /listar não são um array:", response.data);
       throw new TypeError("Os dados da lista de avaliações estão em formato inválido.");
+    }
+    // Adicione este log para depurar o formato da data que está vindo da API
+    if (response.data.length > 0) {
+      console.log("DEBUG: Formato da dataAvaliacao recebida:", response.data[0].dataAvaliacao);
     }
     return response.data;
   } catch (error) {
@@ -165,12 +170,12 @@ export const fetchAthletesList = async (): Promise<AtletaListagem[]> => {
   }
 };
 
-// --- SUBCOMPONENTE ReportSection (movido para dentro deste arquivo) ---
+// --- SUBCOMPONENTE ReportSection ---
 
 interface ReportSectionProps {
   title: string;
   data: Record<string, number>;
-  labels: { [key: string]: string }; // Objeto para mapear chaves para rótulos legíveis
+  labels: { [key: string]: string };
 }
 
 const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) => {
@@ -178,9 +183,8 @@ const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) =>
     <View style={reportSectionStyles.section}>
       <Text style={reportSectionStyles.sectionTitle}>{title}</Text>
       {Object.keys(data).map((key) => {
-        // Evita renderizar 'id' ou outras chaves que não sejam métricas
         if (key === 'id') return null;
-        const label = labels[key] || key; // Usa o label mapeado ou a própria chave se não houver mapeamento
+        const label = labels[key] || key;
         const value = data[key];
         return (
           <View key={key} style={reportSectionStyles.detailRow}>
@@ -193,7 +197,6 @@ const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) =>
   );
 };
 
-// Estilos específicos para o ReportSection para evitar conflito
 const reportSectionStyles = StyleSheet.create({
   section: {
     backgroundColor: '#f9f9f9',
@@ -242,7 +245,7 @@ const reportSectionStyles = StyleSheet.create({
 const { height } = Dimensions.get('window');
 
 const RelatoriosScreen: React.FC = () => {
-  const navigation = useNavigation(); // Hook de navegação
+  const navigation = useNavigation();
   const [evaluations, setEvaluations] = useState<AvaliacaoGeral[]>([]);
   const [filteredEvaluations, setFilteredEvaluations] = useState<AvaliacaoGeral[]>([]);
   const [atletasList, setAtletasList] = useState<AtletaListagem[]>([]);
@@ -263,7 +266,11 @@ const RelatoriosScreen: React.FC = () => {
     setError(null);
     try {
       const fetchedEvaluations = await fetchHistoricalEvaluations();
-      fetchedEvaluations.sort((a, b) => new Date(b.dataAvaliacao).getTime() - new Date(a.dataAvaliacao).getTime());
+      // MODIFICAÇÃO AQUI: Usar 'parse' para ordenar corretamente
+      fetchedEvaluations.sort((a, b) =>
+        parse(b.dataAvaliacao, 'dd-MM-yyyy', new Date()).getTime() -
+        parse(a.dataAvaliacao, 'dd-MM-yyyy', new Date()).getTime()
+      );
       setEvaluations(fetchedEvaluations);
 
       const fetchedAthletes = await fetchAthletesList();
@@ -326,7 +333,6 @@ const RelatoriosScreen: React.FC = () => {
     setDetailsError(null);
   };
 
-  // Função para voltar para a tela anterior
   const handleGoBack = () => {
     navigation.goBack();
   };
@@ -337,14 +343,16 @@ const RelatoriosScreen: React.FC = () => {
       onPress={() => openDetailsModal(item.id)}
     >
       <Text style={styles.cardTitle}>Avaliação de {item.nomeAtleta}</Text>
-      <Text style={styles.cardText}>Data: {format(new Date(item.dataAvaliacao), 'dd/MM/yyyy', { locale: ptBR })}</Text>
+      <Text style={styles.cardText}>
+        {/* CORREÇÃO PRINCIPAL AQUI: Usar 'parse' para interpretar a data corretamente */}
+        Data: {format(parse(item.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
+      </Text>
       <Text style={styles.cardText}>Avaliador: {item.userName}</Text>
       <Text style={styles.cardText}>Período: {item.periodoTreino}</Text>
       {item.subDivisao && <Text style={styles.cardText}>Subdivisão: {item.subDivisao}</Text>}
     </TouchableOpacity>
   );
 
-  // Mapeamento de rótulos para os relatórios
   const desempenhoLabels = {
     controle: "Controle",
     recepcao: "Recepção",
@@ -396,12 +404,11 @@ const RelatoriosScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Botão de voltar para a tela anterior (fora do modal) */}
       <TouchableOpacity style={styles.mainScreenBackButton} onPress={handleGoBack}>
         <Ionicons name="arrow-back" size={30} color="#333" />
       </TouchableOpacity>
 
-      <Text style={styles.header}>Relatórios de Avaliações</Text>
+      <Text style={styles.header}> Avaliações</Text>
 
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filtrar por Atleta:</Text>
@@ -455,9 +462,8 @@ const RelatoriosScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Botão de fechar do modal (agora não mais um "voltar" de navegação) */}
             <TouchableOpacity style={styles.modalCloseButton} onPress={closeDetailsModal}>
-                <Ionicons name="close-circle-outline" size={30} color="#666" /> {/* Ícone de 'X' para fechar */}
+                <Ionicons name="close-circle-outline" size={30} color="#666" />
             </TouchableOpacity>
 
             {detailsLoading ? (
@@ -479,7 +485,11 @@ const RelatoriosScreen: React.FC = () => {
                   <Text style={styles.sectionTitle}>Informações Gerais</Text>
                   <Text style={styles.detailText}><Text style={styles.detailLabel}>Atleta:</Text> {selectedEvaluationDetails.nomeAtleta}</Text>
                   <Text style={styles.detailText}><Text style={styles.detailLabel}>Avaliador:</Text> {selectedEvaluationDetails.userName}</Text>
-                  <Text style={styles.detailText}><Text style={styles.detailLabel}>Data:</Text> {format(new Date(selectedEvaluationDetails.dataAvaliacao), 'dd/MM/yyyy', { locale: ptBR })}</Text>
+                  <Text style={styles.detailText}>
+                    <Text style={styles.detailLabel}>Data:</Text>{' '}
+                    {/* CORREÇÃO PRINCIPAL AQUI também */}
+                    {format(parse(selectedEvaluationDetails.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
+                  </Text>
                   <Text style={styles.detailText}><Text style={styles.detailLabel}>Período de Treino:</Text> {selectedEvaluationDetails.periodoTreino}</Text>
                   {selectedEvaluationDetails.subDivisao && <Text style={styles.detailText}><Text style={styles.detailLabel}>Subdivisão:</Text> {selectedEvaluationDetails.subDivisao}</Text>}
                 </View>
@@ -551,11 +561,9 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     color: '#2c3e50',
     textAlign: 'center',
-    paddingTop: 10,
-    // Ajusta o padding top para acomodar o botão de voltar no cabeçalho
-    // Você pode ajustar isso para posicionar o título corretamente
-    paddingLeft: 40, // Deixa espaço para o botão de voltar à esquerda
-    paddingRight: 40, // Centraliza melhor o texto
+    paddingTop: 20,
+    paddingLeft: 40,
+    paddingRight: 40,
   },
   filterContainer: {
     marginBottom: 20,
@@ -575,6 +583,7 @@ const styles = StyleSheet.create({
     color: '#34495e',
     fontWeight: '600',
   },
+  
   dropdownContainer: {
     height: 50,
   },
@@ -641,12 +650,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
   },
-  // NOVO: Estilo para o botão de voltar da tela principal
   mainScreenBackButton: {
     position: 'absolute',
-    top: 40, // Ajuste conforme a safe area e o design
+    top: 20,
     left: 16,
-    zIndex: 10, // Garante que esteja acima de outros elementos
+    zIndex: 10,
     padding: 5,
   },
   modalOverlay: {
@@ -668,11 +676,10 @@ const styles = StyleSheet.create({
     elevation: 10,
     flex: 1,
   },
-  // Este é o botão de fechar do modal, não o de navegação
   modalCloseButton: {
-    position: 'absolute', // Permite posicionamento absoluto
+    position: 'absolute',
     top: 15,
-    right: 15, // Mudei para a direita para ser um 'X' de fechar
+    right: 15,
     padding: 5,
     zIndex: 1,
   },
@@ -687,7 +694,7 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     marginBottom: 20,
     textAlign: 'center',
-    marginTop: 30, // Ajusta o espaçamento para o novo botão de fechar
+    marginTop: 30,
   },
   detailsScrollView: {
     flex: 1,

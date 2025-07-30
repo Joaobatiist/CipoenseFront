@@ -224,44 +224,49 @@ export const styles = StyleSheet.create ({
         fontWeight: 'bold',
     },
     comunicadoCard: {
-        backgroundColor: '#fff',
-        padding: 15,
+        backgroundColor: '#f9f9f9', // Cor de fundo mais clara para seções de informação
         borderRadius: 8,
+        padding: 15,
         marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#ddd',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowRadius: 3,
+        elevation: 2, // Sombra para Android
     },
     comunicadoAssunto: {
-        fontSize: 16,
+        fontSize: 18, // Aumentado para título de análise
         fontWeight: 'bold',
-        marginBottom: 5,
+        marginBottom: 8,
+        color: '#333',
     },
     comunicadoData: {
         fontSize: 12,
-        color: '#666',
-        marginBottom: 10,
+        color: '#888',
+        fontStyle: 'italic',
+        textAlign: 'right', // Alinha a data à direita
     },
     comunicadoMensagem: {
-        fontSize: 14,
-        marginBottom: 10,
-        color: '#444',
+        fontSize: 15, // Tamanho para o corpo da análise
+        lineHeight: 22, // Espaçamento entre linhas para melhor leitura
+        color: '#555',
+        marginBottom: 10, // Espaçamento antes da data de geração
     },
-    comunicadoDestinatarios: {
+    comunicadoDestinatarios: { // Mantido, mas não usado diretamente para análise de desempenho
         fontSize: 12,
         color: '#888',
         fontStyle: 'italic',
     },
     // --- NOVOS ESTILOS PARA TREINOS (AGENDA) ---
     eventCard: {
-        backgroundColor: '#fff', // Um azul bem clarinho para diferenciar
+        backgroundColor: '#fff', 
         borderRadius: 8,
         padding: 15,
         marginBottom: 10,
         borderLeftWidth: 5,
-        borderLeftColor: '#e5c228', // Um verde azulado para a borda
+        borderLeftColor: '#e5c228', 
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
@@ -272,20 +277,20 @@ export const styles = StyleSheet.create ({
         fontSize: 16,
         fontWeight: 'bold',
         marginBottom: 5,
-        color: '#212121', // Um tom escuro para o texto
+        color: '#212121', 
     },
     eventDescription: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#1c348e', // Mesma cor da borda para destaque
+        color: '#1c348e', 
         marginBottom: 5,
     },
     eventDetail: {
         fontSize: 14,
-        color: '#424242', // Um tom médio para detalhes
+        color: '#424242', 
         marginBottom: 3,
     },
     eventListContainer: {
-        paddingVertical: 10, // Espaçamento extra acima e abaixo da lista de eventos
+        paddingVertical: 10, 
     }
 });

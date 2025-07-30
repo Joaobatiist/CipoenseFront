@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, FlatList } from 'react-native';
+import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, FlatList, ActivityIndicator } from 'react-native';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 
@@ -57,6 +57,11 @@ const Usuario: React.FC = () => {
     const [loadingEventos, setLoadingEventos] = useState<boolean>(true);
     const [errorEventos, setErrorEventos] = useState<string | null>(null);
 
+    // NOVOS ESTADOS PARA A ANÁLISE DE DESEMPENHO
+    const [analiseDesempenho, setAnaliseDesempenho] = useState<string | null>(null);
+    const [loadingAnalise, setLoadingAnalise] = useState<boolean>(true);
+    const [errorAnalise, setErrorAnalise] = useState<string | null>(null);
+
     const getToken = async (): Promise<string | null> => {
         try {
             const token = await AsyncStorage.getItem('jwtToken');
@@ -77,7 +82,6 @@ const Usuario: React.FC = () => {
                 setLoadingComunicados(false);
                 return;
             }
-            
             
             const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
                 method: 'GET',
@@ -130,26 +134,82 @@ const Usuario: React.FC = () => {
             }
 
             const data: Evento[] = await response.json();
-            console.log('FETCH_EVENTS (UsuarioScreen): Dados brutos de eventos recebidos:', data); // <--- NOVO LOG
+            console.log('FETCH_EVENTS (UsuarioScreen): Dados brutos de eventos recebidos:', data); 
             const formattedData = data.map(event => ({
                 ...event,
                 data: new Date(event.data + 'T00:00:00').toLocaleDateString('pt-BR'), 
             }));
             setEventos(formattedData);
-            console.log('FETCH_EVENTS (UsuarioScreen): Eventos carregados e formatados com sucesso. Quantidade:', formattedData.length); // <--- NOVO LOG
+            console.log('FETCH_EVENTS (UsuarioScreen): Eventos carregados e formatados com sucesso. Quantidade:', formattedData.length); 
         } catch (error: any) {
             console.error("FETCH_EVENTS (UsuarioScreen): Falha ao buscar eventos:", error);
             setErrorEventos(`Não foi possível carregar a agenda de treinos. ${error.message || 'Tente novamente.'}`);
-            setEventos([]); // Garante que a lista esteja vazia em caso de erro
+            setEventos([]); 
         } finally {
             setLoadingEventos(false);
-            console.log('FETCH_EVENTS (UsuarioScreen): Finalizado. loadingEventos:', false, 'errorEventos:', errorEventos); // <--- NOVO LOG
+            console.log('FETCH_EVENTS (UsuarioScreen): Finalizado. loadingEventos:', false, 'errorEventos:', errorEventos); 
+        }
+    };
+
+    // NOVA FUNÇÃO PARA BUSCAR A ANÁLISE DE DESEMPENHO
+    const fetchPerformanceAnalysis = async () => {
+        setLoadingAnalise(true);
+        setErrorAnalise(null);
+        try {
+            const token = await getToken();
+            if (!token) {
+                setErrorAnalise("Token JWT não encontrado para análise de desempenho.");
+                setLoadingAnalise(false);
+                return;
+            }
+
+            console.log('FETCH_PERFORMANCE_ANALYSIS: Chamando backend para análise de desempenho do atleta logado...');
+            const response = await fetch(`${API_BASE_URL}/api/analise/meu-desempenho`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                console.error('FETCH_PERFORMANCE_ANALYSIS: Erro HTTP na resposta:', response.status, errorBody);
+                try {
+                    const errorJson = JSON.parse(errorBody);
+                    throw new Error(errorJson.error || `Erro HTTP! status: ${response.status}`);
+                } catch (jsonError) {
+                    throw new Error(`Erro HTTP! status: ${response.status}, corpo: ${errorBody}`);
+                }
+            }
+
+            const data = await response.json();
+            // Verifica se comprehensiveAnalysis existe e não é uma string vazia ou mensagem de "nenhum dado"
+            if (data.comprehensiveAnalysis && typeof data.comprehensiveAnalysis === 'string' && data.comprehensiveAnalysis.length > 0 && data.comprehensiveAnalysis !== "Nenhuma avaliação de desempenho encontrada para este atleta. Converse com seu treinador para iniciar.") {
+                setAnaliseDesempenho(data.comprehensiveAnalysis);
+                console.log('FETCH_PERFORMANCE_ANALYSIS: Análise de desempenho carregada com sucesso.');
+            } else if (data.comprehensiveAnalysis === "Nenhuma avaliação de desempenho encontrada para este atleta. Converse com seu treinador para iniciar.") {
+                setAnaliseDesempenho("Nenhuma análise de desempenho detalhada disponível no momento. Converse com seu treinador para iniciar.");
+                console.warn('FETCH_PERFORMANCE_ANALYSIS: Backend retornou mensagem de que não há dados de avaliação.');
+            }
+            else {
+                setAnaliseDesempenho("Nenhuma análise de desempenho detalhada disponível no momento.");
+                console.warn('FETCH_PERFORMANCE_ANALYSIS: Backend retornou sem comprehensiveAnalysis direto, ou com mensagem de que não há dados.');
+            }
+        } catch (error: any) {
+            console.error('ERRO GERAL NO FETCH_PERFORMANCE_ANALYSIS:', error);
+            setErrorAnalise(`Falha ao carregar análise de desempenho: ${error.message || 'Erro desconhecido'}`);
+            setAnaliseDesempenho(null); 
+        } finally {
+            setLoadingAnalise(false);
+            console.log('FETCH_PERFORMANCE_ANALYSIS: Finalizado. loadingAnalise:', false, 'errorAnalise:', errorAnalise);
         }
     };
 
     useEffect(() => {
         fetchComunicados();
         fetchEvents();
+        fetchPerformanceAnalysis(); // CHAMA A NOVA FUNÇÃO DE ANÁLISE DE DESEMPENHO
     }, []);
 
     function Perfil() {
@@ -202,8 +262,6 @@ const Usuario: React.FC = () => {
         scrollToSection('comunicados');
     };
 
-    
-
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
@@ -249,13 +307,12 @@ const Usuario: React.FC = () => {
                     <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
                     
                     {loadingEventos ? (
-                        <Text style={styles.loadingMessage}>Carregando agenda de treinos...</Text>
+                        <ActivityIndicator size="large" color="#0000ff" /> // Indicador de carregamento
                     ) : errorEventos ? (
                         <Text style={[styles.errorMessage, { color: 'red' }]}>{errorEventos}</Text>
                     ) : eventos.length === 0 ? (
                         <Text style={styles.emptyMessage}>Nenhum treino agendado para você.</Text>
                     ) : (
-                        // <Text>Debug: {JSON.stringify(eventos, null, 2)}</Text> {/* <--- NOVO: Para ver os dados */}
                         <FlatList
                             data={eventos}
                             keyExtractor={item => item.id}
@@ -274,16 +331,32 @@ const Usuario: React.FC = () => {
                     )}
                 </View>
                 
+                {/* SEÇÃO MEU DESEMPENHO ATUALIZADA */}
                 <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
                     <Text style={styles.sectionTitle}>Meu Desempenho</Text>
-                    <Text style={styles.emptyMessage}>Conteúdo da seção Meu Desempenho será implementado aqui.</Text>
+                    
+                    {loadingAnalise ? (
+                        <ActivityIndicator size="large" color="#0000ff" /> // Indicador de carregamento
+                    ) : errorAnalise ? (
+                        <Text style={[styles.errorMessage, { color: 'red' }]}>{errorAnalise}</Text>
+                    ) : analiseDesempenho ? (
+                        <View style={styles.comunicadoCard}> {/* Reutilizando o estilo de comunicado para a análise */}
+                            <Text style={styles.comunicadoAssunto}>Análise de Desempenho Personalizada</Text> {/* Título para a análise */}
+                            {analiseDesempenho.split('\n').map((paragraph, index) => (
+                                <Text key={index} style={styles.comunicadoMensagem}>{paragraph}</Text>
+                            ))}
+                            <Text style={styles.comunicadoData}>Gerado em: {new Date().toLocaleDateString('pt-BR')}</Text> 
+                        </View>
+                    ) : (
+                        <Text style={styles.emptyMessage}>Nenhuma análise de desempenho disponível para você no momento.</Text>
+                    )}
                 </View>
 
                 <View style={styles.section} onLayout={(event) => handleLayout(event, 'comunicados')}>
                     <Text style={styles.sectionTitle}>Comunicados</Text>
                     
                     {loadingComunicados ? (
-                        <Text style={styles.loadingMessage}>Carregando comunicados...</Text>
+                        <ActivityIndicator size="large" color="#0000ff" /> // Indicador de carregamento
                     ) : errorComunicados ? (
                         <Text style={[styles.errorMessage, { color: 'red' }]}>{errorComunicados}</Text>
                     ) : comunicadosRecebidos.length === 0 ? (
@@ -295,14 +368,11 @@ const Usuario: React.FC = () => {
                                     <Text style={styles.comunicadoAssunto}>{comunicado.assunto}</Text>
                                     <Text style={styles.comunicadoMensagem}>{comunicado.mensagem}</Text>
                                     <Text style={styles.comunicadoData}>Data de Envio: {new Date(comunicado.dataEnvio).toLocaleDateString('pt-BR')}</Text>
-                                </  View>
+                                </View>
                             ))}
                         </View>
                     )}
                 </View>
-
-             
-
             </ScrollView>
         </SafeAreaView>
     );

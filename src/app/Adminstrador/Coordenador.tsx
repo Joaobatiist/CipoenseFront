@@ -1,4 +1,4 @@
-import { faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -119,7 +119,9 @@ function Presenca () {
   function Relatorio() {
     router.navigate("./Relatorios");
   }
-
+function Atletas (){
+router.navigate("../Tarefas/ListaAtletas")
+}
   function CadastrarAluno(){
     router.navigate("../Cadastro/CadastroAluno")
   }
@@ -406,6 +408,10 @@ function AvaliacaoGeral () {
                           <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
                            <Text style={styles.navText}>Relatorio de Desempenho</Text>
                           </TouchableOpacity>
+                          <TouchableOpacity style={styles.navItem} onPress={Atletas}>
+                                      <FontAwesomeIcon icon={faAddressBook}  size={16} color="#fff" style={styles.navIcon} />
+                                      <Text style={styles.navText}>Lista de Atletas</Text>
+                                    </TouchableOpacity>
             
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, StackActions } from '@react-navigation/native';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -11,9 +11,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
+  KeyboardAvoidingView,
+  // SafeAreaView, // Descomente se precisar de Safe Area
 } from 'react-native';
 import { TextInputMask } from 'react-native-masked-text';
-import DropDownPicker from 'react-native-dropdown-picker'; 
+import DropDownPicker from 'react-native-dropdown-picker';
+
 interface AthleteEvaluation {
   Controle: number;
   recepcao: number;
@@ -37,16 +41,15 @@ interface AthleteEvaluation {
   trabalhoEquipe: number;
   atributosFisicos: number;
   capacidadeSobPressao: number;
-  [key: string]: number; 
+  [key: string]: number;
 }
 
 interface CustomJwtPayload extends JwtPayload {
-  sub?: string; 
+  sub?: string;
   userId?: number;
   userType?: string;
-  userName?: string; 
+  userName?: string;
 }
-
 
 interface AtletaParaSelecao {
   id: number;
@@ -111,6 +114,30 @@ const AthleteEvaluationForm = () => {
   };
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+  const checkAuthAndRedirect = useCallback(async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem('jwtToken');
+      if (!storedToken) {
+        Alert.alert(
+          'Autenticação Necessária',
+          'Sua sessão expirou ou você não está logado. Você será redirecionado para a tela de login.',
+          [{
+            text: 'OK',
+            onPress: () => {
+              navigation.dispatch(StackActions.replace('Login'));
+            }
+          }]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Erro ao verificar token para redirecionamento:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao verificar sua autenticação.');
+      return false;
+    }
+  }, [navigation]);
+
   useEffect(() => {
     const loadAuthData = async () => {
       setIsTokenLoaded(false);
@@ -118,30 +145,22 @@ const AthleteEvaluationForm = () => {
         const storedToken = await AsyncStorage.getItem('jwtToken');
         if (storedToken) {
           setAuthToken(storedToken);
-          console.log('Token de autenticação carregado:', storedToken);
           try {
             const decodedToken = jwtDecode<CustomJwtPayload>(storedToken);
 
             if (decodedToken.userName) {
               setNomeAvaliador(decodedToken.userName);
-              console.log('Nome do Avaliador do token (userName):', decodedToken.userName);
             } else if (decodedToken.sub) {
               setNomeAvaliador(decodedToken.sub);
-              console.log('Nome do Avaliador do token (sub fallback):', decodedToken.sub);
-            }
-            if (decodedToken.userId) {
-              console.log('ID do Usuário do token:', decodedToken.userId);
-            }
-            if (decodedToken.userType) {
-              console.log('Tipo de Usuário do token:', decodedToken.userType);
             }
           } catch (decodeError) {
             console.error('Erro ao decodificar o token:', decodeError);
             Alert.alert('Erro de Token', 'Não foi possível decodificar o token de autenticação.');
+            await AsyncStorage.removeItem('jwtToken');
+            await checkAuthAndRedirect();
           }
         } else {
-          Alert.alert('Autenticação Necessária', 'Por favor, faça login para enviar avaliações. Você será redirecionado para a tela de login.');
-          // navigation.navigate('Login'); // Uncomment if you have a 'Login' route
+          await checkAuthAndRedirect();
         }
       } catch (error) {
         console.error('Erro ao carregar token de autenticação do AsyncStorage:', error);
@@ -151,46 +170,66 @@ const AthleteEvaluationForm = () => {
       }
     };
     loadAuthData();
-  }, []);
+  }, [checkAuthAndRedirect]);
 
   useEffect(() => {
     const fetchAtletasAndSubdivisoes = async () => {
-      if (isTokenLoaded && authToken && API_BASE_URL) {
-        try {
-          const atletasResponse = await fetch(`${API_BASE_URL}/api/atletas/listagem`, {
-            headers: { 'Authorization': `Bearer ${authToken}` },
-          });
-          if (!atletasResponse.ok) {
-            throw new Error(`HTTP error! Status: ${atletasResponse.status} ao buscar atletas.`);
-          }
-          const atletasData: AtletaParaSelecao[] = await atletasResponse.json();
-          setAtletasList(atletasData);
-          setFilteredAtletasList(atletasData);
-
-          const subdivisoesResponse = await fetch(`${API_BASE_URL}/api/atletas/subdivisoes`, {
-            headers: { 'Authorization': `Bearer ${authToken}` },
-          });
-          if (!subdivisoesResponse.ok) {
-            throw new Error(`HTTP error! Status: ${subdivisoesResponse.status} ao buscar subdivisões.`);
-          }
-          const subdivisoesData: string[] = await subdivisoesResponse.json();
-          setSubdivisoesList(subdivisoesData);
-          setSubdivisaoOptionsForPicker(subdivisoesData);
-
-        } catch (error: any) {
-          console.error('Erro ao buscar dados de atletas/subdivisões:', error);
-          Alert.alert('Erro de Carga', `Não foi possível carregar dados de atletas ou subdivisões: ${error.message}`);
+      if (!isTokenLoaded || !authToken || !API_BASE_URL) {
+        if (isTokenLoaded && !authToken) { // Token carregado mas é nulo, já foi redirecionado
+          console.log('Sem token válido, pulando fetch de atletas e subdivisões.');
+        } else if (!API_BASE_URL) {
+            console.warn('API_BASE_URL não configurado, pulando fetch de atletas e subdivisões.');
+        } else {
+            console.log('Aguardando token ser carregado para buscar atletas e subdivisões.');
         }
+        return;
+      }
+
+      try {
+        const atletasResponse = await fetch(`${API_BASE_URL}/api/atletas/listagem`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (atletasResponse.status === 401) {
+          Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+          await AsyncStorage.removeItem('jwtToken');
+          navigation.dispatch(StackActions.replace('Login'));
+          return;
+        }
+        if (!atletasResponse.ok) {
+          throw new Error(`HTTP error! Status: ${atletasResponse.status} ao buscar atletas.`);
+        }
+        const atletasData: AtletaParaSelecao[] = await atletasResponse.json();
+        setAtletasList(atletasData);
+        setFilteredAtletasList(atletasData);
+
+        const subdivisoesResponse = await fetch(`${API_BASE_URL}/api/atletas/subdivisoes`, {
+          headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (subdivisoesResponse.status === 401) {
+          Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+          await AsyncStorage.removeItem('jwtToken');
+          navigation.dispatch(StackActions.replace('Login'));
+          return;
+        }
+        if (!subdivisoesResponse.ok) {
+          throw new Error(`HTTP error! Status: ${subdivisoesResponse.status} ao buscar subdivisões.`);
+        }
+        const subdivisoesData: string[] = await subdivisoesResponse.json();
+        setSubdivisoesList(subdivisoesData);
+        setSubdivisaoOptionsForPicker(subdivisoesData);
+
+      } catch (error: any) {
+        console.error('Erro ao buscar dados de atletas/subdivisões:', error);
+        Alert.alert('Erro de Carga', `Não foi possível carregar dados de atletas ou subdivisões: ${error.message}`);
       }
     };
     fetchAtletasAndSubdivisoes();
-  }, [isTokenLoaded, authToken, API_BASE_URL]);
+  }, [isTokenLoaded, authToken, API_BASE_URL, navigation]);
 
   const handleAvaliacaoChange = (attribute: keyof AthleteEvaluation, value: number) => {
     setAvaliacao({ ...avaliacao, [attribute]: value });
   };
 
- 
   const handleAtletaChange = (value: number | null) => {
     if (value === null) {
       setSelectedAtletaId(null);
@@ -218,18 +257,18 @@ const AthleteEvaluationForm = () => {
     }
   };
 
- 
+
   const handleSubdivisaoFilterChange = (value: string | null) => {
     if (!isSubdivisaoPickerDisabled) {
-      const subdivisao = value || ''; 
+      const subdivisao = value || '';
       setSelectedSubdivisao(subdivisao);
-      if (subdivisao === '') { 
+      if (subdivisao === '') {
         setFilteredAtletasList(atletasList);
       } else {
         const filtered = atletasList.filter(atleta => atleta.subDivisao === subdivisao);
         setFilteredAtletasList(filtered);
       }
-      setSelectedAtletaId(null); 
+      setSelectedAtletaId(null);
       setNomeCompleto('');
     }
   };
@@ -329,11 +368,12 @@ const AthleteEvaluationForm = () => {
       console.log('Avaliação Geral data sent successfully!');
 
       Alert.alert('Sucesso', 'Avaliação enviada com sucesso!');
-      // navigation.goBack();
     } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
       if (error.message.includes('Status: 401')) {
         Alert.alert('Não Autorizado', 'Sua sessão expirou ou você não tem permissão. Por favor, faça login novamente.');
+        await AsyncStorage.removeItem('jwtToken');
+        navigation.dispatch(StackActions.replace('Login'));
       } else if (error.message.includes('Status: 403')) {
         Alert.alert('Acesso Proibido', 'Você não tem permissão para realizar esta ação.');
       } else {
@@ -422,195 +462,235 @@ const AthleteEvaluationForm = () => {
   );
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>
-        ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
-      </Text>
+    // <SafeAreaView style={styles.safeArea}> // Descomente se precisar de Safe Area
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoidingContainer}
+      // Experimente 'position' para Android se 'height' não estiver funcionando bem
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // Ajuste conforme a altura do seu cabeçalho
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled" // Permite interações com elementos que não são textInput
+      >
+        <Text style={styles.title}>
+          ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
+        </Text>
 
-      <View style={[styles.section, { zIndex: 2000 }]}> {/* Increased zIndex for dropdowns */}
-        <Text style={styles.sectionTitle}>Dados do Atleta</Text>
+        <View style={[styles.section, { zIndex: 2000 }]}>
+          <Text style={styles.sectionTitle}>Dados do Atleta</Text>
 
-        <Text style={styles.label}>Nome do Atleta:</Text>
-        <DropDownPicker
-          open={openAtletaPicker}
-          value={selectedAtletaId}
-          items={filteredAtletasList.map(atleta => ({
-            label: atleta.nomeCompleto,
-            value: atleta.id,
-          }))}
-          setOpen={setOpenAtletaPicker}
-          setValue={setSelectedAtletaId}
-          onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
-          placeholder="Selecione um Atleta"
-          style={styles.dropdown}
-          containerStyle={styles.dropdownContainer}
-          zIndex={3000} // Ensure this picker is on top
-          listMode="SCROLLVIEW" // Use SCROLLVIEW for better performance with many items
-          // Add a default item at the top of the list
-          itemSeparator={true}
-          itemSeparatorStyle={styles.itemSeparator}
-        />
+          <Text style={styles.label}>Nome do Atleta:</Text>
+          <DropDownPicker
+            open={openAtletaPicker}
+            value={selectedAtletaId}
+            items={filteredAtletasList.map(atleta => ({
+              label: atleta.nomeCompleto,
+              value: atleta.id,
+            }))}
+            setOpen={setOpenAtletaPicker}
+            setValue={setSelectedAtletaId}
+            onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
+            placeholder="Selecione um Atleta"
+            style={styles.dropdown}
+            containerStyle={styles.dropdownContainer}
+            zIndex={3000}
+            listMode="SCROLLVIEW"
+            itemSeparator={true}
+            itemSeparatorStyle={styles.itemSeparator}
+          />
 
-        <Text style={styles.label}>Nome do Avaliador:</Text>
-        <TextInput
-          style={styles.input}
-          value={nomeAvaliador}
-          editable={false}
-        />
+          <Text style={styles.label}>Nome do Avaliador:</Text>
+          <TextInput
+            style={styles.input}
+            value={nomeAvaliador}
+            editable={false}
+          />
 
-        <Text style={styles.label}>Subdivisão:</Text>
-        <DropDownPicker
-          open={openSubdivisaoPicker}
-          value={selectedSubdivisao}
-          items={[
-            { label: 'Selecione uma Subdivisão', value: '' }, // Default option
-            ...subdivisaoOptionsForPicker.map(subdivisao => ({
-              label: subdivisao,
-              value: subdivisao,
-            })),
-          ]}
-          setOpen={setOpenSubdivisaoPicker}
-          setValue={setSelectedSubdivisao}
-          onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
-          placeholder="Selecione uma Subdivisão"
-          style={styles.dropdown}
-          containerStyle={styles.dropdownContainer}
-          disabled={isSubdivisaoPickerDisabled}
-          zIndex={2000} // Ensure this picker is above other elements, but potentially below the athlete picker if both are open
-          listMode="SCROLLVIEW"
-          itemSeparator={true}
-          itemSeparatorStyle={styles.itemSeparator}
-        />
+          <Text style={styles.label}>Subdivisão:</Text>
+          <DropDownPicker
+            open={openSubdivisaoPicker}
+            value={selectedSubdivisao}
+            items={[
+              { label: 'Selecione uma Subdivisão', value: '' },
+              ...subdivisaoOptionsForPicker.map(subdivisao => ({
+                label: subdivisao,
+                value: subdivisao,
+              })),
+            ]}
+            setOpen={setOpenSubdivisaoPicker}
+            setValue={setSelectedSubdivisao}
+            onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
+            placeholder="Selecione uma Subdivisão"
+            style={styles.dropdown}
+            containerStyle={styles.dropdownContainer}
+            disabled={isSubdivisaoPickerDisabled}
+            zIndex={2000}
+            listMode="SCROLLVIEW"
+            itemSeparator={true}
+            itemSeparatorStyle={styles.itemSeparator}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Período"
-          value={periodo}
-          onChangeText={setPeriodo}
-        />
-      </View>
-
-      {renderAvaliacaoTable('Desempenho do Atleta', [
-        'Controle',
-        'recepcao',
-        'dribles',
-        'passe',
-        'tiro',
-        'cruzamento',
-        'giro',
-        'manuseioBola',
-        'forcaChute',
-        'GerenciamentoGols',
-        'jogoOfensivo',
-        'jogoDefensivo',
-      ])}
-
-      {renderAvaliacaoTable('Avaliação Tática/Psicológica/Física', [
-        'esportividade',
-        'disciplina',
-        'foco',
-        'confianca',
-        'tomadaDecisoes',
-        'compromisso',
-        'lideranca',
-        'trabalhoEquipe',
-        'atributosFisicos',
-        'capacidadeSobPressao',
-      ])}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Avaliação Geral do Jogador</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Feedback do Treinador"
-          value={feedbackTreinador}
-          onChangeText={setFeedbackTreinador}
-          multiline
-          numberOfLines={6}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Feedback do Avaliador"
-          value={feedbackAvaliador}
-          onChangeText={setFeedbackAvaliador}
-          multiline
-          numberOfLines={6}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Pontos Fortes"
-          value={pontosFortes}
-          onChangeText={setPontosFortes}
-          multiline
-          numberOfLines={6}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Pontos Fracos"
-          value={pontosFracos}
-          onChangeText={setPontosFracos}
-          multiline
-          numberOfLines={6}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Áreas de Aprimoramento"
-          value={areasAprimoramento}
-          onChangeText={setAreasAprimoramento}
-          multiline
-          numberOfLines={6}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Metas/Planos/Objetivos"
-          value={metasObjetivos}
-          onChangeText={setMetasObjetivos}
-          multiline
-          numberOfLines={6}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Finalização</Text>
-        <TextInputMask
-          style={styles.input}
-          type={'datetime'}
-          options={{
-            format: 'DD/MM/YYYY',
-          }}
-          value={dataAvaliacao}
-          onChangeText={setDataAvaliacao}
-          placeholder="Data da avaliação (DD/MM/YYYY)"
-          keyboardType="numeric"
-        />
-        <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
-
-        <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 10 }}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSubmit}
-            disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao}
-          >
-            {isLoading || !isTokenLoaded ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Salvar Avaliação</Text>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-            <Text style={styles.buttonText}>Voltar</Text>
-          </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            placeholder="Período"
+            value={periodo}
+            onChangeText={setPeriodo}
+            // Adicionado: onFocus para garantir que o ScrollView rola para o campo
+            onFocus={() => {
+              // Você pode adicionar um pequeno atraso se a rolagem for muito rápida
+              // setTimeout(() => {
+              //   this.scrollViewRef.current?.scrollToEnd({ animated: true }); // Exemplo se você usar um ref
+              // }, 100);
+            }}
+          />
         </View>
-      </View>
-    </ScrollView>
+
+        {renderAvaliacaoTable('Desempenho do Atleta', [
+          'Controle',
+          'recepcao',
+          'dribles',
+          'passe',
+          'tiro',
+          'cruzamento',
+          'giro',
+          'manuseioBola',
+          'forcaChute',
+          'GerenciamentoGols',
+          'jogoOfensivo',
+          'jogoDefensivo',
+        ])}
+
+        {renderAvaliacaoTable('Avaliação Tática/Psicológica/Física', [
+          'esportividade',
+          'disciplina',
+          'foco',
+          'confianca',
+          'tomadaDecisoes',
+          'compromisso',
+          'lideranca',
+          'trabalhoEquipe',
+          'atributosFisicos',
+          'capacidadeSobPressao',
+        ])}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Avaliação Geral do Jogador</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Feedback do Treinador"
+            value={feedbackTreinador}
+            onChangeText={setFeedbackTreinador}
+            multiline
+            numberOfLines={6}
+            // Adicionado: para garantir que o TextInput multiline se ajuste ao conteúdo
+            textAlignVertical="top" // Alinha o texto no topo em Android para multiline
+            // onFocus e onBlur podem ajudar a gerenciar a rolagem
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Feedback do Avaliador"
+            value={feedbackAvaliador}
+            onChangeText={setFeedbackAvaliador}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Pontos Fortes"
+            value={pontosFortes}
+            onChangeText={setPontosFortes}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Pontos Fracos"
+            value={pontosFracos}
+            onChangeText={setPontosFracos}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Áreas de Aprimoramento"
+            value={areasAprimoramento}
+            onChangeText={setAreasAprimoramento}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Metas/Planos/Objetivos"
+            value={metasObjetivos}
+            onChangeText={setMetasObjetivos}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Finalização</Text>
+          <TextInputMask
+            style={styles.input}
+            type={'datetime'}
+            options={{
+              format: 'DD/MM/YYYY',
+            }}
+            value={dataAvaliacao}
+            onChangeText={setDataAvaliacao}
+            placeholder="Data da avaliação (DD/MM/YYYY)"
+            keyboardType="numeric"
+            // Adicionado: onFocus para garantir que o ScrollView rola para o campo
+            onFocus={() => {
+              // Pode ser útil para os últimos campos
+            }}
+          />
+          <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
+
+          <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 10 }}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSubmit}
+              disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao}
+            >
+              {isLoading || !isTokenLoaded ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Salvar Avaliação</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
+              <Text style={styles.buttonText}>Voltar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+    
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardAvoidingContainer: {
     flex: 1,
+    backgroundColor: '#f0f0f0', // Mudei para uma cor ligeiramente diferente para depuração
+  },
+  scrollViewContent: {
+    flexGrow: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    paddingBottom: 100, // Aumentei o paddingBottom para dar mais espaço de rolagem
   },
   title: {
     fontSize: 18,
@@ -641,6 +721,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
+    minHeight: 40, // Garante uma altura mínima para inputs normais
+  },
+  // Estilo específico para TextInputs multiline, se necessário
+  multilineInput: {
+    minHeight: 120, // Altura mínima para campos de texto longos
+    textAlignVertical: 'top', // Para Android, garante que o cursor comece no topo
   },
   table: {
     width: '100%',
@@ -698,7 +784,6 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     height: 50,
     marginBottom: 10,
-    
   },
   dropdown: {
     backgroundColor: '#fafafa',

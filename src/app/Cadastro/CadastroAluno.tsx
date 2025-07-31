@@ -88,7 +88,7 @@ const CadastroAlunoScreen = () => {
     { label: 'Lateral Esquerdo', value: 'LATERAL_ESQUERDO' },
     { label: 'Lateral Direito', value: 'LATERAL_DIREITO' },
     { label: 'Zagueiro', value: 'ZAGUEIRO' },
-    { label: 'Goleiro', value: 'GOLOLEIRO' }, // **Verifique a grafia no seu Enum (GOLOLEIRO ou GOLEIRO)**
+    { label: 'Goleiro', value: 'GOLEIRO' }, 
   ]);
 
 

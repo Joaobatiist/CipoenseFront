@@ -1,22 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation, StackActions } from '@react-navigation/native';
+import { StackActions, useNavigation } from '@react-navigation/native';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Platform,
-  KeyboardAvoidingView,
-  // SafeAreaView, // Descomente se precisar de Safe Area
 } from 'react-native';
-import { TextInputMask } from 'react-native-masked-text';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { TextInputMask } from 'react-native-masked-text';
 
 interface AthleteEvaluation {
   Controle: number;
@@ -55,6 +54,7 @@ interface AtletaParaSelecao {
   id: number;
   nomeCompleto: string;
   subDivisao: string;
+  posicao: string;
 }
 
 const AthleteEvaluationForm = () => {
@@ -63,6 +63,7 @@ const AthleteEvaluationForm = () => {
   const [nomeCompleto, setNomeCompleto] = useState<string>('');
   const [nomeAvaliador, setNomeAvaliador] = useState<string>('');
   const [selectedSubdivisao, setSelectedSubdivisao] = useState<string>('');
+  const [selectedPosicao, setSelectedPosicao] = useState<string>('');
   const [periodo, setPeriodo] = useState<string>('');
   const [avaliacao, setAvaliacao] = useState<AthleteEvaluation>({
     Controle: 3,
@@ -103,16 +104,68 @@ const AthleteEvaluationForm = () => {
   const [subdivisoesList, setSubdivisoesList] = useState<string[]>([]);
   const [subdivisaoOptionsForPicker, setSubdivisaoOptionsForPicker] = useState<string[]>([]);
   const [isSubdivisaoPickerDisabled, setIsSubdivisaoPickerDisabled] = useState<boolean>(false);
+  const [posicaoList, setPosicaoList] = useState<string[]>([]); // Novo estado para lista de posições
+  const [posicaoOptionsForPicker, setPosicaoOptionsForPicker] = useState<string[]>([]); // Novo estado para opções do picker de posição
+  const [isPosicaoPickerDisabled, setIsPosicaoPickerDisabled] = useState<boolean>(false); // Novo estado para desabilitar o picker de posição
 
   // DropDownPicker specific states
   const [openAtletaPicker, setOpenAtletaPicker] = useState(false);
   const [openSubdivisaoPicker, setOpenSubdivisaoPicker] = useState(false);
+  const [openPosicaoPicker, setOpenPosicaoPicker] = useState(false); // Novo estado para abrir/fechar o picker de posição
 
   const formatarData = (data: string): string => {
     const [dia, mes, ano] = data.split('/');
     return `${ano}-${mes}-${dia}`;
   };
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+  // Função para resetar os estados do formulário
+  const resetFormState = useCallback(() => {
+    setSelectedAtletaId(null);
+    setNomeCompleto('');
+    setSelectedSubdivisao('');
+    setSelectedPosicao('');
+    setPeriodo('');
+    setAvaliacao({
+      Controle: 3,
+      recepcao: 3,
+      dribles: 3,
+      passe: 3,
+      tiro: 3,
+      cruzamento: 3,
+      giro: 3,
+      manuseioBola: 3,
+      forcaChute: 3,
+      GerenciamentoGols: 3,
+      jogoOfensivo: 3,
+      jogoDefensivo: 3,
+      esportividade: 3,
+      disciplina: 3,
+      foco: 3,
+      confianca: 3,
+      tomadaDecisoes: 3,
+      compromisso: 3,
+      lideranca: 3,
+      trabalhoEquipe: 3,
+      atributosFisicos: 3,
+      capacidadeSobPressao: 3,
+    });
+    setFeedbackTreinador('');
+    setFeedbackAvaliador('');
+    setPontosFortes('');
+    setPontosFracos('');
+    setAreasAprimoramento('');
+    setMetasObjetivos('');
+    setDataAvaliacao('');
+    setOpenAtletaPicker(false);
+    setOpenSubdivisaoPicker(false);
+    setOpenPosicaoPicker(false);
+    setFilteredAtletasList(atletasList);
+    setSubdivisaoOptionsForPicker(subdivisoesList);
+    setPosicaoOptionsForPicker(posicaoList); // Resetar opções de posição
+    setIsSubdivisaoPickerDisabled(false);
+    setIsPosicaoPickerDisabled(false);
+  }, [atletasList, subdivisoesList, posicaoList]);
 
   const checkAuthAndRedirect = useCallback(async () => {
     try {
@@ -175,7 +228,7 @@ const AthleteEvaluationForm = () => {
   useEffect(() => {
     const fetchAtletasAndSubdivisoes = async () => {
       if (!isTokenLoaded || !authToken || !API_BASE_URL) {
-        if (isTokenLoaded && !authToken) { // Token carregado mas é nulo, já foi redirecionado
+        if (isTokenLoaded && !authToken) {
           console.log('Sem token válido, pulando fetch de atletas e subdivisões.');
         } else if (!API_BASE_URL) {
             console.warn('API_BASE_URL não configurado, pulando fetch de atletas e subdivisões.');
@@ -218,9 +271,26 @@ const AthleteEvaluationForm = () => {
         setSubdivisoesList(subdivisoesData);
         setSubdivisaoOptionsForPicker(subdivisoesData);
 
+        // Fetch de Posições
+        const posicoesResponse = await fetch(`${API_BASE_URL}/api/atletas/posicoes`, {
+            headers: { 'Authorization': `Bearer ${authToken}` },
+        });
+        if (posicoesResponse.status === 401) {
+            Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+            await AsyncStorage.removeItem('jwtToken');
+            navigation.dispatch(StackActions.replace('Login'));
+            return;
+        }
+        if (!posicoesResponse.ok) {
+            throw new Error(`HTTP error! Status: ${posicoesResponse.status} ao buscar posições.`);
+        }
+        const posicoesData: string[] = await posicoesResponse.json();
+        setPosicaoList(posicoesData);
+        setPosicaoOptionsForPicker(posicoesData);
+
       } catch (error: any) {
-        console.error('Erro ao buscar dados de atletas/subdivisões:', error);
-        Alert.alert('Erro de Carga', `Não foi possível carregar dados de atletas ou subdivisões: ${error.message}`);
+        console.error('Erro ao buscar dados de atletas/subdivisões/posições:', error);
+        Alert.alert('Erro de Carga', `Não foi possível carregar dados de atletas, subdivisões ou posições: ${error.message}`);
       }
     };
     fetchAtletasAndSubdivisoes();
@@ -235,24 +305,33 @@ const AthleteEvaluationForm = () => {
       setSelectedAtletaId(null);
       setNomeCompleto('');
       setSelectedSubdivisao('');
+      setSelectedPosicao(''); // Resetar posição
       setFilteredAtletasList(atletasList);
       setSubdivisaoOptionsForPicker(subdivisoesList);
       setIsSubdivisaoPickerDisabled(false);
+      setPosicaoOptionsForPicker(posicaoList); // Resetar opções de posição
+      setIsPosicaoPickerDisabled(false); // Desabilitar picker de posição
     } else {
       const selected = atletasList.find(atleta => atleta.id === value);
       if (selected) {
         setSelectedAtletaId(selected.id);
         setNomeCompleto(selected.nomeCompleto);
         setSelectedSubdivisao(selected.subDivisao);
+        setSelectedPosicao(selected.posicao); // Definir posição do atleta selecionado
         setSubdivisaoOptionsForPicker([selected.subDivisao]);
         setIsSubdivisaoPickerDisabled(true);
+        setPosicaoOptionsForPicker([selected.posicao]); // Definir opções de posição para o atleta
+        setIsPosicaoPickerDisabled(true); // Desabilitar picker de posição
       } else {
         setSelectedAtletaId(null);
         setNomeCompleto('');
         setSelectedSubdivisao('');
+        setSelectedPosicao(''); // Resetar posição
         setFilteredAtletasList(atletasList);
         setSubdivisaoOptionsForPicker(subdivisoesList);
         setIsSubdivisaoPickerDisabled(false);
+        setPosicaoOptionsForPicker(posicaoList); // Resetar opções de posição
+        setIsPosicaoPickerDisabled(false); // Desabilitar picker de posição
       }
     }
   };
@@ -264,8 +343,37 @@ const AthleteEvaluationForm = () => {
       setSelectedSubdivisao(subdivisao);
       if (subdivisao === '') {
         setFilteredAtletasList(atletasList);
+        setPosicaoOptionsForPicker(posicaoList); // Resetar posições se subdivisão for limpa
       } else {
         const filtered = atletasList.filter(atleta => atleta.subDivisao === subdivisao);
+        setFilteredAtletasList(filtered);
+        // Atualizar opções de posição com base nos atletas filtrados
+        const uniquePosicoes = Array.from(new Set(filtered.map(atleta => atleta.posicao)));
+        setPosicaoOptionsForPicker(uniquePosicoes);
+      }
+      setSelectedAtletaId(null);
+      setNomeCompleto('');
+      setSelectedPosicao(''); // Resetar posição ao mudar subdivisão
+    }
+  };
+
+  const handlePosicaoFilterChange = (value: string | null) => {
+    if (!isPosicaoPickerDisabled) {
+      const posicao = value || '';
+      setSelectedPosicao(posicao);
+      if (posicao === '') {
+        // Se a posição for limpa, filtramos com base na subdivisão atual (se houver)
+        if (selectedSubdivisao) {
+          const filtered = atletasList.filter(atleta => atleta.subDivisao === selectedSubdivisao);
+          setFilteredAtletasList(filtered);
+        } else {
+          setFilteredAtletasList(atletasList);
+        }
+      } else {
+        // Se uma posição é selecionada, filtramos pela posição E pela subdivisão (se houver)
+        const filtered = atletasList.filter(atleta =>
+          atleta.posicao === posicao && (selectedSubdivisao ? atleta.subDivisao === selectedSubdivisao : true)
+        );
         setFilteredAtletasList(filtered);
       }
       setSelectedAtletaId(null);
@@ -307,6 +415,12 @@ const AthleteEvaluationForm = () => {
       return;
     }
 
+    if (!selectedPosicao) { // Validação para posição
+        Alert.alert('Erro', 'Por favor, selecione uma posição.');
+        setIsLoading(false);
+        return;
+    }
+
     const authHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authToken}`,
@@ -318,6 +432,7 @@ const AthleteEvaluationForm = () => {
       dataAvaliacao: formatarData(dataAvaliacao),
       periodoTreino: periodo,
       subdivisao: selectedSubdivisao,
+      posicao: selectedPosicao, // Incluído a posição no body
       feedbackTreinador,
       feedbackAvaliador,
       pontosFortes,
@@ -367,7 +482,28 @@ const AthleteEvaluationForm = () => {
       }
       console.log('Avaliação Geral data sent successfully!');
 
-      Alert.alert('Sucesso', 'Avaliação enviada com sucesso!');
+      Alert.alert(
+        'Sucesso!',
+        'Avaliação cadastrada com sucesso. Deseja cadastrar uma nova avaliação?',
+        [
+          {
+            text: 'Não',
+            onPress: () => {
+              console.log('Usuário escolheu não cadastrar nova avaliação. Redirecionando...');
+              navigation.goBack();
+            },
+            style: 'cancel',
+          },
+          {
+            text: 'Sim',
+            onPress: () => {
+              console.log('Usuário escolheu cadastrar nova avaliação. Reiniciando formulário...');
+              resetFormState();
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
       console.error('Erro ao enviar avaliação:', error);
       if (error.message.includes('Status: 401')) {
@@ -462,39 +598,39 @@ const AthleteEvaluationForm = () => {
   );
 
   return (
-    // <SafeAreaView style={styles.safeArea}> // Descomente se precisar de Safe Area
     <KeyboardAvoidingView
       style={styles.keyboardAvoidingContainer}
-      // Experimente 'position' para Android se 'height' não estiver funcionando bem
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // Ajuste conforme a altura do seu cabeçalho
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
       <ScrollView
         contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled" // Permite interações com elementos que não são textInput
+        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>
           ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
         </Text>
 
-        <View style={[styles.section, { zIndex: 2000 }]}>
+        <View style={[styles.section, { zIndex: 3000 }]}> {/* Aumentei o zIndex para o primeiro section */}
           <Text style={styles.sectionTitle}>Dados do Atleta</Text>
 
           <Text style={styles.label}>Nome do Atleta:</Text>
           <DropDownPicker
             open={openAtletaPicker}
             value={selectedAtletaId}
-            items={filteredAtletasList.map(atleta => ({
+            items={[{label: 'Selecione um atleta', value: undefined},
+              ...filteredAtletasList.map(atleta => ({
               label: atleta.nomeCompleto,
               value: atleta.id,
-            }))}
+            })),
+          ]}
             setOpen={setOpenAtletaPicker}
             setValue={setSelectedAtletaId}
             onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
             placeholder="Selecione um Atleta"
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
-            zIndex={3000}
+            zIndex={3000} // Z-index alto
             listMode="SCROLLVIEW"
             itemSeparator={true}
             itemSeparatorStyle={styles.itemSeparator}
@@ -525,7 +661,31 @@ const AthleteEvaluationForm = () => {
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
             disabled={isSubdivisaoPickerDisabled}
-            zIndex={2000}
+            zIndex={2000} // Z-index intermediário
+            listMode="SCROLLVIEW"
+            itemSeparator={true}
+            itemSeparatorStyle={styles.itemSeparator}
+          />
+
+          <Text style={styles.label}>Posição:</Text> {/* Novo campo de posição */}
+          <DropDownPicker
+            open={openPosicaoPicker}
+            value={selectedPosicao}
+            items={[
+              { label: 'Selecione uma Posição', value: '' },
+              ...posicaoOptionsForPicker.map(posicao => ({
+                label: posicao,
+                value: posicao,
+              })),
+            ]}
+            setOpen={setOpenPosicaoPicker}
+            setValue={setSelectedPosicao}
+            onSelectItem={(item) => handlePosicaoFilterChange(item.value as string)}
+            placeholder="Selecione uma Posição"
+            style={styles.dropdown}
+            containerStyle={styles.dropdownContainer}
+            disabled={isPosicaoPickerDisabled}
+            zIndex={1000} // Z-index menor que subdivisão, mas ainda visível
             listMode="SCROLLVIEW"
             itemSeparator={true}
             itemSeparatorStyle={styles.itemSeparator}
@@ -536,13 +696,6 @@ const AthleteEvaluationForm = () => {
             placeholder="Período"
             value={periodo}
             onChangeText={setPeriodo}
-            // Adicionado: onFocus para garantir que o ScrollView rola para o campo
-            onFocus={() => {
-              // Você pode adicionar um pequeno atraso se a rolagem for muito rápida
-              // setTimeout(() => {
-              //   this.scrollViewRef.current?.scrollToEnd({ animated: true }); // Exemplo se você usar um ref
-              // }, 100);
-            }}
           />
         </View>
 
@@ -583,10 +736,7 @@ const AthleteEvaluationForm = () => {
             onChangeText={setFeedbackTreinador}
             multiline
             numberOfLines={6}
-            // Adicionado: para garantir que o TextInput multiline se ajuste ao conteúdo
-            textAlignVertical="top" // Alinha o texto no topo em Android para multiline
-            // onFocus e onBlur podem ajudar a gerenciar a rolagem
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
+            textAlignVertical="top"
           />
           <TextInput
             style={styles.input}
@@ -596,7 +746,6 @@ const AthleteEvaluationForm = () => {
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
           />
           <TextInput
             style={styles.input}
@@ -606,7 +755,6 @@ const AthleteEvaluationForm = () => {
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
           />
           <TextInput
             style={styles.input}
@@ -616,7 +764,6 @@ const AthleteEvaluationForm = () => {
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
           />
           <TextInput
             style={styles.input}
@@ -626,7 +773,6 @@ const AthleteEvaluationForm = () => {
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
           />
           <TextInput
             style={styles.input}
@@ -636,7 +782,6 @@ const AthleteEvaluationForm = () => {
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            onFocus={() => {/* pode adicionar lógica de rolagem aqui se necessário */}}
           />
         </View>
 
@@ -652,10 +797,6 @@ const AthleteEvaluationForm = () => {
             onChangeText={setDataAvaliacao}
             placeholder="Data da avaliação (DD/MM/YYYY)"
             keyboardType="numeric"
-            // Adicionado: onFocus para garantir que o ScrollView rola para o campo
-            onFocus={() => {
-              // Pode ser útil para os últimos campos
-            }}
           />
           <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
 
@@ -663,7 +804,7 @@ const AthleteEvaluationForm = () => {
             <TouchableOpacity
               style={styles.button}
               onPress={handleSubmit}
-              disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao}
+              disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao}
             >
               {isLoading || !isTokenLoaded ? (
                 <ActivityIndicator color="#fff" />
@@ -678,19 +819,18 @@ const AthleteEvaluationForm = () => {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-    
   );
 };
 
 const styles = StyleSheet.create({
   keyboardAvoidingContainer: {
     flex: 1,
-    backgroundColor: '#f0f0f0', // Mudei para uma cor ligeiramente diferente para depuração
+    backgroundColor: '#f0f0f0',
   },
   scrollViewContent: {
     flexGrow: 1,
     padding: 20,
-    paddingBottom: 100, // Aumentei o paddingBottom para dar mais espaço de rolagem
+    paddingBottom: 100,
   },
   title: {
     fontSize: 18,
@@ -721,12 +861,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
-    minHeight: 40, // Garante uma altura mínima para inputs normais
+    minHeight: 40,
   },
-  // Estilo específico para TextInputs multiline, se necessário
   multilineInput: {
-    minHeight: 120, // Altura mínima para campos de texto longos
-    textAlignVertical: 'top', // Para Android, garante que o cursor comece no topo
+    minHeight: 120,
+    textAlignVertical: 'top',
   },
   table: {
     width: '100%',

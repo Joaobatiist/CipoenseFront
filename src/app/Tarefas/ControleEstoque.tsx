@@ -8,10 +8,13 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  SafeAreaView, // Importado para garantir a área segura
+  Platform, // Importado para estilos específicos de plataforma
+  StatusBar // Importado para obter a altura da barra de status no Android
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Importar Ionicons
+import { Ionicons } from '@expo/vector-icons';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -101,19 +104,18 @@ const Estoque: React.FC = () => {
       return;
     }
 
-    const tempId = Date.now().toString(); // ID temporário para o otimismo da UI
+    const tempId = Date.now().toString();
     const newItemLocal: Item = {
       id: tempId,
       nome: itemName,
       quantidade: parseInt(quantidade, 10),
-      
     };
 
     setItems((prevItems) => [...prevItems, newItemLocal]);
 
     setItemName('');
     setQuantidade('');
-    Alert.alert('Item Adicionado', 'O item foi adicionado à lista. ');
+    Alert.alert('Item Adicionado', 'O item foi adicionado à lista.');
 
     try {
       const newItemForBackend = {
@@ -134,8 +136,8 @@ const Estoque: React.FC = () => {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-            Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
-            await AsyncStorage.removeItem('jwtToken');
+          Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
+          await AsyncStorage.removeItem('jwtToken');
         }
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -145,7 +147,7 @@ const Estoque: React.FC = () => {
       setItems((prevItems) =>
         prevItems.map((item) => (item.id === tempId ? addedItemBackend : item))
       );
-     
+
     } catch (error) {
       console.error('Erro ao adicionar item ao backend:', error);
       Alert.alert(
@@ -202,8 +204,8 @@ const Estoque: React.FC = () => {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-            Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
-            await AsyncStorage.removeItem('jwtToken');
+          Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
+          await AsyncStorage.removeItem('jwtToken');
         }
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
@@ -213,7 +215,7 @@ const Estoque: React.FC = () => {
       setItems((prevItems) =>
         prevItems.map((item) => (item.id === returnedUpdatedItemBackend.id ? returnedUpdatedItemBackend : item))
       );
-      
+
     } catch (error) {
       console.error('Erro ao atualizar item no backend:', error);
       Alert.alert(
@@ -254,14 +256,12 @@ const Estoque: React.FC = () => {
 
               if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
-                    Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
-                    await AsyncStorage.removeItem('jwtToken');
+                  Alert.alert('Sessão Expirada', 'Faça login novamente.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
+                  await AsyncStorage.removeItem('jwtToken');
                 }
                 const errorText = await response.text();
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
               }
-
-              
             } catch (error) {
               console.error('Erro ao deletar item no backend:', error);
               Alert.alert(
@@ -312,9 +312,8 @@ const Estoque: React.FC = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        {/* Botão de Voltar */}
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
@@ -363,7 +362,7 @@ const Estoque: React.FC = () => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -377,23 +376,25 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 20,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    flexDirection: 'row',
     marginBottom: 20,
-    flexDirection: 'row', // Adicionado para alinhar o botão e o título
+    // Estilo condicional para Android para evitar a barra de status
+    ...Platform.select({
+      android: {
+        paddingTop: StatusBar.currentHeight,
+      },
+    }),
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    flex: 1, // Permite que o título ocupe o espaço restante
-    textAlign: 'center', // Centraliza o título
-    marginRight: 24, // Para compensar o espaço do botão de voltar
+    flex: 1,
+    textAlign: 'center',
   },
   backButton: {
-    position: 'absolute', // Posição absoluta para o botão de voltar
-    left: 20,
     padding: 5,
-    zIndex: 1, // Garante que o botão esteja acima de outros elementos
   },
   formContainer: {
     backgroundColor: '#fff',
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-      borderColor: '#e5c228',
+    borderColor: '#e5c228',
     borderWidth: 1,
     paddingVertical: 15,
     paddingHorizontal: 15,

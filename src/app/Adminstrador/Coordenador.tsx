@@ -1,14 +1,14 @@
-import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faColumns, faFileInvoice, faIdCard, faRobot, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Button } from "../../components/button";
-import { styles } from "../../Styles/Coordenador";
+import { styles } from '../../Styles/Supervisor'; // Importando seu arquivo de estilos
 import { ptBR } from "../../utils/localendarConfig";
-
+import ComunicadosSection from '../funcionarios/Comunicado';
 
 LocaleConfig.locales["pt-br"] = ptBR;
 LocaleConfig.defaultLocale = "pt-br";
@@ -22,7 +22,6 @@ interface SectionOffsets {
   perfil?: number;
 }
 
-
 interface Evento {
   id: string;
   data: string;
@@ -32,12 +31,11 @@ interface Evento {
   horario: string;
 }
 
-const Coordenador: React.FC = () => {
+const Supervisor: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<SectionOffsets>({});
 
-  
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     const offset = today.getTimezoneOffset() * 60000;
@@ -50,35 +48,33 @@ const Coordenador: React.FC = () => {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
-
   const getToken = async (): Promise<string | null> => {
     try {
       const token = await AsyncStorage.getItem('jwtToken');
-      console.log('DEBUG TOKEN  Chamada getToken()');
+      console.log('DEBUG TOKEN : Chamada getToken()');
       if (token) {
-        console.log('DEBUG TOKEN  Token recuperado do AsyncStorage. Tamanho:', token.length, 'Inicia com:', token.substring(0, 20), '...');
+        console.log('DEBUG TOKEN : Token recuperado do AsyncStorage. Tamanho:', token.length, 'Inicia com:', token.substring(0, 20), '...');
       } else {
-        console.log('DEBUG TOKEN  Token NÃO encontrado no AsyncStorage (é null ou undefined).');
+        console.log('DEBUG TOKEN : Token NÃO encontrado no AsyncStorage (é null ou undefined).');
       }
       return token;
     } catch (error) {
-      console.error('DEBUG TOKEN  Erro ao obter token do AsyncStorage:', error);
+      console.error('DEBUG TOKEN : Erro ao obter token do AsyncStorage:', error);
       return null;
     }
   };
 
-
   useEffect(() => {
     const fetchEvents = async () => {
-      console.log('FETCH_EVENTS  Iniciando busca de eventos...');
+      console.log('FETCH_EVENTS : Iniciando busca de eventos...');
       try {
         const token = await getToken();
         if (!token) {
-          console.warn('FETCH_EVENTS  Token não encontrado para buscar eventos. Interrompendo a busca.');
+          console.warn('FETCH_EVENTS : Token não encontrado para buscar eventos. Interrompendo a busca.');
           Alert.alert('Erro de Autenticação', 'Sua sessão expirou ou você não está logado. Por favor, faça login novamente para ver os treinos.');
           return;
         }
-        console.log('FETCH_EVENTS  Token presente para requisição GET de eventos.');
+        console.log('FETCH_EVENTS: Token presente para requisição GET de eventos.');
 
         const response = await fetch(`${API_BASE_URL}/api/eventos`, {
           method: 'GET',
@@ -89,7 +85,7 @@ const Coordenador: React.FC = () => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('FETCH_EVENTS  Erro ao buscar eventos do backend:', response.status, errorText);
+          console.error('FETCH_EVENTS: Erro ao buscar eventos do backend:', response.status, errorText);
           throw new Error(`Falha ao carregar eventos: ${response.status} - ${errorText}`);
         }
 
@@ -99,7 +95,7 @@ const Coordenador: React.FC = () => {
           data: new Date(event.data + 'T00:00:00').toLocaleDateString('pt-BR'),
         }));
         setEventos(formattedData);
-        console.log('FETCH_EVENTS : Eventos carregados com sucesso.');
+        console.log('FETCH_EVENTS: Eventos carregados com sucesso.');
       } catch (error) {
         console.error("FETCH_EVENTS : Falha ao buscar eventos:", error);
         Alert.alert("Erro", `Não foi possível carregar a agenda de treinos. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
@@ -110,21 +106,29 @@ const Coordenador: React.FC = () => {
     fetchEvents();
   }, []);
 
-function Presenca () {
-  router.navigate("../Tarefas/Presenca")
-}
-   function Estoque (){
-      router.navigate('../Tarefas/ControleEstoque')
-    }
-  function Relatorio() {
-    router.navigate("./Relatorios");
+  function Presenca () {
+    router.navigate("../Tarefas/Presenca")
   }
-function Atletas (){
-router.navigate("../Tarefas/ListaAtletas")
-}
+  function AvaliacaoGeral () {
+    router.navigate("../Tarefas/AvaliacaoGeral")
+  }
+  function Atletas (){
+    router.navigate("../Tarefas/ListaAtletas")
+  }
+  function Relatorio() {
+    router.navigate("../funcionarios/Relatorios");
+  }
+function AnaliseIa ( ){
+  router.navigate("../Tarefas/AnaliseIa")
+  }
   function CadastrarAluno(){
     router.navigate("../Cadastro/CadastroAluno")
   }
+  function Estoque (){
+    router.navigate('../Tarefas/ControleEstoque')
+  }
+
+
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('jwtToken');
@@ -159,19 +163,14 @@ router.navigate("../Tarefas/ListaAtletas")
     sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
   };
 
-  
   const navigateToMeusTreinos = () => {
-    scrollToSection('agenda'); 
+    scrollToSection('agenda');
   };
-function AvaliacaoGeral () {
-  router.navigate("../Tarefas/AvaliacaoGeral")
-}
 
   const navigateToComunicados = () => {
     scrollToSection('comunicados');
   };
 
- 
   const adicionarTreino = async () => {
     if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
       Alert.alert('Erro', 'Preencha todos os campos do treino: Descrição, Professor, Local e Horário.');
@@ -215,7 +214,6 @@ function AvaliacaoGeral () {
 
       const formattedEventoSaved: Evento = {
         ...eventoSalvo,
-        
         data: new Date(eventoSalvo.data + 'T00:00:00').toLocaleDateString('pt-BR'),
       };
 
@@ -234,7 +232,6 @@ function AvaliacaoGeral () {
     }
   };
 
-  
   const startEditingTreino = (eventToEdit: Evento) => {
     setEditingEventId(eventToEdit.id);
     
@@ -313,7 +310,6 @@ function AvaliacaoGeral () {
     }
   };
 
-  // --- Funções para agenda de treinos (EXCLUIR) ---
   const excluirTreino = (idTreino: string) => {
     Alert.alert(
       'Confirmar Exclusão',
@@ -367,7 +363,7 @@ function AvaliacaoGeral () {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
-          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#333" />
+          <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#ffffffff" />
         </TouchableOpacity>
       </View>
 
@@ -377,42 +373,50 @@ function AvaliacaoGeral () {
             <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
           </TouchableOpacity>
 
-          <Text style={styles.logo}>Associação Desportiva Cipoense</Text>
+              <Image
+                                source={require("../../../assets/images/escudo.png")}
+                                style={{ width: "80%", height: 100, borderRadius: 55, marginLeft: 20 }}
+                              />
+                              <Text style={styles.title}>Associação Desportiva Cipoense</Text>
 
-          {/* Navegação para as seções da mesma página */}
           <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('agenda')}>
             <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Agenda de Treinos</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={Relatorio}>
             <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
-            <Text style={styles.navText}>Relatorio de Desempenho</Text>
+            <Text style={styles.navText}>Avaliação de Desempenho</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('comunicados')}>
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Comunicados</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={Presenca}>
-                    <FontAwesomeIcon icon={faCheck} size={16} color="#fff" style={styles.navIcon} />
-                    <Text style={styles.navText}>Lista de Presença</Text>
-                    </TouchableOpacity>
+            <FontAwesomeIcon icon={faCheck} size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Lista de Presença</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity style={styles.navItem} onPress={CadastrarAluno}>
-              <FontAwesomeIcon icon={faAddressCard} size={16} color="#fff" style={styles.navIcon} />
-             <Text style={styles.navText}>Cadastrar Aluno</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={Estoque}>
-                <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
-                <Text style={styles.navText}>estoque</Text>
-               </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem} onPress={AvaliacaoGeral}>
-                          <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
-                           <Text style={styles.navText}>Relatorio de Desempenho</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity style={styles.navItem} onPress={Atletas}>
-                                      <FontAwesomeIcon icon={faAddressBook}  size={16} color="#fff" style={styles.navIcon} />
-                                      <Text style={styles.navText}>Lista de Atletas</Text>
-                                    </TouchableOpacity>
-            
+            <FontAwesomeIcon icon={faAddressCard} size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Cadastrar Aluno</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navItem} onPress={Estoque}>
+            <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>estoque</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={AvaliacaoGeral}>
+            <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Relatorio de Desempenho</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.navItem} onPress={Atletas}>
+            <FontAwesomeIcon icon={faAddressBook}  size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Lista de Atletas</Text>
+          </TouchableOpacity>
+            <TouchableOpacity style={styles.navItem} onPress={AnaliseIa}>
+                      <FontAwesomeIcon icon={faRobot} size={16} color="#fff" style={styles.navIcon} />
+                      <Text style={styles.navText}>Analise do atleta pela IA</Text>
+                    </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Sair</Text>
@@ -421,7 +425,6 @@ function AvaliacaoGeral () {
       )}
 
       <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
-        {/* Seção Agenda de Treinos */}
         <View style={styles.section} onLayout={(event) => handleLayout(event, 'agenda')}>
           <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
 
@@ -472,7 +475,6 @@ function AvaliacaoGeral () {
             style={styles.input}
           />
 
-          {/* Buttons for Add/Update and Cancel */}
           <View style={styles.trainingButtonsContainer}>
             <Button
               title={editingEventId ? "Atualizar treino" : "Adicionar treino"}
@@ -521,25 +523,22 @@ function AvaliacaoGeral () {
                 </View>
               )}
               ListEmptyComponent={<Text style={styles.emptyMessage}>Nenhum treino marcado ainda.</Text>}
-              scrollEnabled={false} // Para evitar scroll aninhado com o ScrollView principal
+              scrollEnabled={false}
             />
           </View>
         </View>
 
-        
         <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
           <Text style={styles.sectionTitle}>Relatório de Desempenho</Text>
-          
           <Text style={styles.emptyMessage}>Conteúdo do relatório de desempenho será implementado aqui.</Text>
         </View>
 
-        {/* Seção Comunicados (AGORA RENDERIZADA COMO UM COMPONENTE SEPARADO) */}
         <View onLayout={(event) => handleLayout(event, 'comunicados')}>
-         
+          <ComunicadosSection />
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-export default Coordenador;
+export default Supervisor;

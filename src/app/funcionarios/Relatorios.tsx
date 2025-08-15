@@ -104,14 +104,14 @@ const AthleteEvaluationForm = () => {
   const [subdivisoesList, setSubdivisoesList] = useState<string[]>([]);
   const [subdivisaoOptionsForPicker, setSubdivisaoOptionsForPicker] = useState<string[]>([]);
   const [isSubdivisaoPickerDisabled, setIsSubdivisaoPickerDisabled] = useState<boolean>(false);
-  const [posicaoList, setPosicaoList] = useState<string[]>([]); // Novo estado para lista de posições
-  const [posicaoOptionsForPicker, setPosicaoOptionsForPicker] = useState<string[]>([]); // Novo estado para opções do picker de posição
-  const [isPosicaoPickerDisabled, setIsPosicaoPickerDisabled] = useState<boolean>(false); // Novo estado para desabilitar o picker de posição
+  const [posicaoList, setPosicaoList] = useState<string[]>([]);
+  const [posicaoOptionsForPicker, setPosicaoOptionsForPicker] = useState<string[]>([]);
+  const [isPosicaoPickerDisabled, setIsPosicaoPickerDisabled] = useState<boolean>(false);
 
   // DropDownPicker specific states
   const [openAtletaPicker, setOpenAtletaPicker] = useState(false);
   const [openSubdivisaoPicker, setOpenSubdivisaoPicker] = useState(false);
-  const [openPosicaoPicker, setOpenPosicaoPicker] = useState(false); // Novo estado para abrir/fechar o picker de posição
+  const [openPosicaoPicker, setOpenPosicaoPicker] = useState(false);
 
   const formatarData = (data: string): string => {
     const [dia, mes, ano] = data.split('/');
@@ -231,9 +231,9 @@ const AthleteEvaluationForm = () => {
         if (isTokenLoaded && !authToken) {
           console.log('Sem token válido, pulando fetch de atletas e subdivisões.');
         } else if (!API_BASE_URL) {
-            console.warn('API_BASE_URL não configurado, pulando fetch de atletas e subdivisões.');
+          console.warn('API_BASE_URL não configurado, pulando fetch de atletas e subdivisões.');
         } else {
-            console.log('Aguardando token ser carregado para buscar atletas e subdivisões.');
+          console.log('Aguardando token ser carregado para buscar atletas e subdivisões.');
         }
         return;
       }
@@ -273,16 +273,16 @@ const AthleteEvaluationForm = () => {
 
         // Fetch de Posições
         const posicoesResponse = await fetch(`${API_BASE_URL}/api/atletas/posicoes`, {
-            headers: { 'Authorization': `Bearer ${authToken}` },
+          headers: { 'Authorization': `Bearer ${authToken}` },
         });
         if (posicoesResponse.status === 401) {
-            Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
-            await AsyncStorage.removeItem('jwtToken');
-            navigation.dispatch(StackActions.replace('Login'));
-            return;
+          Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+          await AsyncStorage.removeItem('jwtToken');
+          navigation.dispatch(StackActions.replace('Login'));
+          return;
         }
         if (!posicoesResponse.ok) {
-            throw new Error(`HTTP error! Status: ${posicoesResponse.status} ao buscar posições.`);
+          throw new Error(`HTTP error! Status: ${posicoesResponse.status} ao buscar posições.`);
         }
         const posicoesData: string[] = await posicoesResponse.json();
         setPosicaoList(posicoesData);
@@ -305,33 +305,33 @@ const AthleteEvaluationForm = () => {
       setSelectedAtletaId(null);
       setNomeCompleto('');
       setSelectedSubdivisao('');
-      setSelectedPosicao(''); // Resetar posição
+      setSelectedPosicao('');
       setFilteredAtletasList(atletasList);
       setSubdivisaoOptionsForPicker(subdivisoesList);
       setIsSubdivisaoPickerDisabled(false);
-      setPosicaoOptionsForPicker(posicaoList); // Resetar opções de posição
-      setIsPosicaoPickerDisabled(false); // Desabilitar picker de posição
+      setPosicaoOptionsForPicker(posicaoList);
+      setIsPosicaoPickerDisabled(false);
     } else {
       const selected = atletasList.find(atleta => atleta.id === value);
       if (selected) {
         setSelectedAtletaId(selected.id);
         setNomeCompleto(selected.nomeCompleto);
         setSelectedSubdivisao(selected.subDivisao);
-        setSelectedPosicao(selected.posicao); // Definir posição do atleta selecionado
+        setSelectedPosicao(selected.posicao);
         setSubdivisaoOptionsForPicker([selected.subDivisao]);
         setIsSubdivisaoPickerDisabled(true);
-        setPosicaoOptionsForPicker([selected.posicao]); // Definir opções de posição para o atleta
-        setIsPosicaoPickerDisabled(true); // Desabilitar picker de posição
+        setPosicaoOptionsForPicker([selected.posicao]);
+        setIsPosicaoPickerDisabled(true);
       } else {
         setSelectedAtletaId(null);
         setNomeCompleto('');
         setSelectedSubdivisao('');
-        setSelectedPosicao(''); // Resetar posição
+        setSelectedPosicao('');
         setFilteredAtletasList(atletasList);
         setSubdivisaoOptionsForPicker(subdivisoesList);
         setIsSubdivisaoPickerDisabled(false);
-        setPosicaoOptionsForPicker(posicaoList); // Resetar opções de posição
-        setIsPosicaoPickerDisabled(false); // Desabilitar picker de posição
+        setPosicaoOptionsForPicker(posicaoList);
+        setIsPosicaoPickerDisabled(false);
       }
     }
   };
@@ -343,17 +343,16 @@ const AthleteEvaluationForm = () => {
       setSelectedSubdivisao(subdivisao);
       if (subdivisao === '') {
         setFilteredAtletasList(atletasList);
-        setPosicaoOptionsForPicker(posicaoList); // Resetar posições se subdivisão for limpa
+        setPosicaoOptionsForPicker(posicaoList);
       } else {
         const filtered = atletasList.filter(atleta => atleta.subDivisao === subdivisao);
         setFilteredAtletasList(filtered);
-        // Atualizar opções de posição com base nos atletas filtrados
         const uniquePosicoes = Array.from(new Set(filtered.map(atleta => atleta.posicao)));
         setPosicaoOptionsForPicker(uniquePosicoes);
       }
       setSelectedAtletaId(null);
       setNomeCompleto('');
-      setSelectedPosicao(''); // Resetar posição ao mudar subdivisão
+      setSelectedPosicao('');
     }
   };
 
@@ -362,7 +361,6 @@ const AthleteEvaluationForm = () => {
       const posicao = value || '';
       setSelectedPosicao(posicao);
       if (posicao === '') {
-        // Se a posição for limpa, filtramos com base na subdivisão atual (se houver)
         if (selectedSubdivisao) {
           const filtered = atletasList.filter(atleta => atleta.subDivisao === selectedSubdivisao);
           setFilteredAtletasList(filtered);
@@ -370,7 +368,6 @@ const AthleteEvaluationForm = () => {
           setFilteredAtletasList(atletasList);
         }
       } else {
-        // Se uma posição é selecionada, filtramos pela posição E pela subdivisão (se houver)
         const filtered = atletasList.filter(atleta =>
           atleta.posicao === posicao && (selectedSubdivisao ? atleta.subDivisao === selectedSubdivisao : true)
         );
@@ -380,7 +377,6 @@ const AthleteEvaluationForm = () => {
       setNomeCompleto('');
     }
   };
-
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -415,10 +411,10 @@ const AthleteEvaluationForm = () => {
       return;
     }
 
-    if (!selectedPosicao) { // Validação para posição
-        Alert.alert('Erro', 'Por favor, selecione uma posição.');
-        setIsLoading(false);
-        return;
+    if (!selectedPosicao) {
+      Alert.alert('Erro', 'Por favor, selecione uma posição.');
+      setIsLoading(false);
+      return;
     }
 
     const authHeaders = {
@@ -432,7 +428,7 @@ const AthleteEvaluationForm = () => {
       dataAvaliacao: formatarData(dataAvaliacao),
       periodoTreino: periodo,
       subdivisao: selectedSubdivisao,
-      posicao: selectedPosicao, // Incluído a posição no body
+      posicao: selectedPosicao,
       feedbackTreinador,
       feedbackAvaliador,
       pontosFortes,
@@ -540,7 +536,9 @@ const AthleteEvaluationForm = () => {
             ]}
             onPress={() => onChange(attribute, option)}
           >
-            <Text style={styles.ratingOptionText}>{option}</Text>
+            <Text style={value === option ? styles.ratingOptionTextSelected : styles.ratingOptionText}>
+              {option}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -576,7 +574,7 @@ const AthleteEvaluationForm = () => {
   };
 
   const renderAvaliacaoTable = (title: string, attributes: (keyof AthleteEvaluation)[]) => (
-    <View style={styles.section}>
+    <View style={styles.card}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.table}>
         <View style={styles.tableHeaderRow}>
@@ -611,26 +609,26 @@ const AthleteEvaluationForm = () => {
           ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
         </Text>
 
-        <View style={[styles.section, { zIndex: 3000 }]}> {/* Aumentei o zIndex para o primeiro section */}
+        <View style={[styles.card, { zIndex: 3000 }]}>
           <Text style={styles.sectionTitle}>Dados do Atleta</Text>
 
           <Text style={styles.label}>Nome do Atleta:</Text>
           <DropDownPicker
             open={openAtletaPicker}
             value={selectedAtletaId}
-            items={[{label: 'Selecione um atleta', value: undefined},
-              ...filteredAtletasList.map(atleta => ({
+            items={[{ label: 'Selecione um atleta', value: undefined },
+            ...filteredAtletasList.map(atleta => ({
               label: atleta.nomeCompleto,
               value: atleta.id,
             })),
-          ]}
+            ]}
             setOpen={setOpenAtletaPicker}
             setValue={setSelectedAtletaId}
             onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
             placeholder="Selecione um Atleta"
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
-            zIndex={3000} // Z-index alto
+            zIndex={3000}
             listMode="SCROLLVIEW"
             itemSeparator={true}
             itemSeparatorStyle={styles.itemSeparator}
@@ -661,13 +659,13 @@ const AthleteEvaluationForm = () => {
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
             disabled={isSubdivisaoPickerDisabled}
-            zIndex={2000} // Z-index intermediário
+            zIndex={2000}
             listMode="SCROLLVIEW"
             itemSeparator={true}
             itemSeparatorStyle={styles.itemSeparator}
           />
 
-          <Text style={styles.label}>Posição:</Text> {/* Novo campo de posição */}
+          <Text style={styles.label}>Posição:</Text>
           <DropDownPicker
             open={openPosicaoPicker}
             value={selectedPosicao}
@@ -685,7 +683,7 @@ const AthleteEvaluationForm = () => {
             style={styles.dropdown}
             containerStyle={styles.dropdownContainer}
             disabled={isPosicaoPickerDisabled}
-            zIndex={1000} // Z-index menor que subdivisão, mas ainda visível
+            zIndex={1000}
             listMode="SCROLLVIEW"
             itemSeparator={true}
             itemSeparatorStyle={styles.itemSeparator}
@@ -727,10 +725,10 @@ const AthleteEvaluationForm = () => {
           'capacidadeSobPressao',
         ])}
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Avaliação Geral do Jogador</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Feedback do Treinador"
             value={feedbackTreinador}
             onChangeText={setFeedbackTreinador}
@@ -739,7 +737,7 @@ const AthleteEvaluationForm = () => {
             textAlignVertical="top"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Feedback do Avaliador"
             value={feedbackAvaliador}
             onChangeText={setFeedbackAvaliador}
@@ -748,7 +746,7 @@ const AthleteEvaluationForm = () => {
             textAlignVertical="top"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Pontos Fortes"
             value={pontosFortes}
             onChangeText={setPontosFortes}
@@ -757,7 +755,7 @@ const AthleteEvaluationForm = () => {
             textAlignVertical="top"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Pontos Fracos"
             value={pontosFracos}
             onChangeText={setPontosFracos}
@@ -766,7 +764,7 @@ const AthleteEvaluationForm = () => {
             textAlignVertical="top"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Áreas de Aprimoramento"
             value={areasAprimoramento}
             onChangeText={setAreasAprimoramento}
@@ -775,7 +773,7 @@ const AthleteEvaluationForm = () => {
             textAlignVertical="top"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, styles.multilineInput]}
             placeholder="Metas/Planos/Objetivos"
             value={metasObjetivos}
             onChangeText={setMetasObjetivos}
@@ -785,7 +783,7 @@ const AthleteEvaluationForm = () => {
           />
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Finalização</Text>
           <TextInputMask
             style={styles.input}
@@ -798,22 +796,25 @@ const AthleteEvaluationForm = () => {
             placeholder="Data da avaliação (DD/MM/YYYY)"
             keyboardType="numeric"
           />
-          <Text style={styles.label}>Assinatura do Avaliador/Treinador</Text>
+         
 
-          <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'space-between', marginTop: 10 }}>
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.button}
+              style={[
+                styles.button,
+                (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && styles.buttonDisabled
+              ]}
               onPress={handleSubmit}
               disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao}
             >
-              {isLoading || !isTokenLoaded ? (
+              {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text style={styles.buttonText}>Salvar Avaliação</Text>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={() => navigation.goBack()}>
-              <Text style={styles.buttonText}>Voltar</Text>
+            <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.goBack()}>
+              <Text style={styles.buttonTextSecondary}>Voltar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -825,43 +826,63 @@ const AthleteEvaluationForm = () => {
 const styles = StyleSheet.create({
   keyboardAvoidingContainer: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    
   },
   scrollViewContent: {
     flexGrow: 1,
-    padding: 20,
-    paddingBottom: 100,
+    
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#1c348e',
     textAlign: 'center',
+    marginBottom: 24,
+    marginTop: 50,
   },
-  section: {
-    marginBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    paddingBottom: 15,
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#333',
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228',
+    paddingBottom: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: 'bold',
+    color: '#555',
     marginTop: 10,
     marginBottom: 5,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#fff',
     marginBottom: 10,
-    minHeight: 40,
   },
   multilineInput: {
     minHeight: 120,
@@ -870,68 +891,112 @@ const styles = StyleSheet.create({
   table: {
     width: '100%',
     marginBottom: 10,
-    marginTop: 5,
   },
   tableHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: '#eee',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    marginBottom: 4,
   },
   tableHead: {
     width: '50%',
     fontWeight: 'bold',
-    padding: 8,
+    color: '#1c348e',
+    paddingHorizontal: 12,
+    fontSize: 14,
   },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: '#eee',
+    paddingVertical: 12,
   },
   tableCell: {
     width: '50%',
-    padding: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#555',
   },
   ratingOptionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '50%',
+    alignItems: 'center',
   },
   ratingOption: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 5,
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: '#e0e0e0',
   },
   ratingOptionSelected: {
-    backgroundColor: '#e5c228',
+    backgroundColor: '#1c348e', // Cor principal para seleção
   },
   ratingOptionText: {
-    color: '#000',
+    color: '#555',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  ratingOptionTextSelected: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 12,
   },
   button: {
     flex: 1,
     backgroundColor: '#1c348e',
-    padding: 15,
-    borderRadius: 15,
+    padding: 12,
+    borderRadius: 12,
     alignItems: 'center',
   },
+  buttonSecondary: {
+    flex: 1,
+    backgroundColor: '#1c348e',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#1c348e',
+  },
   buttonText: {
-    color: '#fff',
+    color: '#ffffffff',
     fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonTextSecondary: {
+    color: '#f5f5f5ff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  buttonDisabled: {
+    backgroundColor: '#1c348e',
   },
   dropdownContainer: {
     height: 50,
     marginBottom: 10,
   },
   dropdown: {
-    backgroundColor: '#fafafa',
+    backgroundColor: '#fff',
     borderColor: '#ccc',
-    borderRadius: 5,
+    borderRadius: 8,
   },
   itemSeparator: {
     height: 1,
-    backgroundColor: '#cccccc',
+    backgroundColor: '#eee',
   },
 });
 

@@ -1,27 +1,52 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform, StatusBar } from "react-native";
 
 export const styles = StyleSheet.create({
- 
   safeArea: {
     flex: 1,
-    backgroundColor: '#f0f0f0', 
+    
+  },
+title:  {
+    marginLeft: 10 ,
+    alignItems: 'center',
+    color: '#fcfcfcff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    top: -5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228', 
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
+    backgroundColor: '#1c348e',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#e5c228',
     justifyContent: 'flex-start',
+    // Estilo específico para o Android
+    ...Platform.select({
+      android: {
+        paddingTop: StatusBar.currentHeight, // Adiciona um padding no topo igual à altura da barra de status do Android
+      },
+    }),
   },
   menuButton: {
-    padding: 10,
+    padding: 5,
+    top: 5,
+    
+    ...Platform.select({
+      android: {
+        marginTop: 5, // Valor de exemplo, ajuste se necessário
+      },
+      ios: {
+        marginTop: 0, // Sem margem adicional no iOS
+      },
+    }),
   },
 
   sidebar: {
-    opacity: 0.95, 
+   
     position: 'absolute',
     top: 0,
     left: 0,
@@ -34,18 +59,11 @@ export const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 20,
+    top: 45,
     left: 20,
-    padding: 10,
+    padding: 5,
   },
-  logo: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 20,
-    marginTop: 40,
-    textAlign: 'center', 
-  },
+ 
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -63,7 +81,6 @@ export const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
-
 
   section: {
     padding: 20,
@@ -96,7 +113,6 @@ export const styles = StyleSheet.create({
     marginVertical: 20,
   },
 
- 
   formContainer: {
     backgroundColor: '#f9f9f9',
     padding: 15,
@@ -113,23 +129,23 @@ export const styles = StyleSheet.create({
     textAlign: "center"
   },
   trainingButtonsContainer: {
-  flexDirection: 'row',
-  justifyContent: 'space-between', 
-  marginTop: 10,
-  gap: 10, 
-},
-trainingActionButton: {
-  flex: 1, 
-  borderRadius: 16, 
-  backgroundColor: "#1c348e", 
-  padding: 10
-},
-trainingCancelButton: {
-  flex: 1, 
-  borderRadius: 16, 
-  backgroundColor: 'red', 
-  padding: 10
-},
+    flexDirection: 'row',
+    justifyContent: 'space-between', 
+    marginTop: 10,
+    gap: 10, 
+  },
+  trainingActionButton: {
+    flex: 1, 
+    borderRadius: 16, 
+    backgroundColor: "#1c348e", 
+    padding: 10
+  },
+  trainingCancelButton: {
+    flex: 1, 
+    borderRadius: 16, 
+    backgroundColor: 'red', 
+    padding: 10
+  },
   label: {
     fontSize: 14,
     fontWeight: '600',
@@ -166,11 +182,9 @@ trainingCancelButton: {
     borderRadius: 16,
   },
 
-
   calendar: {
     backgroundColor: "transparent",
   },
- 
   selected: {
     color: "#fff",
     fontSize: 16,
@@ -197,7 +211,6 @@ trainingCancelButton: {
     backgroundColor: "#F06543",
   },
 
-  
   eventCard: {
     backgroundColor: '#fff', 
     borderRadius: 8,
@@ -251,6 +264,7 @@ trainingCancelButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
+    marginRight: 10,
   },
   buttonText: { 
     color: '#fff',
@@ -330,6 +344,4 @@ trainingCancelButton: {
     color: '#888',
     fontStyle: 'italic',
   },
-
-
 });

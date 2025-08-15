@@ -1,11 +1,24 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform, StatusBar } from "react-native";
 
 export const styles = StyleSheet.create({
-  // --- General Layout and Header ---
   safeArea: {
     flex: 1,
-    backgroundColor: '#f0f0f0', // Light background for the main content
+    backgroundColor: '#f0f0f0', 
   },
+  comunicadoRemetente: {
+  fontSize: 14,
+  color: '#555',
+  fontStyle: 'italic',
+  marginBottom: 5,
+},
+hideButton: { 
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#5a6268', // Cor cinza para o botão de ocultar
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderRadius: 5,
+},
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -14,30 +27,44 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    justifyContent: 'flex-start', // Ensures the menu button is on the left
+    justifyContent: 'flex-start',
+    // Estilo específico para o Android
+    ...Platform.select({
+      android: {
+        paddingTop: StatusBar.currentHeight, // Adiciona um padding no topo igual à altura da barra de status do Android
+      },
+    }),
   },
   menuButton: {
     padding: 10,
+    
+    ...Platform.select({
+      android: {
+        marginTop: 5, // Valor de exemplo, ajuste se necessário
+      },
+      ios: {
+        marginTop: 0, // Sem margem adicional no iOS
+      },
+    }),
   },
 
-  // --- Sidebar Styles ---
   sidebar: {
-    opacity: 0.95, // Slightly transparent
+    opacity: 0.95, 
     position: 'absolute',
     top: 0,
     left: 0,
     width: 250,
-    height: '100%', // Takes full height
-    backgroundColor: '#1c348e', // Dark blue background
+    height: '100%', 
+    backgroundColor: '#1c348e',
     paddingTop: 60,
     paddingHorizontal: 20,
-    zIndex: 1000, // Ensures sidebar is on top of other content
+    zIndex: 1000, 
   },
   closeButton: {
     position: 'absolute',
-    top: 20,
+    top: 45,
     left: 20,
-    padding: 10,
+    padding: 5,
   },
   logo: {
     fontSize: 20,
@@ -45,14 +72,14 @@ export const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 20,
     marginTop: 40,
-    textAlign: 'center', // Centered logo in sidebar
+    textAlign: 'center', 
   },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5c228', // Yellow separator
+    borderBottomColor: '#e5c228', 
   },
   navIcon: {
     marginRight: 10,
@@ -65,7 +92,6 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // --- Section General Styles (e.g., Agenda, Comunicados) ---
   section: {
     padding: 20,
     marginVertical: 10,
@@ -82,9 +108,9 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: "center",
-    color: '#333', // Adjusted color for better contrast on white background
+    color: '#333', 
   },
-  subTitle: { // Used for "Treinos Marcados" and "Comunicados Enviados"
+  subTitle: { 
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 20,
@@ -97,7 +123,6 @@ export const styles = StyleSheet.create({
     marginVertical: 20,
   },
 
-  // --- Form Elements (shared by Agenda and Comunicados) ---
   formContainer: {
     backgroundColor: '#f9f9f9',
     padding: 15,
@@ -115,20 +140,20 @@ export const styles = StyleSheet.create({
   },
   trainingButtonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Distributes space between buttons
+    justifyContent: 'space-between', 
     marginTop: 10,
-    gap: 10, // Adds space between the buttons
+    gap: 10, 
   },
   trainingActionButton: {
-    flex: 1,
-    borderRadius: 16,
-    backgroundColor: "#1c348e",
+    flex: 1, 
+    borderRadius: 16, 
+    backgroundColor: "#1c348e", 
     padding: 10
   },
   trainingCancelButton: {
-    flex: 1,
-    borderRadius: 16,
-    backgroundColor: 'red',
+    flex: 1, 
+    borderRadius: 16, 
+    backgroundColor: 'red', 
     padding: 10
   },
   label: {
@@ -144,38 +169,35 @@ export const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     backgroundColor: '#fff',
-    fontSize: 16, // Consistent font size
+    fontSize: 16,
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top', // Ensures text starts from the top in multiline input
+    textAlignVertical: 'top', 
   },
   buttonGroup: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
-    gap: 10, // Modern way to add space between buttons
+    gap: 10, 
   },
   cancelButton: {
-    backgroundColor: '#dc3545', // Red for cancel/destructive actions
     flex: 1,
+    backgroundColor: '#dc3545', 
     borderRadius: 16,
+     paddingVertical: 8,
   },
-  submitButton: { // Used for saving/sending forms
+  submitButton: { 
     flex: 1,
-    backgroundColor: "#1c348e", // Primary blue
+    backgroundColor: "#1c348e", 
     borderRadius: 16,
+    paddingVertical: 8,
+    
   },
 
-  // --- Agenda de Treinos Specific Styles ---
-  // Styles for the Calendar component itself (from original code, kept for consistency)
   calendar: {
-    backgroundColor: "transparent", // Or remove if react-native-calendars handles background
+    backgroundColor: "transparent",
   },
-  // Note: 'selected', 'dayText', 'day', 'disabled', 'today', 'daySelected' are typically
-  // passed directly to the Calendar's 'theme' prop, not used as direct styles on views.
-  // I've kept them here as they were in your original, but they might not apply directly
-  // to elements as normal StyleSheet styles.
   selected: {
     color: "#fff",
     fontSize: 16,
@@ -202,9 +224,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F06543",
   },
 
-  // Styles for individual training event cards
   eventCard: {
-    backgroundColor: '#fff', // White background for event cards
+    backgroundColor: '#fff', 
     borderRadius: 8,
     padding: 15,
     marginBottom: 10,
@@ -216,23 +237,23 @@ export const styles = StyleSheet.create({
     shadowRadius: 1.41,
     elevation: 2,
   },
-  eventDate: { // For the date of the event
+  eventDate: { 
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
     color: '#555',
   },
-  eventDescription: { // For the main description of the event
+  eventDescription: { 
     fontSize: 16,
     marginBottom: 5,
     color: '#333',
   },
-  eventDetail: { // For professor, local, and horario
+  eventDetail: { 
     fontSize: 14,
     color: '#666',
     marginBottom: 3,
   },
-  eventActions: { // Container for edit and delete buttons
+  eventActions: { 
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 10,
@@ -240,31 +261,30 @@ export const styles = StyleSheet.create({
     borderTopColor: '#eee',
     paddingTop: 10,
   },
-  editButton: { // Style for the edit button
+  editButton: { 
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007bff', // Blue for edit
+    backgroundColor: '#007bff',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
     marginRight: 10,
   },
-  deleteButton: { // Style for the delete button
+  deleteButton: { 
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#dc3545', // Red for delete
+    backgroundColor: '#dc3545', 
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 5,
   },
-  buttonText: { // Text style for action buttons (Edit, Delete)
+  buttonText: { 
     color: '#fff',
     fontSize: 14,
     marginLeft: 5,
   },
 
-  // --- Comunicados Specific Styles ---
-  searchInput: { // Search bar for adding recipients
+  searchInput: { 
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 5,
@@ -272,7 +292,7 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: '#fff',
   },
-  dropdownContainer: { // Container for the user list in recipient selection
+  dropdownContainer: { 
     maxHeight: 150,
     marginBottom: 15,
     borderWidth: 1,
@@ -280,17 +300,17 @@ export const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#fff',
   },
-  usuarioItem: { // Individual user item in the recipient dropdown
+  usuarioItem: { 
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  destinatariosContainer: { // Container for selected recipient tags
+  destinatariosContainer: { 
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 15,
   },
-  destinatarioTag: { // Individual recipient tag
+  destinatarioTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1c348e',
@@ -299,12 +319,12 @@ export const styles = StyleSheet.create({
     marginRight: 5,
     marginBottom: 5,
   },
-  destinatarioText: { // Text within recipient tags
+  destinatarioText: { 
     color: '#fff',
     marginRight: 5,
     fontSize: 12,
   },
-  comunicadoCard: { // Style for sent announcement cards
+  comunicadoCard: { 
     backgroundColor: '#fff',
     padding: 15,
     borderRadius: 8,
@@ -335,27 +355,5 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     fontStyle: 'italic',
-  },
-  comunicadoRemetente: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-    fontStyle: 'italic',
-  },
-  // NEW STYLES ADDED
-  hideButton: { // Style for the hide button in ComunicadosScreen
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffc107', // A warning/info color for "hide"
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    marginRight: 10, // Keep some margin
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
 });

@@ -131,6 +131,7 @@ const Cadastro = () => {
                 >
                     <MaterialIcons name="arrow-back" size={24} color="#fff" />
                 </TouchableOpacity>
+                <Text style={styles.titulo}>Cadastrar Funcionario</Text> 
             </View>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <ScrollView
@@ -139,10 +140,10 @@ const Cadastro = () => {
                 >
                     <Image
                         source={require('../../../assets/images/escudo.png')}
-                        style={{ width: "100%", height: 200, borderRadius: 55 }}
+                        style={{ width: "100%", height: 200, borderRadius: 55, top: -20  }}
                     />
 
-                    <Text style={styles.title}>Cadastrar Funcionario</Text> {/* Updated title */}
+                    
                     <TextInput
                         style={styles.input}
                         placeholder="Nome"
@@ -224,6 +225,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e5c228',
     },
+     titulo:{
+    flex: 1,
+    color: "#ffffffff",
+     marginLeft: 60,
+     top: 0,
+    fontSize: 20,
+    fontWeight: 'bold',
+  
+  },
     btnVoltar: { padding: 5 },
     container: {
         flexGrow: 1,

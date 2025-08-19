@@ -367,7 +367,7 @@ const Supervisor: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
           <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#ffffffff" />
-        
+        <Text>Ola </Text>
         </TouchableOpacity>
       </View>
 
@@ -536,10 +536,7 @@ const Supervisor: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
-          <Text style={styles.sectionTitle}>Relatório de Desempenho</Text>
-          <Text style={styles.emptyMessage}>Conteúdo do relatório de desempenho será implementado aqui.</Text>
-        </View>
+      
 
         <View onLayout={(event) => handleLayout(event, 'comunicados')}>
           <ComunicadosSection />

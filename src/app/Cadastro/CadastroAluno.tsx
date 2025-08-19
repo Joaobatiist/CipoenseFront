@@ -111,8 +111,8 @@ const CadastroAlunoScreen = () => {
       !emailResponsavel ||
       !cpfResponsavel ||
       !role ||
-      posicao === null || // Validação da posição (verifica se algo foi selecionado)
-      isencao === null // Validação da isenção (verifica se algo foi selecionado)
+      posicao === null || 
+      isencao === null 
     ) {
       Alert.alert("Erro", "Por favor, preencha todos os campos!");
       return false;
@@ -198,8 +198,10 @@ const CadastroAlunoScreen = () => {
           style={styles.btnVoltar}
           accessibilityLabel="Voltar"
         >
-          <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
+        
         </TouchableOpacity>
+        <Text style={styles.titulo}>Cadastrar Aluno</Text>
       </View>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
@@ -208,10 +210,10 @@ const CadastroAlunoScreen = () => {
         >
           <Image
             source={require('../../../assets/images/escudo.png')}
-            style={{ width: "100%", height: 200, borderRadius: 55 }}
+            style={{ width: "100%", height: 200, borderRadius: 55, top: -20 }}
           />
 
-          <Text style={styles.title}>Cadastrar Aluno</Text>
+          
           <TextInput
             style={styles.input}
             placeholder="Nome"
@@ -387,8 +389,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e5c228',
   },
+  titulo:{
+    flex: 1,
+    color: "#ffffffff",
+     marginLeft: 80,
+     top: 5,
+    fontSize: 20,
+    fontWeight: 'bold',
+  
+  },
   btnVoltar: {
     padding: 5,
+    top: 5,
   },
   dropdown: {
     width: '100%',

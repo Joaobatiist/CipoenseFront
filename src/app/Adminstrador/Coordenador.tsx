@@ -528,10 +528,7 @@ function AnaliseIa ( ){
           </View>
         </View>
 
-        <View style={styles.section} onLayout={(event) => handleLayout(event, 'desempenho')}>
-          <Text style={styles.sectionTitle}>Relatório de Desempenho</Text>
-          <Text style={styles.emptyMessage}>Conteúdo do relatório de desempenho será implementado aqui.</Text>
-        </View>
+      
 
         <View onLayout={(event) => handleLayout(event, 'comunicados')}>
           <ComunicadosSection />

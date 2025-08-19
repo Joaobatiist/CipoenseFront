@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 
@@ -605,13 +606,20 @@ const AthleteEvaluationForm = () => {
         contentContainerStyle={styles.scrollViewContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>
-          ASSOCIAÇÃO DESPORTIVA CIPOENSE - ESCOLINHA DE FUTEBOL DA ADC
-        </Text>
+       <View style={styles.header}>
+               <TouchableOpacity
+                 onPress={() => navigation.goBack()}
+                 style={styles.btnVoltar}
+                 accessibilityLabel="Voltar"
+               >
+                 <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
+               
+               </TouchableOpacity>
+               <Text style={styles.titulo}>Avaliação de Desempenho</Text>
+             </View>
 
         <View style={[styles.card, { zIndex: 3000 }]}>
-          <Text style={styles.sectionTitle}>Dados do Atleta</Text>
-
+          
           <Text style={styles.label}>Nome do Atleta:</Text>
           <DropDownPicker
             open={openAtletaPicker}
@@ -840,6 +848,28 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 50,
   },
+   header: {
+    backgroundColor: "#1c348e",
+    padding: 10,
+    paddingTop: Platform.OS === 'android' ? 30 : 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228',
+  },
+  titulo:{
+    flex: 1,
+    color: "#ffffffff",
+     marginLeft: 40,
+     top: 5,
+    fontSize: 20,
+    fontWeight: 'bold',
+  
+  },
+  btnVoltar: {
+    padding: 5,
+    top: 5,
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -875,13 +905,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#1c348e',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 16,
     color: '#333',
-    backgroundColor: '#fff',
+    backgroundColor: '#f7db6142',
     marginBottom: 10,
   },
   multilineInput: {

@@ -14,13 +14,14 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View,Platform
 } from 'react-native';
 import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
 // MODIFICAÇÃO AQUI: Importar 'parse' junto com 'format'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // --- INTERFACES (Definições de Tipos) ---
 
@@ -198,6 +199,15 @@ const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) =>
 };
 
 const reportSectionStyles = StyleSheet.create({
+   header: {
+      backgroundColor: "#1c348e",
+      padding: 10,
+      paddingTop: Platform.OS === 'android' ? 30 : 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5c228',
+    },
   section: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
@@ -337,11 +347,14 @@ const RelatoriosScreen: React.FC = () => {
     navigation.goBack();
   };
 
+
   const renderEvaluationCard = ({ item }: { item: AvaliacaoGeral }) => (
+    
     <TouchableOpacity
       style={styles.card}
       onPress={() => openDetailsModal(item.id)}
     >
+      
       <Text style={styles.cardTitle}>Avaliação de {item.nomeAtleta}</Text>
       <Text style={styles.cardText}>
         {/* CORREÇÃO PRINCIPAL AQUI: Usar 'parse' para interpretar a data corretamente */}
@@ -404,11 +417,19 @@ const RelatoriosScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.mainScreenBackButton} onPress={handleGoBack}>
-        <Ionicons name="arrow-back" size={30} color="#333" />
-      </TouchableOpacity>
+     
 
-      <Text style={styles.header}> Avaliações</Text>
+      <View style={styles.header}>
+                     <TouchableOpacity
+                       onPress={() => navigation.goBack()}
+                       style={styles.btnVoltar}
+                       accessibilityLabel="Voltar"
+                     >
+                       <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
+                     
+                     </TouchableOpacity>
+                     <Text style={styles.titulo}>Avaliações</Text>
+                   </View>
 
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filtrar por Atleta:</Text>
@@ -556,14 +577,26 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   header: {
-    fontSize: 28,
+    backgroundColor: "#1c348e",
+    padding: 10,
+    paddingTop: Platform.OS === 'android' ? 30 : 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228',
+  },
+  titulo:{
+    flex: 1,
+    color: "#ffffffff",
+     marginLeft: 90,
+     top: 5,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 25,
-    color: '#2c3e50',
-    textAlign: 'center',
-    paddingTop: 20,
-    paddingLeft: 40,
-    paddingRight: 40,
+  
+  },
+  btnVoltar: {
+    padding: 5,
+    top: 5,
   },
   filterContainer: {
     marginBottom: 20,

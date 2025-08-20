@@ -1,26 +1,26 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { format, parse } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   FlatList,
-  Modal,
+  Modal, // Adicionado para a funcionalidade do Modal
+  Platform,
   RefreshControl,
   SafeAreaView,
-  ScrollView,
+  ScrollView, // Adicionado para permitir o scroll do conteúdo do Modal
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,Platform
+  View
 } from 'react-native';
 import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
-// MODIFICAÇÃO AQUI: Importar 'parse' junto com 'format'
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { format, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // --- INTERFACES (Definições de Tipos) ---
@@ -68,7 +68,7 @@ export interface AvaliacaoGeral {
   atletaId: number;
   nomeAtleta: string;
   userName: string;
-  dataAvaliacao: string; // Mantemos como string, mas agora sabemos o formato exato
+  dataAvaliacao: string;
   periodoTreino: string;
   subDivisao: string;
   feedbackTreinador: string;
@@ -104,13 +104,11 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token.trim()}`;
       }
-      
       return config;
     } catch (error) {
       console.error('Erro ao configurar token de autorização:', error);
       return config;
     }
-    
   },
   (error) => {
     return Promise.reject(error);
@@ -124,7 +122,6 @@ export const fetchHistoricalEvaluations = async (): Promise<AvaliacaoGeral[]> =>
       console.error("Dados recebidos da API /listar não são um array:", response.data);
       throw new TypeError("Os dados da lista de avaliações estão em formato inválido.");
     }
-    // Adicione este log para depurar o formato da data que está vindo da API
     if (response.data.length > 0) {
       console.log("DEBUG: Formato da dataAvaliacao recebida:", response.data[0].dataAvaliacao);
     }
@@ -132,25 +129,25 @@ export const fetchHistoricalEvaluations = async (): Promise<AvaliacaoGeral[]> =>
   } catch (error) {
     console.error("Erro ao buscar avaliações históricas:", error);
     if (axios.isAxiosError(error) && error.response) {
-        console.error("Status do erro:", error.response.status);
-        console.error("Dados do erro:", error.response.data);
+      console.error("Status do erro:", error.response.status);
+      console.error("Dados do erro:", error.response.data);
     }
     throw error;
   }
 };
 
 export const fetchAvaliacaoGeralById = async (id: number): Promise<AvaliacaoGeral> => {
-    try {
-      const response = await api.get<AvaliacaoGeral>(`/api/relatoriogeral/buscarporid/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Erro ao buscar AvaliacaoGeral pelo ID ${id}:`, error);
-      if (axios.isAxiosError(error) && error.response) {
-          console.error("Status do erro:", error.response.status);
-          console.error("Dados do erro:", error.response.data);
-      }
-      throw error;
+  try {
+    const response = await api.get<AvaliacaoGeral>(`/api/relatoriogeral/buscarporid/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Erro ao buscar AvaliacaoGeral pelo ID ${id}:`, error);
+    if (axios.isAxiosError(error) && error.response) {
+      console.error("Status do erro:", error.response.status);
+      console.error("Dados do erro:", error.response.data);
     }
+    throw error;
+  }
 };
 
 export const fetchAthletesList = async (): Promise<AtletaListagem[]> => {
@@ -164,9 +161,20 @@ export const fetchAthletesList = async (): Promise<AtletaListagem[]> => {
   } catch (error) {
     console.error("Erro ao buscar lista de atletas:", error);
     if (axios.isAxiosError(error) && error.response) {
-        console.error("Status do erro:", error.response.status);
-        console.error("Dados do erro:", error.response.data);
+      console.error("Status do erro:", error.response.status);
+      console.error("Dados do erro:", error.response.data);
     }
+    throw error;
+  }
+};
+
+// 🔴 Função para deletar um relatório
+export const deleteAthletesList = async (id: number): Promise<AvaliacaoGeral> => {
+  try {
+    const response = await api.delete<AvaliacaoGeral>(`api/relatoriogeral/deletarporid/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao excluir relatório", error);
     throw error;
   }
 };
@@ -199,19 +207,11 @@ const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) =>
 };
 
 const reportSectionStyles = StyleSheet.create({
-   header: {
-      backgroundColor: "#1c348e",
-      padding: 10,
-      paddingTop: Platform.OS === 'android' ? 30 : 10,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderBottomWidth: 1,
-      borderBottomColor: '#e5c228',
-    },
   section: {
     backgroundColor: '#f9f9f9',
     borderRadius: 8,
-    padding: 12,
+    padding: 18,
+    paddingHorizontal: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#eee',
@@ -249,7 +249,6 @@ const reportSectionStyles = StyleSheet.create({
   },
 });
 
-
 // --- COMPONENTE DA TELA RELATORIOS ---
 
 const { height } = Dimensions.get('window');
@@ -276,7 +275,6 @@ const RelatoriosScreen: React.FC = () => {
     setError(null);
     try {
       const fetchedEvaluations = await fetchHistoricalEvaluations();
-      // MODIFICAÇÃO AQUI: Usar 'parse' para ordenar corretamente
       fetchedEvaluations.sort((a, b) =>
         parse(b.dataAvaliacao, 'dd-MM-yyyy', new Date()).getTime() -
         parse(a.dataAvaliacao, 'dd-MM-yyyy', new Date()).getTime()
@@ -342,28 +340,54 @@ const RelatoriosScreen: React.FC = () => {
     setSelectedEvaluationDetails(null);
     setDetailsError(null);
   };
-
-  const handleGoBack = () => {
-    navigation.goBack();
+  
+  // 🔴 Função para lidar com a exclusão do relatório
+  const handleDeleteEvaluation = (id: number) => {
+    Alert.alert(
+      "Confirmar Exclusão",
+      "Tem certeza que deseja excluir esta avaliação?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sim",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAthletesList(id);
+              Alert.alert("Sucesso", "Avaliação excluída com sucesso.");
+              // Recarrega a lista para refletir a exclusão
+              loadEvaluationsAndAthletes();
+            } catch (error) {
+              Alert.alert("Erro", "Não foi possível excluir a avaliação.");
+            }
+          },
+        },
+      ]
+    );
   };
 
-
+  // 🔴 renderEvaluationCard com a funcionalidade da lixeira
   const renderEvaluationCard = ({ item }: { item: AvaliacaoGeral }) => (
-    
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => openDetailsModal(item.id)}
-    >
+    <View style={styles.cardRow}>
+      {/* Área clicável para abrir o modal */}
+      <TouchableOpacity style={styles.cardContent} onPress={() => openDetailsModal(item.id)}>
+        <Text style={styles.cardTitle}>Avaliação de {item.nomeAtleta}</Text>
+        <Text style={styles.cardText}>
+          Data: {format(parse(item.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
+        </Text>
+        <Text style={styles.cardText}>Avaliador: {item.userName}</Text>
+        <Text style={styles.cardText}>Período: {item.periodoTreino}</Text>
+        {item.subDivisao && <Text style={styles.cardText}>Subdivisão: {item.subDivisao}</Text>}
+      </TouchableOpacity>
       
-      <Text style={styles.cardTitle}>Avaliação de {item.nomeAtleta}</Text>
-      <Text style={styles.cardText}>
-        {/* CORREÇÃO PRINCIPAL AQUI: Usar 'parse' para interpretar a data corretamente */}
-        Data: {format(parse(item.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
-      </Text>
-      <Text style={styles.cardText}>Avaliador: {item.userName}</Text>
-      <Text style={styles.cardText}>Período: {item.periodoTreino}</Text>
-      {item.subDivisao && <Text style={styles.cardText}>Subdivisão: {item.subDivisao}</Text>}
-    </TouchableOpacity>
+      {/* Botão da lixeira separado */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDeleteEvaluation(item.id)}
+      >
+        <MaterialIcons name="delete" size={28} color="#e74c3c" />
+      </TouchableOpacity>
+    </View>
   );
 
   const desempenhoLabels = {
@@ -394,7 +418,6 @@ const RelatoriosScreen: React.FC = () => {
     atuarSobPressao: "Atuar Sob Pressão",
   };
 
-
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -417,19 +440,16 @@ const RelatoriosScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-     
-
       <View style={styles.header}>
-                     <TouchableOpacity
-                       onPress={() => navigation.goBack()}
-                       style={styles.btnVoltar}
-                       accessibilityLabel="Voltar"
-                     >
-                       <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
-                     
-                     </TouchableOpacity>
-                     <Text style={styles.titulo}>Avaliações</Text>
-                   </View>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.btnVoltar}
+          accessibilityLabel="Voltar"
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
+        </TouchableOpacity>
+        <Text style={styles.titulo}>Avaliações</Text>
+      </View>
 
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filtrar por Atleta:</Text>
@@ -484,7 +504,7 @@ const RelatoriosScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity style={styles.modalCloseButton} onPress={closeDetailsModal}>
-                <Ionicons name="close-circle-outline" size={30} color="#666" />
+              <Ionicons name="close-circle-outline" size={30} color="#666" />
             </TouchableOpacity>
 
             {detailsLoading ? (
@@ -508,7 +528,6 @@ const RelatoriosScreen: React.FC = () => {
                   <Text style={styles.detailText}><Text style={styles.detailLabel}>Avaliador:</Text> {selectedEvaluationDetails.userName}</Text>
                   <Text style={styles.detailText}>
                     <Text style={styles.detailLabel}>Data:</Text>{' '}
-                    {/* CORREÇÃO PRINCIPAL AQUI também */}
                     {format(parse(selectedEvaluationDetails.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
                   </Text>
                   <Text style={styles.detailText}><Text style={styles.detailLabel}>Período de Treino:</Text> {selectedEvaluationDetails.periodoTreino}</Text>
@@ -553,10 +572,10 @@ const RelatoriosScreen: React.FC = () => {
   );
 };
 
+// 🔴 Adicionados e modificados estilos para suportar a lixeira e o modal
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: '#f0f4f8',
   },
   centered: {
@@ -579,20 +598,19 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#1c348e",
     padding: 10,
-    paddingTop: Platform.OS === 'android' ? 30 : 10,
+    paddingTop: Platform.OS === 'android' ? 50 : 10,
     flexDirection: 'row',
-    alignItems: 'center',
+    paddingRight: Platform.OS === 'android' ? 40:0,
     borderBottomWidth: 1,
     borderBottomColor: '#e5c228',
   },
-  titulo:{
+  titulo: {
     flex: 1,
     color: "#ffffffff",
-     marginLeft: 90,
-     top: 5,
+    textAlign: 'center',
+    top: 5,
     fontSize: 20,
     fontWeight: 'bold',
-  
   },
   btnVoltar: {
     padding: 5,
@@ -616,7 +634,6 @@ const styles = StyleSheet.create({
     color: '#34495e',
     fontWeight: '600',
   },
-  
   dropdownContainer: {
     height: 50,
   },
@@ -640,18 +657,28 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 5,
   },
-  card: {
-    backgroundColor: '#ffffff',
-    padding: 18,
-    borderRadius: 12,
-    marginBottom: 12,
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-    elevation: 5,
-    borderLeftWidth: 5,
-    borderLeftColor: '#1c348e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardContent: {
+    flex: 1,
+    paddingVertical: 8,
+    justifyContent: "center",
+  },
+  deleteButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingLeft: 10,
   },
   cardTitle: {
     fontSize: 20,

@@ -1,20 +1,25 @@
 // app/Tarefas/ControleEstoque.tsx
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  StyleSheet,
-  Alert,
-  TouchableOpacity,
-  SafeAreaView, // Importado para garantir a área segura
-  Platform, // Importado para estilos específicos de plataforma
-  StatusBar // Importado para obter a altura da barra de status no Android
-} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList, // Importado para garantir a área segura
+  Platform,
+  SafeAreaView, // Importado para estilos específicos de plataforma
+  StatusBar // Importado para obter a altura da barra de status no Android
+  ,
+
+
+
+
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -374,7 +379,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#1c348e',
     paddingVertical: 15,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 40: 10,
     alignItems: 'center',
     justifyContent: 'space-between',
     flexDirection: 'row',
@@ -389,12 +394,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
+    paddingRight: Platform.OS === 'android' ? 40:0,
     color: '#fff',
     flex: 1,
     textAlign: 'center',
   },
   backButton: {
-    padding: 5,
+    paddingLeft: 20,
   },
   formContainer: {
     backgroundColor: '#fff',

@@ -1,7 +1,7 @@
-import { TouchableOpacity, TouchableOpacityProps, Text, View } from "react-native";
-import { styles } from "./styles";
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { Text, TouchableOpacity, TouchableOpacityProps, View } from "react-native";
+import { styles } from "./styles";
 
 type Props = TouchableOpacityProps & {
     title: string;

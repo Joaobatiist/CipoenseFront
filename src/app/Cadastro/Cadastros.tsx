@@ -1,25 +1,25 @@
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Alert,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Keyboard,
     TouchableWithoutFeedback,
     View,
-    Alert, 
 } from 'react-native';
-import { router } from 'expo-router';
-import Api from '../../Config/Api'
+import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { useNavigation } from '@react-navigation/native';
-import axios from 'axios';
-import DropDownPicker from 'react-native-dropdown-picker';
+import Api from '../../Config/Api';
 
 const Cadastro = () => {
     const navigation = useNavigation();
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: "#1c348e",
         padding: 10,
-        paddingTop: 10,
+        paddingTop: Platform.OS === 'android'? 50:10,
         flexDirection: 'row',
         alignItems: 'center',
         borderBottomWidth: 1,
@@ -230,6 +230,7 @@ const styles = StyleSheet.create({
     color: "#ffffffff",
      marginLeft: 60,
      top: 0,
+     paddingLeft: 15,
     fontSize: 20,
     fontWeight: 'bold',
   

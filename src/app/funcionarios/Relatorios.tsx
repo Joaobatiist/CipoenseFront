@@ -14,9 +14,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 interface AthleteEvaluation {
   Controle: number;
@@ -851,7 +851,7 @@ const styles = StyleSheet.create({
    header: {
     backgroundColor: "#1c348e",
     padding: 10,
-    paddingTop: Platform.OS === 'android' ? 30 : 10,
+    paddingTop: Platform.OS === 'android' ? 40 : 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
@@ -862,6 +862,7 @@ const styles = StyleSheet.create({
     color: "#ffffffff",
      marginLeft: 40,
      top: 5,
+     paddingLeft: 20,
     fontSize: 20,
     fontWeight: 'bold',
   

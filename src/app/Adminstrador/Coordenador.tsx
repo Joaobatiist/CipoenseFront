@@ -1,9 +1,9 @@
-import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faColumns, faFileInvoice, faIdCard, faRobot, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faRobot, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
+import { Alert, FlatList, Image, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { Button } from "../../components/button";
 import { styles } from '../../Styles/Supervisor'; // Importando seu arquivo de estilos

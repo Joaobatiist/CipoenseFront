@@ -1,11 +1,11 @@
 // src/components/SupervisorAnalisesScreen.tsx
 
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, FlatList, ActivityIndicator, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { faArrowLeft, faChartLine, faChevronRight, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faArrowLeft, faSearch, faChevronRight, faChartLine } from '@fortawesome/free-solid-svg-icons';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -154,7 +154,7 @@ const SupervisorAnalisesScreen: React.FC = () => {
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <FontAwesomeIcon icon={faArrowLeft} size={24} color="#fff" />
+                    <FontAwesomeIcon icon={faArrowLeft} size={18} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Análises de Desempenho (IA)</Text>
             </View>
@@ -220,12 +220,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         padding: 15, 
-        backgroundColor: '#004A8F',
+        backgroundColor: '#1c348e',
+        paddingTop: Platform.OS === 'android' ? 50 : 10,
+        paddingLeft: Platform.OS === 'android' ? 15 : 0,
         borderBottomLeftRadius: 15,
         borderBottomRightRadius: 15,
         marginBottom: 10,
     },
-    headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 15 },
+    headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 15, paddingLeft: 30 },
     backButton: { padding: 5 },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     errorText: { textAlign: 'center', color: 'red', margin: 20 },

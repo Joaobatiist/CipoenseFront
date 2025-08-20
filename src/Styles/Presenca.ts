@@ -1,4 +1,4 @@
-import { StyleSheet, Platform } from "react-native"
+import { Platform, StyleSheet } from "react-native";
 
 
 export const styles = StyleSheet.create({
@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
     header: {
         backgroundColor: '#1c348e',
         padding: 15,
-        paddingTop: Platform.OS === 'android' ? 40 : 20,
+        paddingTop: Platform.OS === 'android' ? 50 : 20,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
         backgroundColor: '#e5c228',
         paddingVertical: 15,
         marginHorizontal: 15,
-        marginBottom: 15,
+        marginBottom: 30,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',

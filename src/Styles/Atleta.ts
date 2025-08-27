@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Platform,StatusBar } from "react-native";
 
 export const styles = StyleSheet.create ({
     container: {
@@ -6,48 +6,43 @@ export const styles = StyleSheet.create ({
         backgroundColor: "#181818",
         padding: 24,
     },
-    calendar: {
-        backgroundColor: "transparent",
-    },
+    
     selected: {
         color: "#fff",
         fontSize: 16,
         marginTop: 42,
     },
-    dayText: {
-        color: "#E8E8E8",
-    },
-    day: {
-        width: 30,
-        height: 30,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: 7,
-    },
-    disabled: {
-        color: "#717171",
-    },
-    today: {
-        color: "#F06543",
-        fontWeight: "bold",
-    },
-    daySelected: {
-        backgroundColor: "#F06543",
-    },
-
+ 
     safeArea: {
         flex: 1,
-        backgroundColor: '#f0f0f0',
+       
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
-    },
+    title:  {
+    marginLeft: 10 ,
+    alignItems: 'center',
+    color: '#fcfcfcff',
+    fontWeight: 'bold',
+    fontSize: 12,
+    top: -5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5c228', 
+  },
+   header: {
+       flexDirection: 'row',
+       alignItems: 'center',
+       backgroundColor: '#1c348e',
+       paddingVertical: 10,
+       paddingHorizontal: 15,
+       borderBottomWidth: 1,
+       borderBottomColor: '#e5c228',
+       justifyContent: 'flex-start',
+       // Estilo específico para o Android
+       ...Platform.select({
+         android: {
+           paddingTop: StatusBar.currentHeight, // Adiciona um padding no topo igual à altura da barra de status do Android
+         },
+       }),
+     },
     menuButton: {
         padding: 10,
     },
@@ -110,112 +105,16 @@ export const styles = StyleSheet.create ({
         marginBottom: 10,
         textAlign: "center"
     },
-    formContainer: {
-        backgroundColor: '#f9f9f9',
-        padding: 15,
-        borderRadius: 8,
-        marginBottom: 20,
-    },
-    formTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#1c348e',
-        textAlign: "center"
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 5,
-        color: '#555',
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 15,
-        backgroundColor: '#fff',
-    },
-    textArea: {
-        height: 100,
-        textAlignVertical: 'top',
-    },
-    searchInput: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 5,
-        padding: 10,
-        marginBottom: 10,
-        backgroundColor: '#fff',
-    },
-    dropdownContainer: {
-        maxHeight: 150,
-        marginBottom: 15,
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 5,
-        backgroundColor: '#fff',
-    },
-    usuarioItem: {
-        padding: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    destinatariosContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginBottom: 15,
-    },
-    destinatarioTag: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1c348e',
-        padding: 10,
-        borderRadius: 15,
-        marginRight: 5,
-        marginBottom: 5,
-    },
-    destinatarioText: {
-        color: '#fff',
-        marginRight: 5,
-        fontSize: 12,
-    },
-    buttonGroup: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        gap: 10
-    },
-    cancelButton: {
-        backgroundColor: '#dc3545',
-        flex: 1,
-        borderRadius: 16,
-    },
-    submitButton: {
-        flex: 1,
-        backgroundColor: "#1c348e",
-        borderRadius: 16,
-    },
+    
+   
 
-    subTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginTop: 20,
-        marginBottom: 10,
-        color: '#333',
-    },
+    
     emptyMessage: {
         color: '#666',
         textAlign: 'center',
         marginVertical: 20,
     },
-    loadingMessage: { // Adicionado para mensagens de carregamento
-        textAlign: 'center',
-        marginTop: 20,
-        fontSize: 16,
-        color: '#666',
-    },
+ 
     errorMessage: { // Adicionado para mensagens de erro
         textAlign: 'center',
         marginTop: 20,
@@ -259,7 +158,7 @@ export const styles = StyleSheet.create ({
         color: '#888',
         fontStyle: 'italic',
     },
-    // --- NOVOS ESTILOS PARA TREINOS (AGENDA) ---
+   
     eventCard: {
         backgroundColor: '#fff', 
         borderRadius: 8,
@@ -282,7 +181,7 @@ export const styles = StyleSheet.create ({
     eventDescription: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#1c348e', 
+        color: '#050505ff', 
         marginBottom: 5,
     },
     eventDetail: {

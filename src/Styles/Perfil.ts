@@ -91,9 +91,23 @@ export const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
+    
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+    removeIconContainer: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 2,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   cardTitle: {
     fontSize: 20,
@@ -147,6 +161,38 @@ export const styles = StyleSheet.create({
     width: '100%',
     marginTop: 10,
   },
+  btnSalvar: {
+    backgroundColor: '#28a745', // Cor verde para o botão de salvar
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10, // Adiciona um espaço acima do botão salvar
+  },
+    btnEditar: {
+    backgroundColor: '#c7c7c7ff', // Cor azul para o botão de editar
+    padding: 10,
+    borderRadius: 8,
+  },
+   btnSalvarText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  editIconContainer: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#4CAF50',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  
+
+
   primaryButton: {
     backgroundColor: '#1c348e',
     padding: 16,
@@ -178,4 +224,5 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 5,
   },
+  
 });

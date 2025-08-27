@@ -30,7 +30,7 @@ const ComunicadosScreen: React.FC = () => {
         destinatarios: [],
         assunto: '',
         mensagem: '',
-        dataEnvio: new Date().toLocaleDateString('pt-BR'),
+        dataEnvio: '',
     });
     const [comunicadosEnviados, setComunicadosEnviados] = useState<Comunicado[]>([]);
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -180,11 +180,8 @@ const ComunicadosScreen: React.FC = () => {
                     throw new Error(`Erro ao carregar comunicados: ${response.status} - ${errorText}`);
                 }
                 const data: Comunicado[] = await response.json();
-                const formattedData = data.map(comunicado => ({
-                    ...comunicado,
-                    dataEnvio: new Date(comunicado.dataEnvio).toLocaleDateString('pt-BR')
-                }));
-                setComunicadosEnviados(formattedData);
+              
+                setComunicadosEnviados(data);
                 console.log('FETCH_COMUNICADOS: Comunicados carregados com sucesso. Total:', data.length);
             } catch (error) {
                 console.error("FETCH_COMUNICADOS: Falha ao buscar comunicados:", error);
@@ -290,7 +287,7 @@ const ComunicadosScreen: React.FC = () => {
                 destinatarios: [],
                 assunto: '',
                 mensagem: '',
-                dataEnvio: new Date().toLocaleDateString('pt-BR'),
+                dataEnvio: '',
             });
             setMostrarFormulario(false);
             setSearchTerm('');
@@ -360,11 +357,10 @@ const ComunicadosScreen: React.FC = () => {
 
             const comunicadoAtualizadoBackend: Comunicado = await response.json();
             const updatedComunicados = comunicadosEnviados.map(comunicado =>
-                comunicado.id === editingComunicadoId ? {
-                    ...comunicadoAtualizadoBackend,
-                    dataEnvio: new Date(comunicadoAtualizadoBackend.dataEnvio).toLocaleDateString('pt-BR')
-                } : comunicado
-            );
+     comunicado.id === editingComunicadoId ? comunicadoAtualizadoBackend : comunicado
+     );
+    setComunicadosEnviados(updatedComunicados);
+           
             setComunicadosEnviados(updatedComunicados);
 
             setEditingComunicadoId(null);
@@ -526,7 +522,7 @@ const ComunicadosScreen: React.FC = () => {
                                 setMostrarFormulario(false);
                                 setEditingComunicadoId(null);
                                 setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-                                setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: new Date().toLocaleDateString('pt-BR') });
+                                setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: ''});
                                 setSearchTerm('');
                             }}
                             textColor='#fff'

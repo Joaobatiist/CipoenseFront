@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     btnVoltar: {
         position: 'absolute',
         left: 15,
-        top: Platform.OS === 'android' ? 40 : 20,
+        top: Platform.OS === 'android' ? 50 : 20,
         zIndex: 1,
     },
     headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },

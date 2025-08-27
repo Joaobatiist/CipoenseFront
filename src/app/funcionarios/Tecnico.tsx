@@ -2,9 +2,12 @@ import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, f
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { StackActions, useNavigation } from '@react-navigation/native';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Alert, FlatList, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { TextInputMask } from 'react-native-masked-text';
 import { Button } from "../../components/button";
 import { styles } from '../../Styles/Supervisor'; // Importando seu arquivo de estilos
 import { ptBR } from "../../utils/localendarConfig";
@@ -30,8 +33,16 @@ interface Evento {
   local: string;
   horario: string;
 }
-
+interface CustomJwtPayload extends JwtPayload {
+  sub?: string;
+  userId?: number;
+  userType?: string;
+  userName?: string;
+}
 const Supervisor: React.FC = () => {
+  const navigation = useNavigation();
+  const [isTokenLoaded, setIsTokenLoaded] = useState<boolean>(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const sectionOffsetsRef = useRef<SectionOffsets>({});
@@ -106,6 +117,64 @@ const Supervisor: React.FC = () => {
     fetchEvents();
   }, []);
 
+
+    const checkAuthAndRedirect = useCallback(async () => {
+    try {
+      const storedToken = await AsyncStorage.getItem('jwtToken');
+      if (!storedToken) {
+        Alert.alert(
+          'Autenticação Necessária',
+          'Sua sessão expirou ou você não está logado. Você será redirecionado para a tela de login.',
+          [{
+            text: 'OK',
+            onPress: () => {
+              navigation.dispatch(StackActions.replace('Login'));
+            }
+          }]
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Erro ao verificar token para redirecionamento:', error);
+      Alert.alert('Erro', 'Ocorreu um erro ao verificar sua autenticação.');
+      return false;
+    }
+  }, [navigation]);
+  useEffect(() => {
+    const loadAuthData = async () => {
+      setIsTokenLoaded(false);
+      try {
+        const storedToken = await AsyncStorage.getItem('jwtToken');
+        if (storedToken) {
+          setAuthToken(storedToken);
+          try {
+            const decodedToken = jwtDecode<CustomJwtPayload>(storedToken);
+
+            if (decodedToken.userName) {
+              setProfessor(decodedToken.userName);
+            } else if (decodedToken.sub) {
+              setProfessor(decodedToken.sub);
+            }
+          } catch (decodeError) {
+            console.error('Erro ao decodificar o token:', decodeError);
+            Alert.alert('Erro de Token', 'Não foi possível decodificar o token de autenticação.');
+            await AsyncStorage.removeItem('jwtToken');
+            await checkAuthAndRedirect();
+          }
+        } else {
+          await checkAuthAndRedirect();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar token de autenticação do AsyncStorage:', error);
+        Alert.alert('Erro', 'Não foi possível carregar o token de autenticação. Tente novamente.');
+      } finally {
+        setIsTokenLoaded(true);
+      }
+    };
+    loadAuthData();
+  }, [checkAuthAndRedirect]);
+  
   function Presenca () {
     router.navigate("../Tarefas/Presenca")
   }
@@ -464,12 +533,17 @@ const Supervisor: React.FC = () => {
             placeholder="Local do Treino"
             style={styles.input}
           />
-          <TextInput
-            value={horario}
-            onChangeText={setHorario}
-            placeholder="Horário (ex: 10:00)"
-            style={styles.input}
-          />
+          <TextInputMask
+                     style={styles.input}
+                      type={'datetime'}
+                      options={{
+                        format: 'HH:MM',
+                      }}
+                      onChangeText={setHorario}
+                      value={horario}
+                      placeholder="Horário (ex: 10:00)"
+                      keyboardType="numeric"
+                    />
 
           <View style={styles.trainingButtonsContainer}>
             <Button

@@ -537,6 +537,7 @@ const AthleteEvaluationForm = () => {
             ]}
             onPress={() => onChange(attribute, option)}
           >
+           
             <Text style={value === option ? styles.ratingOptionTextSelected : styles.ratingOptionText}>
               {option}
             </Text>
@@ -678,7 +679,7 @@ const AthleteEvaluationForm = () => {
             open={openPosicaoPicker}
             value={selectedPosicao}
             items={[
-              { label: 'Selecione uma Posição', value: '' },
+              { label: 'Selecione uma Posição', value: ''},
               ...posicaoOptionsForPicker.map(posicao => ({
                 label: posicao,
                 value: posicao,

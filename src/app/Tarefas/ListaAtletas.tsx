@@ -608,12 +608,12 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     backgroundColor: '#1c348e', // Azul escuro do time
     paddingHorizontal: 10,
-    paddingTop: Platform.OS === 'android' ? 50 : 30, // Ajuste para status bar
+    paddingTop: Platform.OS === 'android' ? 50 : 20, // Ajuste para status bar
   },
   btnVoltar: {
     position: 'absolute',
     left: 10,
-    top: Platform.OS === 'android' ? 47 : 30, // Alinha com o título
+    top: Platform.OS === 'android' ? 47 : 15, // Alinha com o título
     padding: 5,
   },
   headerTitle: {

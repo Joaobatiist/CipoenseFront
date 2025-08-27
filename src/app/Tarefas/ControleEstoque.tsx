@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   backButton: {
-    paddingLeft: 20,
+    paddingLeft: 10,
   },
   formContainer: {
     backgroundColor: '#fff',

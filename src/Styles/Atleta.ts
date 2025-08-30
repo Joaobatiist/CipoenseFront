@@ -27,7 +27,38 @@ export const styles = StyleSheet.create ({
     borderBottomWidth: 1,
     borderBottomColor: '#e5c228', 
   },
+   titleheader:  {
+   marginLeft: 70 ,
+   
+    color: '#fcfcfcff',
+    fontWeight: 'bold',
+    fontSize: 20,
+    top: 0,
+    
+  },
+   buttonText: { 
+    color: '#fff',
+    fontSize: 14,
+    marginLeft: 5,
+  },
+  hideButton: { 
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#5a6268', // Cor cinza para o botão de ocultar
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderRadius: 5,
+},
+eventActions: { 
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 10,
+  },
    header: {
+         display: 'flex',
        flexDirection: 'row',
        alignItems: 'center',
        backgroundColor: '#1c348e',

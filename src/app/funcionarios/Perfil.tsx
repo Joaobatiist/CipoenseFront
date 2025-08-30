@@ -6,17 +6,16 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  StyleSheet, // Importar StyleSheet para definir estilos localmente se necessário
+  StyleSheet,
   Alert,
   ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { MediaType } from 'expo-image-picker';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { styles } from "../../Styles/Perfil"; // Mantém a importação dos estilos principais
+import { styles } from "../../Styles/Perfil";
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://seu-backend-url.com';
 
@@ -28,7 +27,7 @@ type AtletaProfileDto = {
   subDivisao: string;
   dataNascimento: string;
   foto: string | null;
-  contatoResponsavel: string | null; // Adicionado para exibir o contato do responsável
+  contatoResponsavel: string | null;
 };
 
 const PerfilAtleta = () => {
@@ -50,7 +49,6 @@ const PerfilAtleta = () => {
         });
 
         const dados = response.data;
-
         const fotoParaExibir = dados.foto;
 
         setAtleta({
@@ -61,7 +59,7 @@ const PerfilAtleta = () => {
           subDivisao: dados.subDivisao || 'Não informado',
           dataNascimento: dados.dataNascimento || 'Não informada',
           foto: fotoParaExibir,
-          contatoResponsavel: dados.contatoResponsavel || 'Não informado', // Adicionado
+          contatoResponsavel: dados.contatoResponsavel || 'Não informado',
         });
 
         setForm({
@@ -70,7 +68,7 @@ const PerfilAtleta = () => {
           matricula: dados.matricula?.toString() || '',
           dataNascimento: dados.dataNascimento || '',
           subDivisao: dados.subDivisao || '',
-          contatoResponsavel: dados.contatoResponsavel || '', // Adicionado
+          contatoResponsavel: dados.contatoResponsavel || '',
         });
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
@@ -156,7 +154,7 @@ const PerfilAtleta = () => {
         matricula: atleta.matricula,
         dataNascimento: atleta.dataNascimento,
         subDivisao: atleta.subDivisao,
-        contatoResponsavel: atleta.contatoResponsavel, // Adicionado
+        contatoResponsavel: atleta.contatoResponsavel,
       });
     }
   };
@@ -189,7 +187,7 @@ const PerfilAtleta = () => {
         email: form.email,
         dataNascimento: form.dataNascimento,
         subDivisao: form.subDivisao,
-        contatoResponsavel: form.contatoResponsavel, // Incluído
+        contatoResponsavel: form.contatoResponsavel,
       };
 
       const response = await axios.put<AtletaProfileDto>(`${API_URL}/api/atleta/profile`, updateDto, {
@@ -202,11 +200,10 @@ const PerfilAtleta = () => {
             ...prevAtleta,
             nome: response.data.nome,
             email: response.data.email,
-            // A matrícula não é editável, então manter a existente
             matricula: response.data.matricula?.toString() || prevAtleta.matricula,
             dataNascimento: response.data.dataNascimento,
             subDivisao: response.data.subDivisao,
-            contatoResponsavel: response.data.contatoResponsavel, // Atualiza contato
+            contatoResponsavel: response.data.contatoResponsavel,
             foto: prevAtleta.foto
           };
         }
@@ -245,12 +242,13 @@ const PerfilAtleta = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
           <MaterialIcons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meu Perfil</Text> {/* Adicionado título */}
+        <Text style={styles.headerTitle}>Meu Perfil</Text>
+       
       </View>
 
       <View style={styles.profileContainer}>
         <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={selecionarImagem} disabled={uploading} style={styles.avatarTouchable}> {/* Estilo para o touchable */}
+          <TouchableOpacity onPress={selecionarImagem} disabled={uploading} style={styles.avatarTouchable}>
             {imagemPreview || atleta.foto ? (
               <Image
                 source={{ uri: imagemPreview || atleta.foto || '' }}
@@ -259,7 +257,7 @@ const PerfilAtleta = () => {
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <MaterialIcons name="add-a-photo" size={40} color="#666" /> {/* Ícone para adicionar foto */}
+                <MaterialIcons name="add-a-photo" size={40} color="#666" />
                 <Text style={styles.avatarPlaceholderText}>Adicionar Foto</Text>
               </View>
             )}
@@ -271,11 +269,10 @@ const PerfilAtleta = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Informações do Perfil */}
-        <View style={styles.card}> {/* Novo estilo de cartão para agrupar info */}
+        <View style={styles.card}>
           <Text style={styles.cardTitle}>Informações Pessoais</Text>
           {!editando ? (
-            <>
+            <View>
               <Text style={styles.infoLabel}>Nome:</Text>
               <Text style={styles.infoValue}>{atleta.nome}</Text>
 
@@ -297,7 +294,7 @@ const PerfilAtleta = () => {
                   <Text style={styles.infoValue}>{atleta.contatoResponsavel}</Text>
                 </>
               )}
-            </>
+            </View>
           ) : (
             <View style={styles.formContainer}>
               <Text style={styles.inputLabel}>Nome:</Text>
@@ -317,7 +314,7 @@ const PerfilAtleta = () => {
               />
               <Text style={styles.inputLabel}>Matrícula:</Text>
               <TextInput
-                style={[styles.input, styles.inputDisabled]} // Estilo para input desabilitado
+                style={[styles.input, styles.inputDisabled]}
                 value={form.matricula}
                 editable={false}
               />
@@ -325,9 +322,9 @@ const PerfilAtleta = () => {
               <TextInput
                 style={styles.input}
                 value={form.dataNascimento}
-                onChangeText={(text) => setForm({ dataNascimento: text })}
+                onChangeText={(text) => setForm({ ...form, dataNascimento: text })}
                 placeholder="DD/MM/AAAA"
-                keyboardType="numeric" // Ajuda a digitar data
+                keyboardType="numeric"
               />
               <Text style={styles.inputLabel}>Subdivisão:</Text>
               <TextInput
@@ -336,16 +333,19 @@ const PerfilAtleta = () => {
                 onChangeText={(text) => setForm({ ...form, subDivisao: text })}
                 placeholder="Ex: Categoria, Posição"
               />
+              <Text style={styles.inputLabel}>Contato Responsável:</Text>
               <TextInput
-              style={styles.input}
-              value={form.contatoResponsavel ?? ''} 
-              onChangeText={(text) => setForm({ ...form, contatoResponsavel: text })}
-              placeholder="(XX) XXXXX-XXXX"
-              keyboardType="phone-pad"
-             />
+                style={styles.input}
+                value={form.contatoResponsavel ?? ''}
+                onChangeText={(text) => setForm({ ...form, contatoResponsavel: text })}
+                placeholder="(XX) XXXXX-XXXX"
+                keyboardType="phone-pad"
+              />
             </View>
           )}
         </View>
+
+        
       </View>
     </ScrollView>
   );

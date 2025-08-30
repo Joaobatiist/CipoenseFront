@@ -1,14 +1,14 @@
 import { faAddressBook, faAddressCard, faBars, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faRobot, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 import { StackActions, useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, Image, LayoutChangeEvent, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View, } from 'react-native';
-import { TextInputMask } from 'react-native-masked-text';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { Button } from "../../components/button";
+import { TextInputMask } from 'react-native-masked-text';
+import { Button } from "../../components/button/index";
 import { styles } from '../../Styles/Supervisor'; // Importando seu arquivo de estilos
 import { ptBR } from "../../utils/localendarConfig";
 import ComunicadosSection from '../funcionarios/Comunicado';
@@ -55,7 +55,8 @@ const [authToken, setAuthToken] = useState<string | null>(null);
     return new Date(today.getTime() - offset).toISOString().split('T')[0];
   });
   const [descricao, setDescricao] = useState('');
-  const [professor, setProfessor] = useState('');
+  const [loggedInUserName, setLoggedInUserName] = useState<string>(''); // Para o usuário logado
+const [formProfessor, setFormProfessor] = useState<string>(''); 
   const [local, setLocal] = useState('');
   const [horario, setHorario] = useState('');
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -128,7 +129,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
   function AvaliacaoGeral () {
     router.navigate("../Tarefas/AvaliacaoGeral")
   }
-  function Atletas (){
+  function listaAtletas (){
     router.navigate("../Tarefas/ListaAtletas")
   }
   function Relatorio() {
@@ -140,6 +141,9 @@ const [authToken, setAuthToken] = useState<string | null>(null);
   }
   function Estoque (){
     router.navigate('../Tarefas/ControleEstoque')
+  }
+  function listaDeFuncionarios(){
+    router.navigate("../Tarefas/listarFuncionarios")
   }
 
   function CadastrarFuncionario(){
@@ -188,7 +192,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
   };
 
   const adicionarTreino = async () => {
-    if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
+    if (descricao.trim() === '' || formProfessor.trim() === '' || local.trim() === '' || horario.trim() === '') {
       Alert.alert('Erro', 'Preencha todos os campos do treino: Descrição, Professor, Local e Horário.');
       return;
     }
@@ -198,7 +202,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
     const novoEventoBackend = {
       data: formattedDateForBackend,
       descricao: descricao,
-      professor: professor,
+      professor: loggedInUserName,
       local: local,
       horario: horario,
     };
@@ -236,7 +240,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
       setEventos(prevEventos => [...prevEventos, formattedEventoSaved]);
 
       setDescricao('');
-      setProfessor('');
+      setFormProfessor(loggedInUserName);
       setLocal('');
       setHorario('');
       Alert.alert('Sucesso', 'Treino adicionado com sucesso!');
@@ -281,9 +285,11 @@ const [authToken, setAuthToken] = useState<string | null>(null);
             const decodedToken = jwtDecode<CustomJwtPayload>(storedToken);
 
             if (decodedToken.userName) {
-              setProfessor(decodedToken.userName);
+              setLoggedInUserName(decodedToken.userName); // Define o nome do usuário logado
+            setFormProfessor(decodedToken.userName);    // Inicializa o formulário com o nome do logado
             } else if (decodedToken.sub) {
-              setProfessor(decodedToken.sub);
+             setLoggedInUserName(decodedToken.sub);
+             setFormProfessor(decodedToken.sub);
             }
           } catch (decodeError) {
             console.error('Erro ao decodificar o token:', decodeError);
@@ -311,14 +317,14 @@ const [authToken, setAuthToken] = useState<string | null>(null);
     const formattedDateForInput = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
     setSelectedDate(formattedDateForInput);
     setDescricao(eventToEdit.descricao);
-    setProfessor(eventToEdit.professor);
+    setFormProfessor(eventToEdit.professor);
     setLocal(eventToEdit.local);
     setHorario(eventToEdit.horario);
   };
 
   const saveEditedTreino = async () => {
     if (editingEventId === null) return;
-    if (descricao.trim() === '' || professor.trim() === '' || local.trim() === '' || horario.trim() === '') {
+    if (descricao.trim() === '' || formProfessor.trim() === '' || local.trim() === '' || horario.trim() === '') {
       Alert.alert('Erro', 'Preencha todos os campos do treino para atualizar.');
       return;
     }
@@ -329,7 +335,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
       id: editingEventId,
       data: formattedDateForBackend,
       descricao: descricao,
-      professor: professor,
+      professor: formProfessor,
       local: local,
       horario: horario,
     };
@@ -370,7 +376,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
 
       setEditingEventId(null);
       setDescricao('');
-      setProfessor('');
+      setFormProfessor(loggedInUserName);
       setLocal('');
       setHorario('');
       Alert.alert('Sucesso', 'Treino atualizado com sucesso!');
@@ -433,14 +439,19 @@ const [authToken, setAuthToken] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      
       <View style={styles.header}>
         <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
           <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#ffffffff" />
+          
         </TouchableOpacity>
+        <Text style={styles.titleheader}>Olá, {loggedInUserName}!</Text>
       </View>
 
       {sidebarOpen && (
+        
         <View style={styles.sidebar}>
+           
           <TouchableOpacity style={styles.closeButton} onPress={closeSidebar}>
             <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
           </TouchableOpacity>
@@ -450,7 +461,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
                       style={{ width: "80%", height: 90, borderRadius: 55, marginLeft: 20 }}
                     />
                     <Text style={styles.title}>Associação Desportiva Cipoense</Text>
-
+        <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
           <TouchableOpacity style={styles.navItem} onPress={() => scrollToSection('agenda')}>
             <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Agenda de Treinos</Text>
@@ -489,15 +500,21 @@ const [authToken, setAuthToken] = useState<string | null>(null);
             <FontAwesomeIcon icon={faRobot} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Analise do atleta pela IA</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={Atletas}>
+          <TouchableOpacity style={styles.navItem} onPress={listaAtletas}>
             <FontAwesomeIcon icon={faAddressBook}  size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Lista de Atletas</Text>
+          </TouchableOpacity>
+           <TouchableOpacity style={styles.navItem} onPress={listaDeFuncionarios}>
+            <FontAwesomeIcon icon={faAddressBook}  size={16} color="#fff" style={styles.navIcon} />
+            <Text style={styles.navText}>Lista de Funcionarios</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navItem} onPress={handleLogout}>
             <FontAwesomeIcon icon={faSignOutAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Sair</Text>
           </TouchableOpacity>
+          </ScrollView>
         </View>
+        
       )}
 
       <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
@@ -533,10 +550,11 @@ const [authToken, setAuthToken] = useState<string | null>(null);
             style={styles.input}
           />
           <TextInput
-            value={professor}
-            onChangeText={setProfessor}
+            value={formProfessor}    
+            onChangeText={setFormProfessor}
             placeholder="Nome do Professor"
             style={styles.input}
+            editable={false}
           />
           <TextInput
             value={local}
@@ -561,8 +579,7 @@ const [authToken, setAuthToken] = useState<string | null>(null);
               title={editingEventId ? "Atualizar treino" : "Adicionar treino"}
               textColor="#fff"
               onPress={editingEventId ? saveEditedTreino : adicionarTreino}
-              style={styles.trainingActionButton}
-            />
+              style={styles.trainingActionButton} icon={undefined}            />
             {editingEventId && (
               <Button
                 title="Cancelar Edição"
@@ -570,12 +587,11 @@ const [authToken, setAuthToken] = useState<string | null>(null);
                 onPress={() => {
                   setEditingEventId(null);
                   setDescricao('');
-                  setProfessor('');
+                 setFormProfessor(loggedInUserName);
                   setLocal('');
                   setHorario('');
-                }}
-                style={styles.trainingCancelButton}
-              />
+                } }
+                style={styles.trainingCancelButton} icon={undefined}              />
             )}
           </View>
 

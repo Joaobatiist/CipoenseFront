@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, FlatList, Alert, TouchableOpacity } from 'react-native';
+import { faEyeSlash, faIdCard, faPlus, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faPlus, faTimes, faIdCard, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { Button } from "../../components/button";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { jwtDecode } from 'jwt-decode'
+import { jwtDecode } from 'jwt-decode';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, FlatList, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Button } from "../../components/button/index";
 import { styles } from "../../Styles/Tecnico";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -435,7 +435,7 @@ const ComunicadosScreen: React.FC = () => {
                         setMostrarFormulario(true);
                         setEditingComunicadoId(null);
                         setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-                        setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: new Date().toLocaleDateString('pt-BR') });
+                        setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: ''});
                         setSearchTerm('');
                     }}
                     icon={faPlus}
@@ -511,23 +511,21 @@ const ComunicadosScreen: React.FC = () => {
 
                     <View style={styles.buttonGroup}>
                         <Button
-                            title={editingComunicadoId !== null ? "Salvar Alterações" : "Enviar"}
-                            onPress={editingComunicadoId !== null ? saveEditedComunicado : enviarComunicado}
-                            style={styles.submitButton}
-                            textColor='#fff'
-                        />
+                                title={editingComunicadoId !== null ? "Salvar Alterações" : "Enviar"}
+                                onPress={editingComunicadoId !== null ? saveEditedComunicado : enviarComunicado}
+                                style={styles.submitButton}
+                                textColor='#fff' icon={undefined}                        />
                         <Button
-                            title="Cancelar"
-                            onPress={() => {
-                                setMostrarFormulario(false);
-                                setEditingComunicadoId(null);
-                                setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-                                setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: ''});
-                                setSearchTerm('');
-                            }}
-                            textColor='#fff'
-                            style={styles.cancelButton}
-                        />
+                                title="Cancelar"
+                                onPress={() => {
+                                    setMostrarFormulario(false);
+                                    setEditingComunicadoId(null);
+                                    setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
+                                    setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: '' });
+                                    setSearchTerm('');
+                                } }
+                                textColor='#fff'
+                                style={styles.cancelButton} icon={undefined}                        />
                     </View>
                 </View>
             )}

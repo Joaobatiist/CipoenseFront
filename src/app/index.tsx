@@ -1,218 +1,220 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Keyboard,
-  TouchableWithoutFeedback,
-  ActivityIndicator,
-} from 'react-native';
 import { router } from 'expo-router';
-import axios from 'axios';
-import Api from '../Config/Api';
-import { jwtDecode, JwtPayload } from 'jwt-decode';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  SafeAreaView,
+  TouchableOpacity,
+  Dimensions
+} from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
+
+// Hook para obter a largura da tela e tornar o design responsivo
+const { width } = Dimensions.get('window');
+
+// --- Componente de Ilustração SVG ---
+// Um componente simples para renderizar a ilustração do jogador.
+// Usar SVG em vez de uma imagem deixa o app mais leve e rápido.
 
 
-interface CustomJwtPayload extends JwtPayload {
-  roles?: string[];
-}
 
+// --- Componente Principal da Tela ---
+const WelcomeScreen: React.FC = () => {
 
-
-const LoginScreen = () => {
-  const [emailAluno, setEmailAluno] = useState('');
-  const [senhaAluno, setSenhaAluno] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  function handleNext() {
-    router.navigate("./Cadastro/CadastroAlun");
-  }
-
-  const handleLogin = async () => {
-    if (!emailAluno || !senhaAluno) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await Api.post(`/auth/login`, {
-        email: emailAluno,
-        senha: senhaAluno,
-      });
-
-      console.log('Resposta COMPLETA do servidor:', response.data);
-      console.log('Status da resposta HTTP:', response.status);
-
-      const { jwt } = response.data; 
-
-      if (jwt) { 
-       
-        await AsyncStorage.setItem('jwtToken', jwt); 
-        console.log('Token armazenado no AsyncStorage (chave jwtToken):', jwt); 
-
-        const decodedToken = jwtDecode<CustomJwtPayload>(jwt); 
-        console.log('Token decodificado:', decodedToken);
-
-        const userRole = decodedToken.roles && decodedToken.roles.length > 0
-          ? decodedToken.roles[0]
-          : undefined;
-
-        console.log('Cargo do usuário:', userRole);
-
-        Alert.alert('Sucesso', 'Login realizado com sucesso!');
-
-        if (userRole === 'ATLETA') {
-          router.replace('./Atletas/Atleta');
-        } else if (userRole === 'TECNICO') {
-          // Este é o redirecionamento para o seu MinimalScreen
-          router.replace('./funcionarios/Tecnico'); 
-        } else if (userRole === 'COORDENADOR') {
-          router.replace('./Adminstrador/Coordenador');
-        } else if (userRole === 'SUPERVISOR') {
-          router.replace('./Adminstrador/Supervisor');
-        } else {
-          console.warn('Login não reconhecido ou inexistente:', userRole);
-          Alert.alert('Aviso', 'Seu login não foi reconhecido. Redirecionando para a tela inicial.');
-          router.replace('./index');
-        }
-
-      } else {
-        Alert.alert('Erro', 'Token JWT não recebido na resposta do servidor.');
-        console.log('Propriedade "jwt" não encontrada na resposta do servidor ou é nula/vazia.'); 
-      }
-
-    } catch (error) {
-      console.error('Erro no login:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response) {
-          console.error('Detalhes da resposta de ERRO do servidor:', error.response.data);
-          console.error('Status de ERRO do servidor:', error.response.status);
-
-          if (error.response.status === 401) {
-            Alert.alert('Erro', 'Email ou senha incorretos.');
-          } else {
-            Alert.alert('Erro', `Falha no login: ${error.response.data.message || 'Erro desconhecido.'}`);
-          }
-        } else if (error.request) {
-          Alert.alert('Erro', 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente mais tarde.');
-        }
-      } else {
-        Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
-      }
-    } finally {
-      setLoading(false);
-    }
+  // Função para navegar para a tela de login
+  const goToLogin = () => {
+    router.navigate("./login");
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Image
-            source={require("../../assets/images/escudo.png")}
-            style={{ width: "100%", height: 200, borderRadius: 55 }}
-          />
-
-          <Text style={styles.title}>Login</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={emailAluno}
-            onChangeText={setEmailAluno}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            secureTextEntry={true}
-            value={senhaAluno}
-            onChangeText={setSenhaAluno}
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
-            )}
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        
+        {/* Seção Principal (Herói) com a ilustração e chamada para ação */}
+        <View style={styles.heroSection}>
+          <Text style={styles.title}>Meu Time</Text>
+          <Text style={styles.subtitle}>Gestão Esportiva Inteligente</Text>
+          
+          <TouchableOpacity style={styles.ctaButton} onPress={goToLogin}>
+            <Text style={styles.ctaButtonText}>Começar Agora</Text>
           </TouchableOpacity>
+        </View>
 
-          <TouchableOpacity style={styles.signupButton}>
-            <Text style={styles.signupButtonText} onPress={handleNext}>
-              Cadastre-se
+        {/* Seção de Funcionalidades Principais */}
+        <Text style={styles.sectionTitle}>Funcionalidades</Text>
+        <View style={styles.gridContainer}>
+          {/* Card de Gerenciamento de Atletas */}
+          <View style={styles.featureCard}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>👥</Text>
+            </View>
+            <Text style={styles.featureTitle}>Elenco Completo</Text>
+            <Text style={styles.featureText}>
+              Gerencie perfis, estatísticas e o desenvolvimento de cada atleta.
             </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </View>
+
+          {/* Card de Estatísticas Detalhadas */}
+          <View style={styles.featureCard}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>📊</Text>
+            </View>
+            <Text style={styles.featureTitle}>Análise de Dados</Text>
+            <Text style={styles.featureText}>
+              Use métricas de desempenho para tomar decisões táticas mais inteligentes.
+            </Text>
+          </View>
+
+          {/* Card de Calendário de Eventos */}
+          <View style={styles.featureCard}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>📅</Text>
+            </View>
+            <Text style={styles.featureTitle}>Agenda do Time</Text>
+            <Text style={styles.featureText}>
+              Organize treinos, jogos e eventos em um calendário centralizado.
+            </Text>
+          </View>
+
+           {/* Card de Comunicação */}
+           <View style={styles.featureCard}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.icon}>💬</Text>
+            </View>
+            <Text style={styles.featureTitle}>Comunicação</Text>
+            <Text style={styles.featureText}>
+              Envie comunicados e mantenha toda a equipe alinhada.
+            </Text>
+          </View>
+        </View>
+
+
+
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+// --- Estilos ---
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#F0F4F8', // Um azul bem claro para o fundo
+  },
+  container: {
+    paddingBottom: 32,
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#f5f5f5',
+  },
+  heroSection: {
+    backgroundColor: '#0A2463', // Azul Escuro Principal
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   title: {
-    fontSize: 24,
+    fontSize: 40,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    color: '#FFFFFF',
   },
-  input: {
-    width: '100%',
-    height: 50,
-    borderColor: '#1c348e',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    backgroundColor: '#fff',
+  subtitle: {
+    fontSize: 18,
+    color: '#FFD60A', // Amarelo
+    marginTop: 8,
+    marginBottom: 24,
   },
-  button: {
-    backgroundColor: '#1c348e',
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e8c020',
-    alignItems: 'center',
+  ctaButton: {
+    backgroundColor: '#FFD60A', // Amarelo
+    paddingVertical: 6,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+    marginTop: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 8,
   },
-  buttonText: {
-    color: '#ffffff',
+  ctaButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#0A2463', // Azul Escuro Principal
   },
-  signupButton: {
-    marginTop: 20,
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#0A2463', // Azul Escuro
+    marginTop: 32,
+    marginBottom: 16,
   },
-  signupButtonText: {
-    color: '#1c348e',
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  featureCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+    width: (width - 48) / 2, // Calcula a largura para 2 colunas com espaço
+    marginBottom: 16,
+    alignItems: 'center',
+    minHeight: 180,
+  },
+  iconContainer: {
+    marginBottom: 12,
+    backgroundColor: '#E3F2FD', // Azul bem clarinho
+    borderRadius: 50,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 28,
+  },
+  featureTitle: {
     fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#0A2463',
+    marginBottom: 8,
+  },
+  featureText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: '#555',
+  },
+  footer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#DDD'
+  },
+  footerText: {
+    fontSize: 16,
+    color: '#555',
+  },
+  footerLink: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#0A2463', // Azul Escuro
+    marginTop: 8,
   },
 });
 
-export default LoginScreen;
+export default WelcomeScreen;

@@ -13,9 +13,20 @@ title:  {
     fontSize: 12,
     top: -5,
     borderBottomWidth: 1,
+    borderBottomRightRadius: 24,
     borderBottomColor: '#e5c228', 
   },
+  titleheader:  {
+   marginLeft: 70 ,
+   
+    color: '#fcfcfcff',
+    fontWeight: 'bold',
+    fontSize: 20,
+    top: 5,
+    
+  },
   header: {
+    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1c348e',
@@ -24,6 +35,7 @@ title:  {
     borderBottomWidth: 1,
     borderBottomColor: '#e5c228',
     justifyContent: 'flex-start',
+    
     // Estilo específico para o Android
     ...Platform.select({
       android: {
@@ -32,6 +44,7 @@ title:  {
     }),
   },
   menuButton: {
+    
     padding: 5,
     top: 5,
     
@@ -50,7 +63,7 @@ title:  {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 250,
+    width: 260,
     height: '100%', 
     backgroundColor: '#1c348e',
     paddingTop: 60,
@@ -67,8 +80,9 @@ title:  {
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 13,
     borderBottomWidth: 1,
+    borderBottomRightRadius: 6,
     borderBottomColor: '#e5c228', 
   },
   navIcon: {

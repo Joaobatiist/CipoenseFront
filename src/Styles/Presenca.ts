@@ -67,6 +67,7 @@ export const styles = StyleSheet.create({
     alunoNome: { fontSize: 18, color: '#333', flex: 1 },
     iconContainer: { flexDirection: 'row', alignItems: 'center' },
     saveButton: {
+        
         backgroundColor: '#1c348e',
         paddingVertical: 15,
         marginHorizontal: 15,
@@ -87,6 +88,7 @@ export const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     previousListsButtonText: {
+        
         color: '#1c348e',
         fontSize: 16,
         fontWeight: 'bold',

@@ -280,7 +280,7 @@ const ComunicadosScreen: React.FC = () => {
             const comunicadoSalvo: Comunicado = await response.json();
             setComunicadosEnviados(prevComunicados => [...prevComunicados, {
                 ...comunicadoSalvo,
-                dataEnvio: new Date(comunicadoSalvo.dataEnvio).toLocaleDateString('pt-BR')
+                dataEnvio: comunicadoSalvo.dataEnvio
             }]);
 
             setNovoComunicado({

@@ -11,7 +11,7 @@ import { TextInputMask } from 'react-native-masked-text';
 import { Button } from "../../components/button/index";
 import { styles } from '../../Styles/Supervisor'; // Importando seu arquivo de estilos
 import { ptBR } from "../../utils/localendarConfig";
-import ComunicadosSection from '../funcionarios/Comunicado';
+import ComunicadosSection from '../Tarefas/comunicado';
 
 LocaleConfig.locales["pt-br"] = ptBR;
 LocaleConfig.defaultLocale = "pt-br";
@@ -120,27 +120,27 @@ const [formProfessor, setFormProfessor] = useState<string>('');
     fetchEvents();
   }, []);
 
-  function Presenca () {
-    router.navigate("../Tarefas/Presenca")
+  function listaPresenca () {
+    router.navigate("../Tarefas/presenca")
   }
-  function AnaliseIa ( ){
-  router.navigate("../Tarefas/AnaliseIa")
+  function analiseIa ( ){
+  router.navigate("../Tarefas/analiseIa")
   }
-  function AvaliacaoGeral () {
-    router.navigate("../Tarefas/AvaliacaoGeral")
+  function exibirAvaliacaoGeral () {
+    router.navigate("../Tarefas/exibirAvaliacaoGeral")
   }
   function listaAtletas (){
-    router.navigate("../Tarefas/ListaAtletas")
+    router.navigate("../Tarefas/listaAtletas")
   }
-  function Relatorio() {
-    router.navigate("../funcionarios/Relatorios");
+  function realizarRelatorio() {
+    router.navigate("../funcionarios/realizarRelatorios");
   }
 
-  function CadastrarAluno(){
-    router.navigate("../Cadastro/CadastroAluno")
+  function cadastrarAluno(){
+    router.navigate("../Cadastro/cadastroAluno")
   }
-  function Estoque (){
-    router.navigate('../Tarefas/ControleEstoque')
+  function controleEstoque (){
+    router.navigate('../Tarefas/controleEstoque')
   }
  
   const handleLogout = async () => {
@@ -460,7 +460,7 @@ const [formProfessor, setFormProfessor] = useState<string>('');
             <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Agenda de Treinos</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={Relatorio}>
+          <TouchableOpacity style={styles.navItem} onPress={realizarRelatorio}>
             <FontAwesomeIcon icon={faChartLine} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Avaliação de Desempenho</Text>
           </TouchableOpacity>
@@ -468,25 +468,25 @@ const [formProfessor, setFormProfessor] = useState<string>('');
             <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Comunicados</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={Presenca}>
+          <TouchableOpacity style={styles.navItem} onPress={listaPresenca}>
             <FontAwesomeIcon icon={faCheck} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Lista de Presença</Text>
           </TouchableOpacity>
         
-          <TouchableOpacity style={styles.navItem} onPress={CadastrarAluno}>
+          <TouchableOpacity style={styles.navItem} onPress={cadastrarAluno}>
             <FontAwesomeIcon icon={faAddressCard} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Cadastrar Aluno</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.navItem} onPress={Estoque}>
+          <TouchableOpacity style={styles.navItem} onPress={controleEstoque}>
             <FontAwesomeIcon icon={faBoxes} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>estoque</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={AvaliacaoGeral}>
+          <TouchableOpacity style={styles.navItem} onPress={exibirAvaliacaoGeral}>
             <FontAwesomeIcon icon={faFileInvoice}  size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Relatorio de Desempenho</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={AnaliseIa}>
+          <TouchableOpacity style={styles.navItem} onPress={analiseIa}>
             <FontAwesomeIcon icon={faRobot} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Analise do atleta pela IA</Text>
           </TouchableOpacity>

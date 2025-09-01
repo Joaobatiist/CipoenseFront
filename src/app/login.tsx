@@ -73,14 +73,14 @@ function goBack() {
         Alert.alert('Sucesso', 'Login realizado com sucesso!');
 
         if (userRole === 'ATLETA') {
-          router.replace('/Atletas/Atleta');
+          router.replace('/Atletas/atleta');
         } else if (userRole === 'TECNICO') {
           // Este é o redirecionamento para o seu MinimalScreen
-          router.replace('/funcionarios/Tecnico'); 
+          router.replace('/funcionarios/tecnico'); 
         } else if (userRole === 'COORDENADOR') {
-          router.replace('/Adminstrador/Coordenador');
+          router.replace('/Adminstrador/coordenador');
         } else if (userRole === 'SUPERVISOR') {
-          router.replace('/Adminstrador/Supervisor');
+          router.replace('/Adminstrador/supervisor');
         } else {
           console.warn('Login não reconhecido ou inexistente:', userRole);
           Alert.alert('Aviso', 'Seu login não foi reconhecido. Redirecionando para a tela inicial.');

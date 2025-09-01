@@ -137,7 +137,7 @@ const Usuario: React.FC = () => {
         Alert.alert('Comunicado Oculto');
     };
 
-    const Perfil = () => router.navigate('../funcionarios/Perfil');
+    const perfil = () => router.navigate('./perfil');
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
     const closeSidebar = () => setSidebarOpen(false);
 
@@ -184,7 +184,7 @@ const Usuario: React.FC = () => {
                                 <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
                                 <Text style={styles.navText}>Comunicados</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={styles.navItem} onPress={Perfil}>
+                                <TouchableOpacity style={styles.navItem} onPress={perfil}>
                                     <FontAwesomeIcon icon={faUser} size={16} color="#fff" style={styles.navIcon} />
                                     <Text style={styles.navText}>Meu Perfil</Text>
                                     </TouchableOpacity>

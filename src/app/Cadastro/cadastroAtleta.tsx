@@ -10,12 +10,12 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -203,7 +203,7 @@ const CadastroAlunoScreen = () => {
         </TouchableOpacity>
         <Text style={styles.titulo}>Cadastrar Aluno</Text>
       </View>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
@@ -213,7 +213,6 @@ const CadastroAlunoScreen = () => {
             style={{ width: "100%", height: 200, borderRadius: 55, top: -20 }}
           />
 
-          
           <TextInput
             style={styles.input}
             placeholder="Nome"
@@ -331,7 +330,6 @@ const CadastroAlunoScreen = () => {
             listMode="SCROLLVIEW"
           />
 
-
           <Text style={styles.title}>Dados do Responsável</Text>
 
           <TextInput
@@ -374,7 +372,7 @@ const CadastroAlunoScreen = () => {
             <Text style={styles.buttonText}>Cadastrar</Text>
           </TouchableOpacity>
         </ScrollView>
-      </TouchableWithoutFeedback>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 };

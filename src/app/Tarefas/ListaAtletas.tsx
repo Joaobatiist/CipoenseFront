@@ -3,6 +3,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
+import { documentDirectory, writeAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import React, { useCallback, useState } from 'react';
 import {
@@ -127,12 +128,9 @@ const ListaContatosAtletas = () => {
 
     try {
       // Remove o prefixo de dados da string base64, se presente
-      const pureBase64 = base64Content.replace(/^data:[^;]+;base64,/, '');
-      // Cria uma URI temporária no cache do sistema de arquivos do Expo
-      const tempUri = `${FileSystem.cacheDirectory}temp_download_${Date.now()}_${fileName}`;
-
-      // Escreve o conteúdo base64 no arquivo temporário
-      await FileSystem.writeAsStringAsync(tempUri, pureBase64, { encoding: FileSystem.EncodingType.Base64 });
+  const tempUri = `${documentDirectory}Documento_${fileName}`;
+  const pureBase64 = base64Content.replace(/^data:.*;base64,/, '');
+  await writeAsStringAsync(tempUri, pureBase64, { encoding: 'base64' });
 
       // Verifica se a funcionalidade de compartilhamento está disponível no dispositivo
       if (!(await Sharing.isAvailableAsync())) {
@@ -145,8 +143,8 @@ const ListaContatosAtletas = () => {
         mimeType: contentType,
         UTI: 'com.adobe.pdf', // Universal Type Identifier para PDF no iOS, ajuda na identificação do arquivo
       });
-      
-      Alert.alert('Download Iniciado', 'Selecione o local para salvar o documento (ex: Pasta Downloads, Google Drive, Arquivos).');
+
+      Alert.alert('Download concluído');
 
     } catch (shareError) {
       console.error('Erro ao baixar/compartilhar PDF:', shareError);
@@ -220,7 +218,7 @@ const ListaContatosAtletas = () => {
           onPress: async () => {
             try {
               const token = await AsyncStorage.getItem('jwtToken');
-              await axios.delete(`${API_URL}/api/supervisor/atletas/${atletaId}`, {
+              await axios.delete(`${API_URL}/api/supervisor/atletas/deletar/${atletaId}`, {
                 headers: { Authorization: `Bearer ${token}` },
               });
               // Remove o atleta excluído da lista local
@@ -361,16 +359,16 @@ const ListaContatosAtletas = () => {
     <TouchableOpacity style={styles.atletaCard} onPress={() => handleEditAtleta(item)}>
       <View style={styles.atletaInfo}>
         <Text style={styles.atletaName}>{item.nome}</Text>
-        <Text style={styles.atletaDetail}>Matrícula: {item.matricula}</Text>
-        <Text style={styles.atletaDetail}>Email: {item.email}</Text>
-        <Text style={styles.atletaDetail}>Subdivisão: {item.subDivisao}</Text>
-        <Text style={styles.atletaDetail}>Posição: {item.posicao}</Text>
-        <Text style={styles.atletaDetail}>Data Nascismento: {formatarData(item.dataNascimento)}</Text>
+        <Text style={styles.atletaDetail}>{`Matrícula: ${item.matricula}`}</Text>
+        <Text style={styles.atletaDetail}>{`Email: ${item.email}`}</Text>
+        <Text style={styles.atletaDetail}>{`Subdivisão: ${item.subDivisao}`}</Text>
+        <Text style={styles.atletaDetail}>{`Posição: ${item.posicao}`}</Text>
+        <Text style={styles.atletaDetail}>{`Data Nascismento: ${formatarData(item.dataNascimento)}`}</Text>
         {item.contatoResponsavel && item.contatoResponsavel !== 'Não informado' && (
-          <Text style={styles.atletaDetail}>Contato Responsavel: {item.contatoResponsavel}</Text>
+          <Text style={styles.atletaDetail}>{`Contato Responsavel: ${item.contatoResponsavel}`}</Text>
         )}
         <Text style={styles.atletaDetail}>
-          Apto para Jogar:{' '}
+          {`Apto para Jogar: `}
           <Text style={{ fontWeight: 'bold', color: item.isAptoParaJogar ? COLORS.success : COLORS.danger }}>
             {item.isAptoParaJogar ? 'Sim' : 'Não'}
           </Text>
@@ -380,7 +378,7 @@ const ListaContatosAtletas = () => {
             onPress={() => handleDownloadPdf(item.documentoPdfBase64!, item.documentoPdfContentType!, `documento_${item.nome}.pdf`)}
             style={styles.downloadPdfButton}
           >
-            <MaterialIcons name="cloud-download" size={20} color={COLORS.white} /> {/* Ícone branco para contraste */}
+            <MaterialIcons name="cloud-download" size={20} color={COLORS.white} />
             <Text style={styles.downloadPdfButtonText}>Baixar Documento</Text>
           </TouchableOpacity>
         )}
@@ -520,12 +518,12 @@ const ListaContatosAtletas = () => {
                 <Text style={styles.inputLabel}>Documento PDF:</Text>
                 <View style={styles.pdfSection}>
                   {editForm.documentoPdfBase64 && editForm.documentoPdfContentType ? (
-                    <>
+                    <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
                       <TouchableOpacity
                         style={styles.buttonPdfAction}
                         onPress={() => handleDownloadPdf(editForm.documentoPdfBase64!, editForm.documentoPdfContentType!, `documento_${selectedAtleta!.nome}.pdf`)}
                       >
-                        <MaterialIcons name="cloud-download" size={20} color={COLORS.white} /> {/* Ícone branco */}
+                        <MaterialIcons name="cloud-download" size={20} color={COLORS.white} />
                         <Text style={styles.buttonPdfActionText}>Baixar PDF</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -543,13 +541,13 @@ const ListaContatosAtletas = () => {
                         {uploadingPdf ? (
                           <ActivityIndicator color={COLORS.white} />
                         ) : (
-                          <>
-                            <MaterialIcons name="cloud-upload" size={20} color={COLORS.white} /> {/* Ícone branco */}
+                          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                            <MaterialIcons name="cloud-upload" size={20} color={COLORS.white} />
                             <Text style={styles.buttonPdfActionText}>Trocar</Text>
-                          </>
+                          </View>
                         )}
                       </TouchableOpacity>
-                    </>
+                    </View>
                   ) : (
                     <TouchableOpacity
                       style={styles.buttonPdfAction}
@@ -559,10 +557,10 @@ const ListaContatosAtletas = () => {
                       {uploadingPdf ? (
                         <ActivityIndicator color={COLORS.white} />
                       ) : (
-                        <>
-                          <MaterialIcons name="add-to-drive" size={20} color={COLORS.white} /> {/* Ícone branco */}
+                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                          <MaterialIcons name="add-to-drive" size={20} color={COLORS.white} />
                           <Text style={styles.buttonPdfActionText}>Adicionar PDF</Text>
-                        </>
+                        </View>
                       )}
                     </TouchableOpacity>
                   )}

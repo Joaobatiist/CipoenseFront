@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   Dimensions
 } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
+
 
 // Hook para obter a largura da tela e tornar o design responsivo
 const { width } = Dimensions.get('window');
@@ -34,7 +34,7 @@ const WelcomeScreen: React.FC = () => {
         
         {/* Seção Principal (Herói) com a ilustração e chamada para ação */}
         <View style={styles.heroSection}>
-          <Text style={styles.title}>Meu Time</Text>
+          <Text style={styles.title}>Evolution</Text>
           <Text style={styles.subtitle}>Gestão Esportiva Inteligente</Text>
           
           <TouchableOpacity style={styles.ctaButton} onPress={goToLogin}>
@@ -61,7 +61,7 @@ const WelcomeScreen: React.FC = () => {
             <View style={styles.iconContainer}>
               <Text style={styles.icon}>📊</Text>
             </View>
-            <Text style={styles.featureTitle}>Análise de Dados</Text>
+            <Text style={styles.featureTitle}>Análise de Desempenho</Text>
             <Text style={styles.featureText}>
               Use métricas de desempenho para tomar decisões táticas mais inteligentes.
             </Text>

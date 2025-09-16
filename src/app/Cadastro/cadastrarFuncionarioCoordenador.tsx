@@ -8,12 +8,12 @@ import {
     Keyboard,
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -112,7 +112,6 @@ const CadastroFuncionairo = () => {
             // Para outros tipos de erros JavaScript padrão
             errorMessage = error.message;
         }
-
         console.error("Erro detalhado no cadastro:", error);
         Alert.alert("Erro", `Não foi possível cadastrar ${String(role).toLowerCase()}: ${errorMessage}`);
     }
@@ -133,7 +132,7 @@ const CadastroFuncionairo = () => {
                 </TouchableOpacity>
                 <Text style={styles.titulo}>Cadastrar Funcionario</Text> 
             </View>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
                 <ScrollView
                     contentContainerStyle={styles.container}
                     keyboardShouldPersistTaps="handled"
@@ -143,74 +142,73 @@ const CadastroFuncionairo = () => {
                         style={{ width: "100%", height: 200, borderRadius: 55, top: -20  }}
                     />
 
-                    
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nome"
-                        value={nome}
-                        onChangeText={setNome}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Email"
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Senha"
-                        secureTextEntry={true}
-                        value={senha}
-                        onChangeText={setSenha}
-                    />
-                    <TextInputMask
-                        style={styles.input}
-                        type={'datetime'}
-                        options={{ format: 'DD/MM/YYYY' }}
-                        value={dataNascimento}
-                        onChangeText={setDataNascimento}
-                        placeholder="DD/MM/YYYY" // Changed placeholder
-                        keyboardType="numeric"
-                    />
-                    <TextInputMask
-                        style={styles.input}
-                        type={'cpf'}
-                        value={cpf}
-                        onChangeText={setCpf}
-                        placeholder="000.000.000-00"
-                        keyboardType="numeric"
-                    />
-                    <TextInputMask
-                        style={styles.input}
-                        type={'cel-phone'}
-                        options={{ maskType: 'BRL', withDDD: true, dddMask: '(99) ' }}
-                        value={telefone}
-                        onChangeText={setTelefone}
-                        placeholder="(99) 99999-9999"
-                        keyboardType="phone-pad"
-                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Nome"
+                                        value={nome}
+                                        onChangeText={setNome}
+                                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Email"
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        keyboardType="email-address"
+                                    />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Senha"
+                                        secureTextEntry={true}
+                                        value={senha}
+                                        onChangeText={setSenha}
+                                    />
+                                    <TextInputMask
+                                        style={styles.input}
+                                        type={'datetime'}
+                                        options={{ format: 'DD/MM/YYYY' }}
+                                        value={dataNascimento}
+                                        onChangeText={setDataNascimento}
+                                        placeholder="DD/MM/YYYY" // Changed placeholder
+                                        keyboardType="numeric"
+                                    />
+                                    <TextInputMask
+                                        style={styles.input}
+                                        type={'cpf'}
+                                        value={cpf}
+                                        onChangeText={setCpf}
+                                        placeholder="000.000.000-00"
+                                        keyboardType="numeric"
+                                    />
+                                    <TextInputMask
+                                        style={styles.input}
+                                        type={'cel-phone'}
+                                        options={{ maskType: 'BRL', withDDD: true, dddMask: '(99) ' }}
+                                        value={telefone}
+                                        onChangeText={setTelefone}
+                                        placeholder="(99) 99999-9999"
+                                        keyboardType="phone-pad"
+                                    />
 
-                    <DropDownPicker
-                        open={open}
-                        value={role}
-                        items={items}
-                        setOpen={setOpen}
-                        setValue={setRole}
-                        setItems={setItems}
-                        placeholder="Selecione um cargo..."
-                        style={styles.dropdown}
-                        dropDownContainerStyle={styles.dropdownContainer}
-                        zIndex={3000} // Adjust zIndex to ensure dropdown appears above other elements
-                        zIndexInverse={1000}
-                        listMode="SCROLLVIEW" 
-                    />
+                                    <DropDownPicker
+                                        open={open}
+                                        value={role}
+                                        items={items}
+                                        setOpen={setOpen}
+                                        setValue={setRole}
+                                        setItems={setItems}
+                                        placeholder="Selecione um cargo..."
+                                        style={styles.dropdown}
+                                        dropDownContainerStyle={styles.dropdownContainer}
+                                        zIndex={3000} // Adjust zIndex to ensure dropdown appears above other elements
+                                        zIndexInverse={1000}
+                                        listMode="SCROLLVIEW" 
+                                    />
 
-                    <TouchableOpacity style={styles.button} onPress={enviarDados}>
-                        <Text style={styles.buttonText}>Enviar</Text>
-                    </TouchableOpacity>
-                </ScrollView>
-            </TouchableWithoutFeedback>
+                                    <TouchableOpacity style={styles.button} onPress={enviarDados}>
+                                        <Text style={styles.buttonText}>Enviar</Text>
+                                    </TouchableOpacity>
+                                </ScrollView>
+                            </Pressable>
         </KeyboardAvoidingView>
     );
 };
@@ -225,16 +223,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e5c228',
     },
-     titulo:{
-    flex: 1,
-    color: "#ffffffff",
-     marginLeft: 60,
-     top: 0,
-     paddingLeft: 15,
-    fontSize: 20,
-    fontWeight: 'bold',
-  
-  },
+    titulo:{
+        flex: 1,
+        color: "#ffffffff",
+        marginLeft: 60,
+        top: 0,
+        paddingLeft: 15,
+        fontSize: 20,
+        fontWeight: 'bold',
+    },
     btnVoltar: { padding: 5 },
     container: {
         flexGrow: 1,

@@ -137,7 +137,7 @@ const [formProfessor, setFormProfessor] = useState<string>('');
   }
 
   function cadastrarAluno(){
-    router.navigate("../Cadastro/cadastroAluno")
+    router.navigate("../Cadastro/cadastroAtleta")
   }
   function controleEstoque (){
     router.navigate('../Tarefas/controleEstoque')

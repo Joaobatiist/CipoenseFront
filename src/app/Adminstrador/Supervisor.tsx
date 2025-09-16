@@ -136,8 +136,8 @@ const [formProfessor, setFormProfessor] = useState<string>('');
     router.navigate("../Tarefas/realizarRelatorios");
   }
 
-  function cadastrarAluno(){
-    router.navigate("../Cadastro/cadastroAluno")
+  function cadastrarAtleta(){
+    router.navigate("../Cadastro/cadastroAtleta")
   }
   function controleEstoque (){
     router.navigate('../Tarefas/controleEstoque')
@@ -483,7 +483,7 @@ const [formProfessor, setFormProfessor] = useState<string>('');
             <FontAwesomeIcon icon={faIdCard} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Cadastrar Funcionario</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem} onPress={cadastrarAluno}>
+          <TouchableOpacity style={styles.navItem} onPress={cadastrarAtleta}>
             <FontAwesomeIcon icon={faAddressCard} size={16} color="#fff" style={styles.navIcon} />
             <Text style={styles.navText}>Cadastrar Aluno</Text>
           </TouchableOpacity>

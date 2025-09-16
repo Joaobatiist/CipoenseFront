@@ -1,23 +1,23 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { router } from 'expo-router';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Keyboard,
-  TouchableWithoutFeedback,
-  ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
-import axios from 'axios';
 import Api from '../Config/Api';
-import { jwtDecode, JwtPayload } from 'jwt-decode';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 interface CustomJwtPayload extends JwtPayload {
@@ -120,7 +120,7 @@ function goBack() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
@@ -166,7 +166,7 @@ function goBack() {
             <Text style={styles.signupButtonText} onPress={goBack}>Menu</Text>
           </TouchableOpacity>
         </ScrollView>
-      </TouchableWithoutFeedback>
+      </Pressable>
     </KeyboardAvoidingView>
   );
 };

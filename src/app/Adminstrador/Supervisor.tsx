@@ -226,7 +226,7 @@ const [formProfessor, setFormProfessor] = useState<string>('');
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('ADICIONAR_TREINO: Erro ao adicionar treino no backend:', response.status, errorText);
+        
         throw new Error(`Falha ao adicionar treino: ${response.status} - ${errorText}`);
       }
 

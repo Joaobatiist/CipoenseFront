@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackActions, useNavigation } from '@react-navigation/native';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -114,10 +114,38 @@ const AthleteEvaluationForm = () => {
   const [openSubdivisaoPicker, setOpenSubdivisaoPicker] = useState(false);
   const [openPosicaoPicker, setOpenPosicaoPicker] = useState(false);
 
+  // Memoized items for DropDownPickers to ensure unique keys
+  const atletasPickerItems = useMemo(() => [
+    { label: 'Selecione um atleta', value: undefined },
+    ...filteredAtletasList.map((atleta) => ({
+      label: atleta.nomeCompleto,
+      value: atleta.id,
+    })),
+  ], [filteredAtletasList]);
+
+  const subdivisaoPickerItems = useMemo(() => [
+    { label: 'Selecione uma Subdivisão', value: '' },
+    ...subdivisaoOptionsForPicker.map((subdivisao) => ({
+      label: subdivisao,
+      value: subdivisao,
+    })),
+  ], [subdivisaoOptionsForPicker]);
+
+  const posicaoPickerItems = useMemo(() => [
+    { label: 'Selecione uma Posição', value: '' },
+    ...posicaoOptionsForPicker.map((posicao) => ({
+      label: posicao,
+      value: posicao,
+    })),
+  ], [posicaoOptionsForPicker]);
+
   const formatarData = (data: string): string => {
     const [dia, mes, ano] = data.split('/');
     return `${ano}-${mes}-${dia}`;
   };
+
+
+
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
   // Função para resetar os estados do formulário
@@ -625,12 +653,7 @@ const AthleteEvaluationForm = () => {
           <DropDownPicker
             open={openAtletaPicker}
             value={selectedAtletaId}
-            items={[{ label: 'Selecione um atleta', value: undefined },
-            ...filteredAtletasList.map(atleta => ({
-              label: atleta.nomeCompleto,
-              value: atleta.id,
-            })),
-            ]}
+            items={atletasPickerItems}
             setOpen={setOpenAtletaPicker}
             setValue={setSelectedAtletaId}
             onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
@@ -654,13 +677,7 @@ const AthleteEvaluationForm = () => {
           <DropDownPicker
             open={openSubdivisaoPicker}
             value={selectedSubdivisao}
-            items={[
-              { label: 'Selecione uma Subdivisão', value: '' },
-              ...subdivisaoOptionsForPicker.map(subdivisao => ({
-                label: subdivisao,
-                value: subdivisao,
-              })),
-            ]}
+            items={subdivisaoPickerItems}
             setOpen={setOpenSubdivisaoPicker}
             setValue={setSelectedSubdivisao}
             onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
@@ -678,13 +695,7 @@ const AthleteEvaluationForm = () => {
           <DropDownPicker
             open={openPosicaoPicker}
             value={selectedPosicao}
-            items={[
-              { label: 'Selecione uma Posição', value: ''},
-              ...posicaoOptionsForPicker.map(posicao => ({
-                label: posicao,
-                value: posicao,
-              })),
-            ]}
+            items={posicaoPickerItems}
             setOpen={setOpenPosicaoPicker}
             setValue={setSelectedPosicao}
             onSelectItem={(item) => handlePosicaoFilterChange(item.value as string)}

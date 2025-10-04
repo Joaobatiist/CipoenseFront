@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import * as DocumentPicker from 'expo-document-picker';
+
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Definindo as cores do tema com base no logo da Cipoense
@@ -37,6 +38,13 @@ const COLORS = {
 };
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+// Opções disponíveis para as roles dos funcionários
+const ROLES_OPTIONS = [
+  { label: 'Técnico', value: 'TECNICO' },
+  { label: 'Supervisor', value: 'SUPERVISOR' },
+  { label: 'Coordenador', value: 'COORDENADOR' },
+];
 
 type Funcionarios = {
   id: number;
@@ -60,8 +68,8 @@ const ListaFuncionarios = () => {
   const [editForm, setEditForm] = useState<Partial<Funcionarios>>({
   });
   const [editLoading, setEditLoading] = useState<boolean>(false);
-  const [uploadingPdf, setUploadingPdf] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>(''); // Novo estado para o termo de busca
+  const [openRolesPicker, setOpenRolesPicker] = useState<boolean>(false); // Estado para o dropdown de roles
 
   // Função para buscar funcionario na API
   const fetchAtletas = async () => {
@@ -121,6 +129,7 @@ const ListaFuncionarios = () => {
       telefone: funcionario.telefone,
       roles: funcionario.roles,
     });
+    setOpenRolesPicker(false); // Garante que o dropdown está fechado
     setModalVisible(true);
   };
 
@@ -145,7 +154,7 @@ const handleSaveEdit = async () => {
       roles: editForm.roles
     };
     
-    const response = await axios.put(url, updateDTO, {
+    await axios.put(url, updateDTO, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -154,6 +163,7 @@ const handleSaveEdit = async () => {
     await fetchAtletas();
 
     Alert.alert('Sucesso', 'Perfil do funcionário atualizado com sucesso!');
+    setOpenRolesPicker(false); // Fecha o dropdown
     setModalVisible(false); // Fecha o modal após salvar
   } catch (error) {
     console.error('Erro ao salvar edições:', error);
@@ -283,7 +293,10 @@ const handleSaveEdit = async () => {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          setOpenRolesPicker(false);
+          setModalVisible(false);
+        }}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
@@ -335,21 +348,35 @@ const handleSaveEdit = async () => {
                   keyboardType="numeric"
                 />
                 <Text style={styles.inputLabel}>Tipo:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.roles ?? ''}
-                  onChangeText={(text) => setEditForm({ ...editForm, roles: text })}
-                  placeholder="Ex: TECNICO, SUPERVISOR, COORDENADOR"
-                  placeholderTextColor={COLORS.textSecondary}
-                  
-                />
+                <View style={styles.dropdownContainer}>
+                  <DropDownPicker
+                    open={openRolesPicker}
+                    value={editForm.roles ?? null}
+                    items={ROLES_OPTIONS}
+                    setOpen={setOpenRolesPicker}
+                    setValue={(callback) => {
+                      const value = typeof callback === 'function' ? callback(editForm.roles ?? null) : callback;
+                      setEditForm({ ...editForm, roles: value });
+                    }}
+                    placeholder="Selecione o tipo de funcionário"
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownList}
+                    textStyle={styles.dropdownText}
+                    placeholderStyle={styles.dropdownPlaceholder}
+                    zIndex={1000}
+                    listMode="SCROLLVIEW"
+                  />
+                </View>
 
               </ScrollView>
             )}
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
                 style={[styles.button, styles.buttonClose]}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setOpenRolesPicker(false);
+                  setModalVisible(false);
+                }}
               >
                 <Text style={styles.textStyle}>Cancelar</Text>
               </TouchableOpacity>
@@ -612,6 +639,32 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  dropdownContainer: {
+    width: '100%',
+    marginBottom: 15,
+    zIndex: 1000,
+  },
+  dropdown: {
+    borderColor: COLORS.borderColor,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: COLORS.white,
+    minHeight: 45,
+  },
+  dropdownList: {
+    borderColor: COLORS.borderColor,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    maxHeight: 150,
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  dropdownPlaceholder: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
   },
 });
 

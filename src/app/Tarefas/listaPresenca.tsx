@@ -17,9 +17,9 @@ import { styles } from '../../Styles/Presenca';
 import Api from '../../Config/Api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
-import 'moment/locale/pt-br';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
+// Carrega o locale pt-br usando a API do moment
 moment.locale('pt-br');
 
 

@@ -219,13 +219,7 @@ const CadastroAlunoScreen = () => {
             value={nomeAluno}
             onChangeText={setNomeAluno}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            secureTextEntry={true}
-            value={senhaAluno}
-            onChangeText={setSenhaAluno}
-          />
+          
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -233,6 +227,13 @@ const CadastroAlunoScreen = () => {
             onChangeText={setEmailAluno}
             keyboardType="email-address"
             autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Senha"
+            secureTextEntry={true}
+            value={senhaAluno}
+            onChangeText={setSenhaAluno}
           />
           <TextInputMask
             style={styles.input}

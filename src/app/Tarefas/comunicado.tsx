@@ -10,13 +10,13 @@ import { styles } from "../../Styles/Tecnico";
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 interface Usuario {
-    id: number;
+    id: string;
     nome: string;
     tipo?: string;
 }
 
 interface Comunicado {
-    id: number;
+    id: string;
     destinatarios: Usuario[];
     remetente: Usuario;
     assunto: string;
@@ -35,25 +35,25 @@ const ComunicadosScreen: React.FC = () => {
     const [comunicadosEnviados, setComunicadosEnviados] = useState<Comunicado[]>([]);
     const [mostrarFormulario, setMostrarFormulario] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [editingComunicadoId, setEditingComunicadoId] = useState<number | null>(null);
+    const [editingComunicadoId, setEditingComunicadoId] = useState<string | null>(null);
     const [editedComunicado, setEditedComunicado] = useState<Omit<Comunicado, 'id' | 'remetente' | 'dataEnvio'>>({
         assunto: '',
         mensagem: '',
         destinatarios: [],
     });
-    const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-    const [hiddenComunicados, setHiddenComunicados] = useState<number[]>([]);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [hiddenComunicados, setHiddenComunicados] = useState<string[]>([]);
 
     
-   const getReactKey = useCallback((id: number | null | undefined, prefix: string = "item", typeIdentifier?: string): string => {
-    if (id == null || id === 0 || isNaN(id)) {
+   const getReactKey = useCallback((id: string | number | null | undefined, prefix: string = "item", typeIdentifier?: string): string => {
+    if (id == null || id === '' || id === '0' || id === 0) {
         const fallbackKey = `${prefix}-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         console.warn(`[GET_REACT_KEY WARN] Problematic ID for '${prefix}'. Original ID: ${id}. Generated fallback: ${fallbackKey}`);
         return fallbackKey;
     }
    
     const typePart = typeIdentifier ? `-${typeIdentifier}` : '';
-    const uniqueKey = `${prefix}-${Number(id)}${typePart}`; 
+    const uniqueKey = `${prefix}-${String(id)}${typePart}`; 
     return uniqueKey;
 }, []);
 
@@ -67,15 +67,15 @@ const ComunicadosScreen: React.FC = () => {
         }
     }, []);
 
-    const getUserIdFromToken = useCallback(async (): Promise<number | null> => {
+    const getUserIdFromToken = useCallback(async (): Promise<string | null> => {
         try {
             const token = await getToken();
             if (token) {
                 const decodedToken: any = jwtDecode(token)
                 if (decodedToken && decodedToken.userId) {
-                    const userId = Number(decodedToken.userId);
-                    if (isNaN(userId)) {
-                        console.warn('DEBUG (getUserIdFromToken): userId decodificado não é um número:', decodedToken.userId);
+                    const userId = String(decodedToken.userId);
+                    if (!userId || userId === 'undefined') {
+                        console.warn('DEBUG (getUserIdFromToken): userId decodificado é inválido:', decodedToken.userId);
                         return null;
                     }
                     return userId;
@@ -91,30 +91,30 @@ const ComunicadosScreen: React.FC = () => {
     }, [getToken]);
 
     const groupDestinatariosByType = (dest: Usuario[]) => {
-        const atletasIds: number[] = [];
-        const coordenadorIds: number[] = [];
-        const supervisorIds: number[] = [];
-        const tecnicoIds: number[] = [];
+        const atletasIds: string[] = [];
+        const coordenadorIds: string[] = [];
+        const supervisorIds: string[] = [];
+        const tecnicoIds: string[] = [];
 
         dest.forEach(d => {
-            const idAsNumber = d.id;
+            const idAsString = String(d.id);
 
-            if (isNaN(idAsNumber) || idAsNumber === 0) {
+            if (!idAsString || idAsString === '0') {
                 console.warn(`[GROUP_DEST] ID inválido ou zero detectado para destinatário ${d.nome}: '${d.id}'. Ignorando.`);
                 return;
             }
             switch (d.tipo?.toUpperCase()) {
                 case 'ATLETA':
-                    atletasIds.push(idAsNumber);
+                    atletasIds.push(idAsString);
                     break;
                 case 'COORDENADOR':
-                    coordenadorIds.push(idAsNumber);
+                    coordenadorIds.push(idAsString);
                     break;
                 case 'SUPERVISOR':
-                    supervisorIds.push(idAsNumber);
+                    supervisorIds.push(idAsString);
                     break;
                 case 'TECNICO':
-                    tecnicoIds.push(idAsNumber);
+                    tecnicoIds.push(idAsString);
                     break;
                 default:
                     console.warn('[GROUP_DEST] Tipo de destinatário desconhecido ou inválido:', d.tipo, 'para ID:', d.id);
@@ -218,16 +218,16 @@ const ComunicadosScreen: React.FC = () => {
         }
     };
 
-    const removerDestinatario = (usuarioId: number) => {
+    const removerDestinatario = (usuarioId: string) => {
         if (editingComunicadoId !== null) {
             setEditedComunicado(prev => ({
                 ...prev,
-                destinatarios: prev.destinatarios.filter(d => d.id !== usuarioId),
+                destinatarios: prev.destinatarios.filter(usuario => String(usuario.id) !== usuarioId),
             }));
         } else {
             setNovoComunicado({
                 ...novoComunicado,
-                destinatarios: novoComunicado.destinatarios.filter(d => d.id !== usuarioId),
+                destinatarios: novoComunicado.destinatarios.filter(d => String(d.id) !== usuarioId),
             });
         }
     };
@@ -299,11 +299,11 @@ const ComunicadosScreen: React.FC = () => {
     };
 
     const startEditingComunicado = (comunicadoParaEditar: Comunicado) => {
-        setEditingComunicadoId(comunicadoParaEditar.id);
+        setEditingComunicadoId(String(comunicadoParaEditar.id));
         setEditedComunicado({
             assunto: comunicadoParaEditar.assunto,
             mensagem: comunicadoParaEditar.mensagem,
-            destinatarios: comunicadoParaEditar.destinatarios.map(d => ({ ...d, id: d.id })),
+            destinatarios: comunicadoParaEditar.destinatarios.map(d => ({ ...d, id: String(d.id) })),
         });
         setMostrarFormulario(true);
         setSearchTerm('');
@@ -357,13 +357,9 @@ const ComunicadosScreen: React.FC = () => {
 
             const comunicadoAtualizadoBackend: Comunicado = await response.json();
             const updatedComunicados = comunicadosEnviados.map(comunicado =>
-     comunicado.id === editingComunicadoId ? comunicadoAtualizadoBackend : comunicado
-     );
-    setComunicadosEnviados(updatedComunicados);
-           
-            setComunicadosEnviados(updatedComunicados);
-
-            setEditingComunicadoId(null);
+                String(comunicado.id) === editingComunicadoId ? comunicadoAtualizadoBackend : comunicado
+            );
+            setComunicadosEnviados(updatedComunicados);            setEditingComunicadoId(null);
             setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
             setMostrarFormulario(false);
             setSearchTerm('');
@@ -374,7 +370,7 @@ const ComunicadosScreen: React.FC = () => {
         }
     };
 
-    const deleteComunicado = (idComunicado: number) => {
+    const deleteComunicado = (idComunicado: string) => {
         Alert.alert(
             'Confirmar Exclusão',
             'Tem certeza que deseja excluir este comunicado?',
@@ -401,7 +397,7 @@ const ComunicadosScreen: React.FC = () => {
                                 throw new Error(`Falha ao excluir comunicado: ${response.status} - ${errorText}`);
                             }
 
-                            const updatedComunicados = comunicadosEnviados.filter(comunicado => comunicado.id !== idComunicado);
+                            const updatedComunicados = comunicadosEnviados.filter(comunicado => String(comunicado.id) !== idComunicado);
                             setComunicadosEnviados(updatedComunicados);
                             Alert.alert('Sucesso', 'Comunicado excluído com sucesso!');
 
@@ -417,12 +413,12 @@ const ComunicadosScreen: React.FC = () => {
         );
     };
 
-    const hideComunicado = (comunicadoId: number) => {
-        setHiddenComunicados(prev => [...prev, comunicadoId]);
+    const hideComunicado = (comunicadoId: string) => {
+        setHiddenComunicados(prev => [...prev, String(comunicadoId)]);
         Alert.alert('Comunicado Oculto', 'Este comunicado não será mais exibido na sua lista.');
     };
 
-    const visibleComunicados = comunicadosEnviados.filter(item => !hiddenComunicados.includes(item.id));
+    const visibleComunicados = comunicadosEnviados.filter(item => !hiddenComunicados.includes(String(item.id)));
 
     return (
         <ScrollView style={styles.section}>
@@ -538,8 +534,18 @@ const ComunicadosScreen: React.FC = () => {
                     data={visibleComunicados}
                     keyExtractor={item => getReactKey(item.id, `flatlist-comunicado-${item.id}`)} 
                     renderItem={({ item }) => {
-                        const isSender = currentUserId !== null && item.remetente && item.remetente.id === currentUserId;
-                       const isRecipient = item.destinatarios.some((d: Usuario) => currentUserId !== null && d.id === currentUserId);
+                        const isSender = currentUserId !== null && item.remetente && String(item.remetente.id) === currentUserId;
+                       const isRecipient = item.destinatarios.some((d: Usuario) => currentUserId !== null && String(d.id) === currentUserId);
+
+                        // Debug logs para identificar por que os botões não aparecem
+                        console.log('DEBUG BOTÕES:', {
+                            comunicadoId: item.id,
+                            currentUserId,
+                            remetenteId: item.remetente?.id,
+                            remetente: item.remetente,
+                            isSender,
+                            isRecipient
+                        });
 
                         return (
                             <View key={getReactKey(item.id, `comunicado-card-${item.id}`)} style={styles.comunicadoCard}> 

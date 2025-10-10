@@ -1,13 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { SafeAreaView, View, TouchableOpacity, Text, ScrollView, LayoutChangeEvent, Alert, FlatList, ActivityIndicator, Image } from 'react-native';
+import { faBars, faBell, faCalendarAlt, faChartLine, faEyeSlash, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faBars, faTimes, faCalendarAlt, faChartLine, faBell, faUser, faSignOutAlt, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { jwtDecode} from 'jwt-decode';
-import { ptBR } from "../../utils/localendarConfig";
-import { LocaleConfig } from 'react-native-calendars';
-import { router } from 'expo-router';
-import { styles } from "../../Styles/Atleta";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, LayoutChangeEvent, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { LocaleConfig } from 'react-native-calendars';
+import { styles } from "../../Styles/Atleta";
+import { ptBR } from "../../utils/localendarConfig";
 
 // Configuração do calendário
 LocaleConfig.locales["pt-br"] = ptBR;
@@ -73,6 +73,48 @@ const Usuario: React.FC = () => {
             try { setUserName(jwtDecode<JwtPayload>(token).userName || 'Usuário'); } catch (error) { setUserName('Usuário'); }
         } else { setUserName('Usuário'); }
     };
+
+    // Navegação por teclado na web
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            const handleKeyPress = (event: KeyboardEvent) => {
+                if (document.activeElement?.tagName === 'INPUT' || 
+                    document.activeElement?.tagName === 'TEXTAREA') {
+                    return; // Não interfere quando há input focado
+                }
+
+                switch (event.key) {
+                    case 'ArrowDown':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollTo({ y: 100, animated: true });
+                        break;
+                    case 'ArrowUp':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollTo({ y: -100, animated: true });
+                        break;
+                    case 'PageDown':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollTo({ y: 400, animated: true });
+                        break;
+                    case 'PageUp':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollTo({ y: -400, animated: true });
+                        break;
+                    case 'Home':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                        break;
+                    case 'End':
+                        event.preventDefault();
+                        scrollViewRef.current?.scrollToEnd({ animated: true });
+                        break;
+                }
+            };
+
+            document.addEventListener('keydown', handleKeyPress);
+            return () => document.removeEventListener('keydown', handleKeyPress);
+        }
+    }, []);
 
     const fetchApiData = async <T,>(endpoint: string): Promise<T> => {
         const token = await getToken();
@@ -144,7 +186,14 @@ const Usuario: React.FC = () => {
     const scrollToSection = (sectionName: keyof SectionOffsets) => {
         closeSidebar();
         const offset = sectionOffsetsRef.current[sectionName];
-        if (offset !== undefined) scrollViewRef.current?.scrollTo({ y: offset, animated: true });
+        if (offset !== undefined) {
+            // Scroll mais suave na web
+            const scrollOptions = Platform.OS === 'web' 
+                ? { y: offset, animated: true }
+                : { y: offset, animated: true };
+            
+            scrollViewRef.current?.scrollTo(scrollOptions);
+        }
     };
 
     const handleLayout = (event: LayoutChangeEvent, sectionName: keyof SectionOffsets) => {
@@ -160,7 +209,7 @@ const Usuario: React.FC = () => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <View style={styles.safeArea}>
             <View style={styles.header}>
                 <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
                     <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} size={24} color="#ffffffff" />
@@ -193,7 +242,24 @@ const Usuario: React.FC = () => {
                                         <Text style={styles.navText}>Sair</Text>
                                         </TouchableOpacity></View>)}
 
-            <ScrollView ref={scrollViewRef} style={styles.scrollContainer}>
+            <ScrollView 
+                ref={scrollViewRef} 
+                style={[
+                    styles.scrollContainer,
+                    Platform.OS === 'web' && {
+                        overflow: 'auto' as any,
+                        maxHeight: '85vh' as any,
+                        outline: 'none' as any,
+                    }
+                ]}
+                // Propriedades para melhor scroll na web
+                showsVerticalScrollIndicator={Platform.OS === 'web'}
+                showsHorizontalScrollIndicator={false}
+                scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+                bounces={Platform.OS !== 'web'}
+            >
                 {/* Agenda */}
                 <View style={styles.section} onLayout={(event) => handleLayout(event, 'agenda')}>
                     <Text style={styles.sectionTitle}>Agenda de Treinos</Text>
@@ -248,7 +314,7 @@ const Usuario: React.FC = () => {
                     ))}
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 

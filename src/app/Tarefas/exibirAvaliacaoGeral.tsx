@@ -1,10 +1,10 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +21,6 @@ import {
   View
 } from 'react-native';
 import DropDownPicker, { ItemType } from 'react-native-dropdown-picker';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // --- INTERFACES (Definições de Tipos) ---
 
@@ -128,7 +127,7 @@ export const fetchHistoricalEvaluations = async (): Promise<AvaliacaoGeral[]> =>
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar avaliações históricas:", error);
-    if (axios.isAxiosError(error) && error.response) {
+    if (isAxiosError(error) && error.response) {
       console.error("Status do erro:", error.response.status);
       console.error("Dados do erro:", error.response.data);
     }
@@ -142,7 +141,7 @@ export const fetchAvaliacaoGeralById = async (id: number): Promise<AvaliacaoGera
     return response.data;
   } catch (error) {
     console.error(`Erro ao buscar AvaliacaoGeral pelo ID ${id}:`, error);
-    if (axios.isAxiosError(error) && error.response) {
+    if (isAxiosError(error) && error.response) {
       console.error("Status do erro:", error.response.status);
       console.error("Dados do erro:", error.response.data);
     }
@@ -160,7 +159,7 @@ export const fetchAthletesList = async (): Promise<AtletaListagem[]> => {
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar lista de atletas:", error);
-    if (axios.isAxiosError(error) && error.response) {
+    if (isAxiosError(error) && error.response) {
       console.error("Status do erro:", error.response.status);
       console.error("Dados do erro:", error.response.data);
     }
@@ -261,6 +260,85 @@ const RelatoriosScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+  const modalScrollViewRef = useRef<ScrollView>(null);
+
+  // Navegação por teclado na web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleKeyPress = (event: KeyboardEvent) => {
+        if (document.activeElement?.tagName === 'INPUT' || 
+            document.activeElement?.tagName === 'TEXTAREA') {
+          return; // Não interfere quando há input focado
+        }
+
+        if (modalVisible && modalScrollViewRef.current) {
+          // Navegação no modal
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 100, animated: true });
+              break;
+            case 'ArrowUp':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: -100, animated: true });
+              break;
+            case 'PageDown':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 400, animated: true });
+              break;
+            case 'PageUp':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: -400, animated: true });
+              break;
+            case 'Home':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+              break;
+            case 'End':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollToEnd({ animated: true });
+              break;
+            case 'Escape':
+              event.preventDefault();
+              closeDetailsModal();
+              break;
+          }
+        } else if (flatListRef.current) {
+          // Navegação na lista principal
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 100, animated: true });
+              break;
+            case 'ArrowUp':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: -100, animated: true });
+              break;
+            case 'PageDown':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 400, animated: true });
+              break;
+            case 'PageUp':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: -400, animated: true });
+              break;
+            case 'Home':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+              break;
+            case 'End':
+              event.preventDefault();
+              flatListRef.current?.scrollToEnd({ animated: true });
+              break;
+          }
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyPress);
+      return () => document.removeEventListener('keydown', handleKeyPress);
+    }
+  }, []);
 
   const [openAtletaPicker, setOpenAtletaPicker] = useState(false);
   const [selectedAtletaId, setSelectedAtletaId] = useState<number>(0);
@@ -287,7 +365,7 @@ const RelatoriosScreen: React.FC = () => {
       console.error("Erro ao buscar dados da lista:", err);
       if (err instanceof TypeError) {
         setError(err.message);
-      } else if (axios.isAxiosError(err) && err.message.includes("Network Error")) {
+      } else if (isAxiosError(err) && err.message.includes("Network Error")) {
         setError("Erro de conexão. Verifique se o servidor está rodando e acessível.");
       } else {
         setError("Não foi possível carregar a lista de avaliações. Tente novamente.");
@@ -357,7 +435,7 @@ const RelatoriosScreen: React.FC = () => {
               Alert.alert("Sucesso", "Avaliação excluída com sucesso.");
               // Recarrega a lista para refletir a exclusão
               loadEvaluationsAndAthletes();
-            } catch (error) {
+            } catch {
               Alert.alert("Erro", "Não foi possível excluir a avaliação.");
             }
           },
@@ -370,7 +448,17 @@ const RelatoriosScreen: React.FC = () => {
   const renderEvaluationCard = ({ item }: { item: AvaliacaoGeral }) => (
     <View style={styles.cardRow}>
       {/* Área clicável para abrir o modal */}
-      <TouchableOpacity style={styles.cardContent} onPress={() => openDetailsModal(item.id)}>
+      <TouchableOpacity 
+        style={[
+          styles.cardContent,
+          Platform.OS === 'web' && { cursor: 'pointer' as any }
+        ]} 
+        onPress={() => openDetailsModal(item.id)}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityLabel={`Ver detalhes da avaliação de ${item.nomeAtleta}`}
+        accessibilityRole="button"
+      >
         <Text style={styles.cardTitle}>Avaliação de {item.nomeAtleta}</Text>
         <Text style={styles.cardText}>
           Data: {format(parse(item.dataAvaliacao, 'dd-MM-yyyy', new Date()), 'dd/MM/yyyy', { locale: ptBR })}
@@ -382,10 +470,17 @@ const RelatoriosScreen: React.FC = () => {
       
       {/* Botão da lixeira separado */}
       <TouchableOpacity
-        style={styles.deleteButton}
+        style={[
+          styles.deleteButton,
+          Platform.OS === 'web' && { cursor: 'pointer' as any }
+        ]}
         onPress={() => handleDeleteEvaluation(item.id)}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityLabel="Excluir avaliação"
+        accessibilityRole="button"
       >
-        <MaterialIcons name="delete" size={28} color="#e74c3c" />
+        <Ionicons name="trash-outline" size={28} color="#e74c3c" />
       </TouchableOpacity>
     </View>
   );
@@ -446,7 +541,7 @@ const RelatoriosScreen: React.FC = () => {
           style={styles.btnVoltar}
           accessibilityLabel="Voltar"
         >
-          <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
+          <Ionicons name="arrow-back" size={24} color="#ffffffff" />
         </TouchableOpacity>
         <Text style={styles.titulo}>Avaliações</Text>
       </View>
@@ -484,6 +579,7 @@ const RelatoriosScreen: React.FC = () => {
         <Text style={styles.noEvaluationsText}>Nenhuma avaliação encontrada.</Text>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={filteredEvaluations}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderEvaluationCard}
@@ -491,6 +587,13 @@ const RelatoriosScreen: React.FC = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={loadEvaluationsAndAthletes} tintColor="#1c348e" />
           }
+          // Otimizações para web
+          style={Platform.OS === 'web' ? styles.webFlatList : undefined}
+          showsVerticalScrollIndicator={Platform.OS === 'web'}
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+          bounces={Platform.OS !== 'web'}
         />
       )}
 
@@ -503,7 +606,17 @@ const RelatoriosScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.modalCloseButton} onPress={closeDetailsModal}>
+            <TouchableOpacity 
+              style={[
+                styles.modalCloseButton,
+                Platform.OS === 'web' && { cursor: 'pointer' as any }
+              ]} 
+              onPress={closeDetailsModal}
+              activeOpacity={0.7}
+              accessible={true}
+              accessibilityLabel="Fechar detalhes"
+              accessibilityRole="button"
+            >
               <Ionicons name="close-circle-outline" size={30} color="#666" />
             </TouchableOpacity>
 
@@ -517,7 +630,18 @@ const RelatoriosScreen: React.FC = () => {
                 <Text style={styles.errorText}>{detailsError}</Text>
               </View>
             ) : selectedEvaluationDetails ? (
-              <ScrollView style={styles.detailsScrollView}>
+              <ScrollView 
+                ref={modalScrollViewRef}
+                style={[
+                  styles.detailsScrollView,
+                  Platform.OS === 'web' && styles.webModalScrollView
+                ]}
+                showsVerticalScrollIndicator={Platform.OS === 'web'}
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+                bounces={Platform.OS !== 'web'}
+              >
                 <Text style={styles.modalHeader}>
                   Detalhes da Avaliação de {selectedEvaluationDetails.nomeAtleta}
                 </Text>
@@ -796,6 +920,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: '#4a4a4a',
     lineHeight: 22,
+  },
+  webFlatList: {
+    maxHeight: '75vh' as any,
+    overflow: 'auto' as any,
+  },
+  webModalScrollView: {
+    maxHeight: '100%' as any,
+    overflow: 'auto' as any,
   },
 });
 

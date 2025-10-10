@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import axios from 'axios';
+// Icons removidos - usando Text/Emoji
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from "../../Styles/Perfil";
+import axios from 'axios';
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://seu-backend-url.com';
 
@@ -240,7 +240,7 @@ const PerfilAtleta = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
-          <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meu Perfil</Text>
        
@@ -257,7 +257,7 @@ const PerfilAtleta = () => {
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <MaterialIcons name="add-a-photo" size={40} color="#666" />
+                
                 <Text style={styles.avatarPlaceholderText}>Adicionar Foto</Text>
               </View>
             )}

@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackActions, useNavigation } from '@react-navigation/native';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +17,7 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 interface AthleteEvaluation {
   Controle: number;
@@ -41,7 +42,6 @@ interface AthleteEvaluation {
   trabalhoEquipe: number;
   atributosFisicos: number;
   capacidadeSobPressao: number;
-  [key: string]: number;
 }
 
 interface CustomJwtPayload extends JwtPayload {
@@ -60,8 +60,8 @@ interface AtletaParaSelecao {
 
 const AthleteEvaluationForm = () => {
   const navigation = useNavigation();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [selectedAtletaId, setSelectedAtletaId] = useState<number | null>(null);
-  const [nomeCompleto, setNomeCompleto] = useState<string>('');
   const [nomeAvaliador, setNomeAvaliador] = useState<string>('');
   const [selectedSubdivisao, setSelectedSubdivisao] = useState<string>('');
   const [selectedPosicao, setSelectedPosicao] = useState<string>('');
@@ -148,10 +148,35 @@ const AthleteEvaluationForm = () => {
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+  // Implementar navegação por teclado para web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      let currentScrollPosition = 0;
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        // Navegação no formulário principal
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          if (scrollViewRef.current) {
+            const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
+            currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
+            scrollViewRef.current.scrollTo({
+              y: currentScrollPosition,
+              animated: true,
+            });
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, []);
+
   // Função para resetar os estados do formulário
   const resetFormState = useCallback(() => {
     setSelectedAtletaId(null);
-    setNomeCompleto('');
+
     setSelectedSubdivisao('');
     setSelectedPosicao('');
     setPeriodo('');
@@ -332,7 +357,7 @@ const AthleteEvaluationForm = () => {
   const handleAtletaChange = (value: number | null) => {
     if (value === null) {
       setSelectedAtletaId(null);
-      setNomeCompleto('');
+
       setSelectedSubdivisao('');
       setSelectedPosicao('');
       setFilteredAtletasList(atletasList);
@@ -344,7 +369,7 @@ const AthleteEvaluationForm = () => {
       const selected = atletasList.find(atleta => atleta.id === value);
       if (selected) {
         setSelectedAtletaId(selected.id);
-        setNomeCompleto(selected.nomeCompleto);
+
         setSelectedSubdivisao(selected.subDivisao);
         setSelectedPosicao(selected.posicao);
         setSubdivisaoOptionsForPicker([selected.subDivisao]);
@@ -353,7 +378,7 @@ const AthleteEvaluationForm = () => {
         setIsPosicaoPickerDisabled(true);
       } else {
         setSelectedAtletaId(null);
-        setNomeCompleto('');
+
         setSelectedSubdivisao('');
         setSelectedPosicao('');
         setFilteredAtletasList(atletasList);
@@ -380,7 +405,7 @@ const AthleteEvaluationForm = () => {
         setPosicaoOptionsForPicker(uniquePosicoes);
       }
       setSelectedAtletaId(null);
-      setNomeCompleto('');
+
       setSelectedPosicao('');
     }
   };
@@ -403,7 +428,7 @@ const AthleteEvaluationForm = () => {
         setFilteredAtletasList(filtered);
       }
       setSelectedAtletaId(null);
-      setNomeCompleto('');
+
     }
   };
 
@@ -564,6 +589,11 @@ const AthleteEvaluationForm = () => {
               value === option && styles.ratingOptionSelected,
             ]}
             onPress={() => onChange(attribute, option)}
+            {...(Platform.OS === 'web' && {
+              cursor: 'pointer',
+              activeOpacity: 0.8,
+            })}
+            accessibilityLabel={`Avaliar com nota ${option}`}
           >
            
             <Text style={value === option ? styles.ratingOptionTextSelected : styles.ratingOptionText}>
@@ -632,17 +662,25 @@ const AthleteEvaluationForm = () => {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
+        ref={scrollViewRef}
+        contentContainerStyle={[styles.scrollViewContent, Platform.OS === 'web' && styles.webScrollView]}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+        nestedScrollEnabled={Platform.OS === 'web'}
+        bounces={Platform.OS !== 'web'}
       >
        <View style={styles.header}>
                <TouchableOpacity
                  onPress={() => navigation.goBack()}
                  style={styles.btnVoltar}
+                 {...(Platform.OS === 'web' && {
+                   cursor: 'pointer',
+                   activeOpacity: 0.7,
+                 })}
                  accessibilityLabel="Voltar"
                >
-                 <MaterialIcons name="arrow-back" size={24} color="#ffffffff" />
-               
+                 
+               <FontAwesomeIcon icon={faArrowLeft} size={24} color="#fff" />
                </TouchableOpacity>
                <Text style={styles.titulo}>Avaliação de Desempenho</Text>
              </View>
@@ -826,6 +864,14 @@ const AthleteEvaluationForm = () => {
               ]}
               onPress={handleSubmit}
               disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao}
+              {...(Platform.OS === 'web' && !(isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
+                cursor: 'pointer',
+                activeOpacity: 0.8,
+              })}
+              {...(Platform.OS === 'web' && (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
+                cursor: 'not-allowed',
+              })}
+              accessibilityLabel="Salvar avaliação do atleta"
             >
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
@@ -1040,6 +1086,15 @@ const styles = StyleSheet.create({
   itemSeparator: {
     height: 1,
     backgroundColor: '#eee',
+  },
+  // Estilo específico para web
+  webScrollView: {
+    ...Platform.select({
+      web: {
+        maxHeight: 800, // Use a numeric value for maxHeight
+        overflow: 'visible', // Use only 'visible' or 'hidden'
+      },
+    }),
   },
 });
 

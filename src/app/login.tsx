@@ -10,34 +10,36 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
+  View,
+  Dimensions,
 } from 'react-native';
 import Api from '../Config/Api';
-
 
 interface CustomJwtPayload extends JwtPayload {
   roles?: string[];
 }
-
-
 
 const LoginScreen = () => {
   const [emailAluno, setEmailAluno] = useState('');
   const [senhaAluno, setSenhaAluno] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function handleNext() {
-    router.navigate("./Cadastro/CadastroAlun");
-  }
-function goBack() {
-  router.back();
-}
+  // Hook para responsividade
+  const screenData = Dimensions.get('screen');
+  const isDesktop = screenData.width >= 1024;
+  const isTablet = screenData.width >= 768 && screenData.width < 1024;
+  const isMobile = screenData.width < 768;
+
+  const handleCadastro = () => router.navigate('./Cadastro/CadastroAlun');
+  const handleVoltar = () => router.back();
+
   const handleLogin = async () => {
+    
     if (!emailAluno || !senhaAluno) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
@@ -51,136 +53,129 @@ function goBack() {
         senha: senhaAluno,
       });
 
-      console.log('Resposta COMPLETA do servidor:', response.data);
-      console.log('Status da resposta HTTP:', response.status);
-
-      const { jwt } = response.data; 
-
-      if (jwt) { 
-       
-        await AsyncStorage.setItem('jwtToken', jwt); 
-        console.log('Token armazenado no AsyncStorage (chave jwtToken):', jwt); 
-
-        const decodedToken = jwtDecode<CustomJwtPayload>(jwt); 
-        console.log('Token decodificado:', decodedToken);
-
-        const userRole = decodedToken.roles && decodedToken.roles.length > 0
-          ? decodedToken.roles[0]
-          : undefined;
-
-        console.log('Cargo do usuário:', userRole);
+      const { jwt } = response.data;
+      if (jwt) {
+        await AsyncStorage.setItem('jwtToken', jwt);
+        const decodedToken = jwtDecode<CustomJwtPayload>(jwt);
+        const userRole = decodedToken.roles?.[0];
 
         Alert.alert('Sucesso', 'Login realizado com sucesso!');
 
         if (userRole === 'ATLETA') {
-          router.replace('/Atletas/atleta');
-        } else if (userRole === 'TECNICO') {
-          // Este é o redirecionamento para o seu MinimalScreen
-          router.replace('/funcionarios/tecnico'); 
-        } else if (userRole === 'COORDENADOR') {
-          router.replace('/Adminstrador/coordenador');
-        } else if (userRole === 'SUPERVISOR') {
-          router.replace('/Adminstrador/supervisor');
+          router.replace('/atletas/Atleta');
         } else {
-          console.warn('Login não reconhecido ou inexistente:', userRole);
-          Alert.alert('Aviso', 'Seu login não foi reconhecido. Redirecionando para a tela inicial.');
-          router.replace('./index');
+          router.replace('/administrador/dashboard');
         }
-
       } else {
-        Alert.alert('Erro', 'Token JWT não recebido na resposta do servidor.');
-        console.log('Propriedade "jwt" não encontrada na resposta do servidor ou é nula/vazia.'); 
+        Alert.alert('Erro', 'Token JWT não recebido na resposta.');
       }
-
     } catch (error) {
-      console.error('Erro no login:', error);
       if (axios.isAxiosError(error)) {
         if (error.response) {
-          console.error('Detalhes da resposta de ERRO do servidor:', error.response.data);
-          console.error('Status de ERRO do servidor:', error.response.status);
-
           if (error.response.status === 401) {
             Alert.alert('Erro', 'Email ou senha incorretos.');
           } else {
             Alert.alert('Erro', `Falha no login: ${error.response.data.message || 'Erro desconhecido.'}`);
           }
         } else if (error.request) {
-          Alert.alert('Erro', 'Não foi possível conectar ao servidor. Verifique sua conexão ou tente mais tarde.');
+          Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
         }
       } else {
-        Alert.alert('Erro', 'Ocorreu um erro inesperado. Tente novamente.');
+        Alert.alert('Erro', 'Ocorreu um erro inesperado.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  return (
+  const content = (
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="always"
+      onTouchStart={Keyboard.dismiss} // 👈 substitui Pressable externo
+    >
+      <Image
+        source={require('../../assets/images/escudo.png')}
+        style={styles.logo}
+      />
+
+      <Text style={styles.title}>Login</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={emailAluno}
+        onChangeText={setEmailAluno}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        returnKeyType="next"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Senha"
+        secureTextEntry
+        value={senhaAluno}
+        onChangeText={setSenhaAluno}
+        returnKeyType="done"
+        onSubmitEditing={handleLogin}
+      />
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.button,
+          pressed && { opacity: 0.8 },
+          loading && { opacity: 0.5 }
+        ]}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#ffffff" />
+        ) : (
+          <Text style={styles.buttonText}>Entrar</Text>
+        )}
+      </Pressable>
+
+      <View style={styles.signupButton}>
+        <Pressable onPress={handleCadastro}>
+          <Text style={styles.signupButtonText}>Cadastre-se</Text>
+        </Pressable>
+        <Pressable onPress={handleVoltar}>
+          <Text style={styles.signupButtonText}>Menu</Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+
+  return Platform.OS !== 'web' ? (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Pressable onPress={Keyboard.dismiss} style={{flex: 1}}>
-        <ScrollView
-          contentContainerStyle={styles.container}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Image
-            source={require("../../assets/images/escudo.png")}
-            style={{ width: "100%", height: 200, borderRadius: 55 }}
-          />
-
-          <Text style={styles.title}>Login</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={emailAluno}
-            onChangeText={setEmailAluno}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Senha"
-            secureTextEntry={true}
-            value={senhaAluno}
-            onChangeText={setSenhaAluno}
-          />
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.signupButton}>
-            <Text style={styles.signupButtonText} onPress={handleNext}>
-              Cadastre-se
-            </Text>
-            <Text style={styles.signupButtonText} onPress={goBack}>Menu</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </Pressable>
+      {content}
     </KeyboardAvoidingView>
+  ) : (
+    <View style={{ flex: 1 }}>{content}</View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
+  logo: {
+    width: '100%',
+    height: 200,
+    borderRadius: 55,
+    marginBottom: 20,
+  },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
@@ -194,6 +189,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 15,
     backgroundColor: '#fff',
+    fontSize: 16,
   },
   button: {
     backgroundColor: '#1c348e',
@@ -203,6 +199,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e8c020',
     alignItems: 'center',
+    marginTop: 5,
   },
   buttonText: {
     color: '#ffffff',
@@ -212,15 +209,13 @@ const styles = StyleSheet.create({
   signupButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
-     gap: 20,
+    marginTop: 25,
+    gap: 20,
   },
   signupButtonText: {
-    
     color: '#1c348e',
     fontSize: 16,
     fontWeight: 'bold',
-   
   },
 });
 

@@ -1,11 +1,12 @@
+import { faArrowLeft, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { documentDirectory, writeAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -43,7 +44,7 @@ const COLORS = {
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 type AtletaProfileDto = {
-  id: number;
+  id: string;
   matricula: string;
   nome: string;
   email: string;
@@ -55,7 +56,7 @@ type AtletaProfileDto = {
   isAptoParaJogar: boolean;
   documentoPdfBase64: string | null;
   documentoPdfContentType: string | null;
-  documentos?: { id: number; nome: string; url: string; tipo: string }[];
+  documentos?: { id: string; nome: string; url: string; tipo: string }[];
 };
 
 const ListaContatosAtletas = () => {
@@ -65,6 +66,86 @@ const ListaContatosAtletas = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedAtleta, setSelectedAtleta] = useState<AtletaProfileDto | null>(null);
+  const flatListRef = useRef<FlatList>(null);
+  const modalScrollViewRef = useRef<ScrollView>(null);
+  
+  // Navegação por teclado na web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleKeyPress = (event: KeyboardEvent) => {
+        if (document.activeElement?.tagName === 'INPUT' || 
+            document.activeElement?.tagName === 'TEXTAREA') {
+          return; // Não interfere quando há input focado
+        }
+
+        if (modalVisible && modalScrollViewRef.current) {
+          // Navegação no modal
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 100, animated: true });
+              break;
+            case 'ArrowUp':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: -100, animated: true });
+              break;
+            case 'PageDown':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 400, animated: true });
+              break;
+            case 'PageUp':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: -400, animated: true });
+              break;
+            case 'Home':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollTo({ y: 0, animated: true });
+              break;
+            case 'End':
+              event.preventDefault();
+              modalScrollViewRef.current?.scrollToEnd({ animated: true });
+              break;
+            case 'Escape':
+              event.preventDefault();
+              setModalVisible(false);
+              break;
+          }
+        } else if (flatListRef.current) {
+          // Navegação na lista principal
+          switch (event.key) {
+            case 'ArrowDown':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 100, animated: true });
+              break;
+            case 'ArrowUp':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: -100, animated: true });
+              break;
+            case 'PageDown':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 400, animated: true });
+              break;
+            case 'PageUp':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: -400, animated: true });
+              break;
+            case 'Home':
+              event.preventDefault();
+              flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+              break;
+            case 'End':
+              event.preventDefault();
+              flatListRef.current?.scrollToEnd({ animated: true });
+              break;
+          }
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyPress);
+      return () => document.removeEventListener('keydown', handleKeyPress);
+    }
+  }, [modalVisible]);
+
   const [editForm, setEditForm] = useState<Partial<AtletaProfileDto>>({
     isAptoParaJogar: false,
     documentoPdfBase64: null,
@@ -204,7 +285,7 @@ const ListaContatosAtletas = () => {
   };
 
   // Manipulador para excluir um atleta
-  const handleDeleteAtleta = (atletaId: number) => {
+  const handleDeleteAtleta = (atletaId: string) => {
     Alert.alert(
       'Confirmar Exclusão',
       'Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.',
@@ -236,7 +317,7 @@ const ListaContatosAtletas = () => {
   };
 
   // Manipulador para upload de um novo documento PDF
-  const handlePdfUpload = async (atletaId: number) => {
+  const handlePdfUpload = async (atletaId: string) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
@@ -300,7 +381,7 @@ const ListaContatosAtletas = () => {
   };
 
   // Manipulador para remover o documento PDF principal
-  const handleDeleteMainPdf = async (atletaId: number) => {
+  const handleDeleteMainPdf = async (atletaId: string) => {
     Alert.alert(
       'Remover PDF',
       'Tem certeza que deseja remover o documento PDF principal deste atleta?',
@@ -356,7 +437,17 @@ const ListaContatosAtletas = () => {
 
   // Função para renderizar cada item da lista de atletas
   const renderAtletaItem = ({ item }: { item: AtletaProfileDto }) => (
-    <TouchableOpacity style={styles.atletaCard} onPress={() => handleEditAtleta(item)}>
+    <TouchableOpacity 
+      style={[
+        styles.atletaCard,
+        Platform.OS === 'web' && { cursor: 'pointer' as any }
+      ]} 
+      onPress={() => handleEditAtleta(item)}
+      activeOpacity={0.7}
+      accessible={true}
+      accessibilityLabel={`Editar atleta ${item.nome}`}
+      accessibilityRole="button"
+    >
       <View style={styles.atletaInfo}>
         <Text style={styles.atletaName}>{item.nome}</Text>
         <Text style={styles.atletaDetail}>{`Matrícula: ${item.matricula}`}</Text>
@@ -383,8 +474,18 @@ const ListaContatosAtletas = () => {
           </TouchableOpacity>
         )}
       </View>
-      <TouchableOpacity onPress={() => handleDeleteAtleta(item.id)} style={styles.deleteButton}>
-        <MaterialIcons name="delete" size={24} color={COLORS.danger} />
+      <TouchableOpacity 
+        onPress={() => handleDeleteAtleta(item.id)} 
+        style={[
+          styles.deleteButton,
+          Platform.OS === 'web' && { cursor: 'pointer' as any }
+        ]}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityLabel={`Excluir atleta ${item.nome}`}
+        accessibilityRole="button"
+      >
+       <FontAwesomeIcon icon={faTrashAlt} size={20} color={'#DC3545'} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -404,7 +505,7 @@ const ListaContatosAtletas = () => {
       {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
-          <MaterialIcons name="arrow-back" size={24} color={COLORS.white} />
+          <FontAwesomeIcon icon={faArrowLeft} size={20} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Atletas</Text>
       </View>
@@ -431,12 +532,20 @@ const ListaContatosAtletas = () => {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={filteredAtletas()} // Usa a lista filtrada
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderAtletaItem}
           contentContainerStyle={styles.listContent}
           onRefresh={handleRefresh}
           refreshing={refreshing}
+          // Otimizações para web
+          style={Platform.OS === 'web' ? styles.webFlatList : undefined}
+          showsVerticalScrollIndicator={Platform.OS === 'web'}
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+          bounces={Platform.OS !== 'web'}
         />
       )}
 
@@ -451,7 +560,18 @@ const ListaContatosAtletas = () => {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Editar Atleta</Text>
             {selectedAtleta && (
-              <ScrollView style={styles.modalScrollView}>
+              <ScrollView 
+                ref={modalScrollViewRef}
+                style={[
+                  styles.modalScrollView,
+                  Platform.OS === 'web' && styles.webModalScrollView
+                ]}
+                showsVerticalScrollIndicator={Platform.OS === 'web'}
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+                bounces={Platform.OS !== 'web'}
+              >
                 <Text style={styles.inputLabel}>Nome:</Text>
                 <TextInput
                   style={styles.input}
@@ -833,6 +953,14 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  webFlatList: {
+    maxHeight: '75vh' as any,
+    overflow: 'auto' as any,
+  },
+  webModalScrollView: {
+    maxHeight: '100%' as any,
+    overflow: 'auto' as any,
   },
 });
 

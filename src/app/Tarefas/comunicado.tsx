@@ -2,13 +2,22 @@ import { faEyeSlash, faIdCard, faPlus, faTimes } from '@fortawesome/free-solid-s
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+    Alert,
+    FlatList,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import { Button } from "../../components/button/index";
 import { styles } from "../../Styles/Tecnico";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+// --- Interfaces ---
 interface Usuario {
     id: string;
     nome: string;
@@ -24,7 +33,12 @@ interface Comunicado {
     dataEnvio: string;
 }
 
-const ComunicadosScreen: React.FC = () => {
+interface ComunicadosScreenProps {
+    userRole?: string;
+}
+
+const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
+    // --- Estados ---
     const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     const [novoComunicado, setNovoComunicado] = useState<Omit<Comunicado, 'id' | 'remetente'>>({
         destinatarios: [],
@@ -43,26 +57,41 @@ const ComunicadosScreen: React.FC = () => {
     });
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [hiddenComunicados, setHiddenComunicados] = useState<string[]>([]);
+    const [submittingForm, setSubmittingForm] = useState(false);
 
-    
-   const getReactKey = useCallback((id: string | number | null | undefined, prefix: string = "item", typeIdentifier?: string): string => {
-    if (id == null || id === '' || id === '0' || id === 0) {
-        const fallbackKey = `${prefix}-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        console.warn(`[GET_REACT_KEY WARN] Problematic ID for '${prefix}'. Original ID: ${id}. Generated fallback: ${fallbackKey}`);
-        return fallbackKey;
-    }
-   
-    const typePart = typeIdentifier ? `-${typeIdentifier}` : '';
-    const uniqueKey = `${prefix}-${String(id)}${typePart}`; 
-    return uniqueKey;
-}, []);
+    // --- Computed Values ---
+    const visibleComunicados = useMemo(() => 
+        comunicadosEnviados.filter(item => !hiddenComunicados.includes(String(item.id))),
+        [comunicadosEnviados, hiddenComunicados]
+    );
+
+    const filteredUsuarios = useMemo(() => {
+        const currentDestinatarios = editingComunicadoId !== null ? editedComunicado.destinatarios : novoComunicado.destinatarios;
+        return usuarios.filter(usuario => {
+            const isAlreadySelected = currentDestinatarios.some(d => d.id === usuario.id);
+            const matchesSearchTerm = usuario.nome.toLowerCase().includes(searchTerm.toLowerCase().trim());
+            return !isAlreadySelected && matchesSearchTerm;
+        });
+    }, [usuarios, searchTerm, editingComunicadoId, editedComunicado.destinatarios, novoComunicado.destinatarios]);
+
+    // --- Funções Utilitárias ---
+    const getReactKey = useCallback((id: string | number | null | undefined, prefix: string = "item", typeIdentifier?: string): string => {
+        if (id == null || id === '' || id === '0' || id === 0) {
+            const fallbackKey = `${prefix}-fallback-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            console.warn(`[GET_REACT_KEY WARN] Problematic ID for '${prefix}'. Original ID: ${id}. Generated fallback: ${fallbackKey}`);
+            return fallbackKey;
+        }
+       
+        const typePart = typeIdentifier ? `-${typeIdentifier}` : '';
+        const uniqueKey = `${prefix}-${String(id)}${typePart}`; 
+        return uniqueKey;
+    }, []);
 
     const getToken = useCallback(async (): Promise<string | null> => {
         try {
-            const token = await AsyncStorage.getItem('jwtToken');
-            return token
+            return await AsyncStorage.getItem('jwtToken');
         } catch (error) {
-            console.error('DEBUG TOKEN (ComunicadosScreen): Erro ao obter token do AsyncStorage:', error);
+            console.error('Erro ao obter token:', error);
             return null;
         }
     }, []);
@@ -71,26 +100,31 @@ const ComunicadosScreen: React.FC = () => {
         try {
             const token = await getToken();
             if (token) {
-                const decodedToken: any = jwtDecode(token)
-                if (decodedToken && decodedToken.userId) {
+                const decodedToken: any = jwtDecode(token);
+                if (decodedToken?.userId) {
                     const userId = String(decodedToken.userId);
-                    if (!userId || userId === 'undefined') {
-                        console.warn('DEBUG (getUserIdFromToken): userId decodificado é inválido:', decodedToken.userId);
-                        return null;
-                    }
-                    return userId;
-                } else {
-                    console.warn('DEBUG (getUserIdFromToken): Propriedade "userId" não encontrada no payload do token. Verifique o payload real.');
+                    return userId !== 'undefined' ? userId : null;
                 }
             }
             return null;
         } catch (error) {
-            console.error('DEBUG (getUserIdFromToken): Erro ao decodificar token ou obter userId:', error);
+            console.error('Erro ao decodificar token:', error);
             return null;
         }
     }, [getToken]);
 
-    const groupDestinatariosByType = (dest: Usuario[]) => {
+    const handleApiError = useCallback((error: any, context: string): string => {
+        console.error(`Erro em ${context}:`, error);
+        if (error.message?.includes('Token') || error.message?.includes('401')) {
+            return 'Sessão expirada. Faça login novamente.';
+        }
+        if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+            return 'Erro de conexão. Verifique sua internet.';
+        }
+        return error.message || `Erro ao ${context.toLowerCase()}.`;
+    }, []);
+
+    const groupDestinatariosByType = useCallback((dest: Usuario[]) => {
         const atletasIds: string[] = [];
         const coordenadorIds: string[] = [];
         const supervisorIds: string[] = [];
@@ -100,9 +134,10 @@ const ComunicadosScreen: React.FC = () => {
             const idAsString = String(d.id);
 
             if (!idAsString || idAsString === '0') {
-                console.warn(`[GROUP_DEST] ID inválido ou zero detectado para destinatário ${d.nome}: '${d.id}'. Ignorando.`);
+                console.warn(`ID inválido para destinatário ${d.nome}: '${d.id}'. Ignorando.`);
                 return;
             }
+            
             switch (d.tipo?.toUpperCase()) {
                 case 'ATLETA':
                     atletasIds.push(idAsString);
@@ -117,122 +152,142 @@ const ComunicadosScreen: React.FC = () => {
                     tecnicoIds.push(idAsString);
                     break;
                 default:
-                    console.warn('[GROUP_DEST] Tipo de destinatário desconhecido ou inválido:', d.tipo, 'para ID:', d.id);
+                    console.warn('Tipo de destinatário desconhecido:', d.tipo, 'para ID:', d.id);
             }
         });
+        
         return { atletasIds, coordenadorIds, supervisorIds, tecnicoIds };
-    };
+    }, []);
 
-    // --- Data Fetching & Side Effects ---
-    useEffect(() => {
-        const loadUserId = async () => {
-            const id = await getUserIdFromToken();
-            setCurrentUserId(id);
+    // --- Funções de API ---
+    const fetchUsersForComunicado = useCallback(async () => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Token de autenticação não encontrado.');
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/api/usuarios-para-comunicado`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro ${response.status}: Falha ao carregar usuários`);
+            }
+            
+            const data: Usuario[] = await response.json();
+            setUsuarios(data);
+            
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'carregar usuários');
+            Alert.alert("Erro", errorMessage);
+            setUsuarios([]);
         }
-        loadUserId();
+    }, [getToken, handleApiError]);
 
-        const fetchUsersForComunicado = async () => {
-            console.log('FETCH_USERS_FOR_COMUNICADO: Iniciando busca de usuários...');
-            try {
-                const token = await getToken();
-                if (!token) {
-                    console.warn('FETCH_USERS_FOR_COMUNICADO: Token ausente. Não será possível buscar usuários.');
-                    return;
-                }
-                const response = await fetch(`${API_BASE_URL}/api/usuarios-para-comunicado`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`FETCH_USERS_FOR_COMUNICADO: Erro HTTP! status: ${response.status}, corpo: ${errorText}`);
-                    throw new Error(`Erro ao carregar usuários: ${response.status} - ${errorText}`);
-                }
-                const data: Usuario[] = await response.json();
-                setUsuarios(data);
-                console.log('FETCH_USERS_FOR_COMUNICADO: Usuários carregados com sucesso. Total:', data.length);
-            } catch (error) {
-                console.error("FETCH_USERS_FOR_COMUNICADO: Falha ao buscar usuários:", error);
-                Alert.alert("Erro", `Não foi possível carregar a lista de usuários para comunicados. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
-                setUsuarios([]);
+    const fetchComunicados = useCallback(async () => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Token de autenticação não encontrado.');
             }
-        };
-
-        const fetchComunicados = async () => {
-            console.log('FETCH_COMUNICADOS: Iniciando busca de comunicados...');
-            try {
-                const token = await getToken();
-                if (!token) {
-                    console.warn('FETCH_COMUNICADOS: Token não encontrado. Não será possível buscar comunicados.');
-                    return;
-                }
-                const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`FETCH_COMUNICADOS: Erro HTTP! status: ${response.status}, corpo: ${errorText}`);
-                    throw new Error(`Erro ao carregar comunicados: ${response.status} - ${errorText}`);
-                }
-                const data: Comunicado[] = await response.json();
-              
-                setComunicadosEnviados(data);
-                console.log('FETCH_COMUNICADOS: Comunicados carregados com sucesso. Total:', data.length);
-            } catch (error) {
-                console.error("FETCH_COMUNICADOS: Falha ao buscar comunicados:", error);
-                Alert.alert("Erro", `Não foi possível carregar os comunicados. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
-                setComunicadosEnviados([]);
+            
+            const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erro ${response.status}: Falha ao carregar comunicados`);
             }
+            
+            const data: Comunicado[] = await response.json();
+            setComunicadosEnviados(data);
+            
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'carregar comunicados');
+            Alert.alert("Erro", errorMessage);
+            setComunicadosEnviados([]);
+        }
+    }, [getToken, handleApiError]);
+
+    // --- Efeitos ---
+    useEffect(() => {
+        const loadInitialData = async () => {
+            const userId = await getUserIdFromToken();
+            setCurrentUserId(userId);
+            
+            await Promise.all([
+                fetchUsersForComunicado(),
+                fetchComunicados()
+            ]);
         };
+        
+        loadInitialData();
+    }, [getUserIdFromToken, fetchUsersForComunicado, fetchComunicados]);
 
-        fetchUsersForComunicado();
-        fetchComunicados();
-    }, [getToken, getUserIdFromToken]);
-
-    const adicionarDestinatario = (usuario: Usuario) => {
-        const userIdToAdd = usuario.id;
-
+    // --- Funções de Formulário ---
+    const adicionarDestinatario = useCallback((usuario: Usuario) => {
         if (editingComunicadoId !== null) {
             setEditedComunicado(prev => {
-                if (!prev.destinatarios.some(d => d.id === userIdToAdd)) {
-                    const updatedDest = [...prev.destinatarios, { ...usuario, id: userIdToAdd }];
-                    console.log('DEBUG FRONTEND: Destinatário EDITADO adicionado:', usuario.nome, 'Novos destinatários:', JSON.stringify(updatedDest.map(d => `${d.nome} (${d.tipo})`)));
-                    return { ...prev, destinatarios: updatedDest };
+                if (!prev.destinatarios.some(d => d.id === usuario.id)) {
+                    return { ...prev, destinatarios: [...prev.destinatarios, usuario] };
                 }
                 return prev;
             });
         } else {
-            if (!novoComunicado.destinatarios.some(d => d.id === userIdToAdd)) {
-                const updatedDest = [...novoComunicado.destinatarios, { ...usuario, id: userIdToAdd }];
-                console.log('DEBUG FRONTEND: Destinatário NOVO adicionado:', usuario.nome, 'Novos destinatários:', JSON.stringify(updatedDest.map(d => `${d.nome} (${d.tipo})`)));
-                setNovoComunicado({
-                    ...novoComunicado,
-                    destinatarios: updatedDest,
-                });
-            }
+            setNovoComunicado(prev => {
+                if (!prev.destinatarios.some(d => d.id === usuario.id)) {
+                    return { ...prev, destinatarios: [...prev.destinatarios, usuario] };
+                }
+                return prev;
+            });
         }
-    };
+    }, [editingComunicadoId]);
 
-    const removerDestinatario = (usuarioId: string) => {
+    const removerDestinatario = useCallback((usuarioId: string) => {
         if (editingComunicadoId !== null) {
             setEditedComunicado(prev => ({
                 ...prev,
                 destinatarios: prev.destinatarios.filter(usuario => String(usuario.id) !== usuarioId),
             }));
         } else {
-            setNovoComunicado({
-                ...novoComunicado,
-                destinatarios: novoComunicado.destinatarios.filter(d => String(d.id) !== usuarioId),
-            });
+            setNovoComunicado(prev => ({
+                ...prev,
+                destinatarios: prev.destinatarios.filter(d => String(d.id) !== usuarioId),
+            }));
         }
-    };
+    }, [editingComunicadoId]);
 
-    const enviarComunicado = async () => {
+    const resetForm = useCallback(() => {
+        setMostrarFormulario(false);
+        setEditingComunicadoId(null);
+        setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
+        setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: '' });
+        setSearchTerm('');
+    }, []);
+
+    const startNewComunicado = useCallback(() => {
+        setMostrarFormulario(true);
+        setEditingComunicadoId(null);
+        setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
+        setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: '' });
+        setSearchTerm('');
+    }, []);
+
+    const startEditingComunicado = useCallback((comunicado: Comunicado) => {
+        setEditingComunicadoId(String(comunicado.id));
+        setEditedComunicado({
+            assunto: comunicado.assunto,
+            mensagem: comunicado.mensagem,
+            destinatarios: comunicado.destinatarios.map(d => ({ ...d, id: String(d.id) })),
+        });
+        setMostrarFormulario(true);
+        setSearchTerm('');
+    }, []);
+
+    const enviarComunicado = useCallback(async () => {
         if (
             novoComunicado.assunto.trim() === '' ||
             novoComunicado.mensagem.trim() === '' ||
@@ -242,25 +297,23 @@ const ComunicadosScreen: React.FC = () => {
             return;
         }
 
+        setSubmittingForm(true);
         try {
             const token = await getToken();
             if (!token) {
-                Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
-                return;
+                throw new Error('Token de autenticação não encontrado.');
             }
 
             const { atletasIds, coordenadorIds, supervisorIds, tecnicoIds } = groupDestinatariosByType(novoComunicado.destinatarios);
 
             const requestBody = {
-                assunto: novoComunicado.assunto,
-                mensagem: novoComunicado.mensagem,
+                assunto: novoComunicado.assunto.trim(),
+                mensagem: novoComunicado.mensagem.trim(),
                 atletasIds: atletasIds.length > 0 ? atletasIds : null,
                 coordenadorIds: coordenadorIds.length > 0 ? coordenadorIds : null,
                 supervisorIds: supervisorIds.length > 0 ? supervisorIds : null,
                 tecnicoIds: tecnicoIds.length > 0 ? tecnicoIds : null,
             };
-            console.log('DEBUG FRONTEND: Request Body sendo enviado (Criar):', JSON.stringify(requestBody, null, 2));
-
 
             const response = await fetch(`${API_BASE_URL}/api/comunicados`, {
                 method: 'POST',
@@ -272,44 +325,26 @@ const ComunicadosScreen: React.FC = () => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Erro ao enviar comunicado:", errorText);
-                throw new Error(`Falha ao enviar comunicado: ${response.status} - ${errorText}`);
+                throw new Error(`Erro ${response.status}: Falha ao enviar comunicado`);
             }
 
             const comunicadoSalvo: Comunicado = await response.json();
-            setComunicadosEnviados(prevComunicados => [...prevComunicados, {
-                ...comunicadoSalvo,
-                dataEnvio: comunicadoSalvo.dataEnvio
-            }]);
+            setComunicadosEnviados(prev => [...prev, comunicadoSalvo]);
 
-            setNovoComunicado({
-                destinatarios: [],
-                assunto: '',
-                mensagem: '',
-                dataEnvio: '',
-            });
-            setMostrarFormulario(false);
-            setSearchTerm('');
+            resetForm();
             Alert.alert('Sucesso', 'Comunicado enviado com sucesso!');
-        } catch (error) {
-            console.error("Erro ao enviar comunicado:", error);
-            Alert.alert("Erro", `Não foi possível enviar o comunicado. ${error instanceof Error ? error.message : 'Tente novamente.'}`);
+            
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'enviar comunicado');
+            Alert.alert("Erro", errorMessage);
+        } finally {
+            setSubmittingForm(false);
         }
-    };
+    }, [novoComunicado, getToken, groupDestinatariosByType, resetForm, handleApiError]);
 
-    const startEditingComunicado = (comunicadoParaEditar: Comunicado) => {
-        setEditingComunicadoId(String(comunicadoParaEditar.id));
-        setEditedComunicado({
-            assunto: comunicadoParaEditar.assunto,
-            mensagem: comunicadoParaEditar.mensagem,
-            destinatarios: comunicadoParaEditar.destinatarios.map(d => ({ ...d, id: String(d.id) })),
-        });
-        setMostrarFormulario(true);
-        setSearchTerm('');
-    };
 
-    const saveEditedComunicado = async () => {
+
+    const saveEditedComunicado = useCallback(async () => {
         if (editingComunicadoId === null) {
             Alert.alert('Erro', 'Nenhum comunicado selecionado para edição.');
             return;
@@ -320,25 +355,23 @@ const ComunicadosScreen: React.FC = () => {
             return;
         }
 
+        setSubmittingForm(true);
         try {
             const token = await getToken();
             if (!token) {
-                Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
-                return;
+                throw new Error('Token de autenticação não encontrado.');
             }
 
             const { atletasIds, coordenadorIds, supervisorIds, tecnicoIds } = groupDestinatariosByType(editedComunicado.destinatarios);
 
             const requestBody = {
-                assunto: editedComunicado.assunto,
-                mensagem: editedComunicado.mensagem,
+                assunto: editedComunicado.assunto.trim(),
+                mensagem: editedComunicado.mensagem.trim(),
                 atletasIds: atletasIds.length > 0 ? atletasIds : null,
                 coordenadorIds: coordenadorIds.length > 0 ? coordenadorIds : null,
                 supervisorIds: supervisorIds.length > 0 ? supervisorIds : null,
                 tecnicoIds: tecnicoIds.length > 0 ? tecnicoIds : null,
             };
-            console.log('DEBUG FRONTEND: Request Body sendo enviado (Atualizar):', JSON.stringify(requestBody, null, 2));
-
 
             const response = await fetch(`${API_BASE_URL}/api/comunicados/${editingComunicadoId}`, {
                 method: 'PUT',
@@ -350,27 +383,28 @@ const ComunicadosScreen: React.FC = () => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Erro ao atualizar comunicado:", errorText);
-                throw new Error(`Falha ao atualizar comunicado: ${response.status} - ${errorText}`);
+                throw new Error(`Erro ${response.status}: Falha ao atualizar comunicado`);
             }
 
-            const comunicadoAtualizadoBackend: Comunicado = await response.json();
-            const updatedComunicados = comunicadosEnviados.map(comunicado =>
-                String(comunicado.id) === editingComunicadoId ? comunicadoAtualizadoBackend : comunicado
+            const comunicadoAtualizado: Comunicado = await response.json();
+            setComunicadosEnviados(prev =>
+                prev.map(comunicado =>
+                    String(comunicado.id) === editingComunicadoId ? comunicadoAtualizado : comunicado
+                )
             );
-            setComunicadosEnviados(updatedComunicados);            setEditingComunicadoId(null);
-            setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-            setMostrarFormulario(false);
-            setSearchTerm('');
-            Alert.alert('Sucesso', 'Comunicado atualizado com sucesso!');
-        } catch (error) {
-            console.error("Erro ao atualizar comunicado:", error);
-            Alert.alert("Não é possível atualizar o comunicado.");
-        }
-    };
 
-    const deleteComunicado = (idComunicado: string) => {
+            resetForm();
+            Alert.alert('Sucesso', 'Comunicado atualizado com sucesso!');
+            
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'atualizar comunicado');
+            Alert.alert("Erro", errorMessage);
+        } finally {
+            setSubmittingForm(false);
+        }
+    }, [editingComunicadoId, editedComunicado, getToken, groupDestinatariosByType, resetForm, handleApiError]);
+
+    const deleteComunicado = useCallback((idComunicado: string) => {
         Alert.alert(
             'Confirmar Exclusão',
             'Tem certeza que deseja excluir este comunicado?',
@@ -382,28 +416,26 @@ const ComunicadosScreen: React.FC = () => {
                         try {
                             const token = await getToken();
                             if (!token) {
-                                Alert.alert('Erro', 'Você não está autenticado. Faça login novamente.');
-                                return;
+                                throw new Error('Token de autenticação não encontrado.');
                             }
+                            
                             const response = await fetch(`${API_BASE_URL}/api/comunicados/${idComunicado}`, {
                                 method: 'DELETE',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                },
+                                headers: { 'Authorization': `Bearer ${token}` },
                             });
 
                             if (!response.ok) {
-                                const errorText = await response.text();
-                                throw new Error(`Falha ao excluir comunicado: ${response.status} - ${errorText}`);
+                                throw new Error(`Erro ${response.status}: Falha ao excluir comunicado`);
                             }
 
-                            const updatedComunicados = comunicadosEnviados.filter(comunicado => String(comunicado.id) !== idComunicado);
-                            setComunicadosEnviados(updatedComunicados);
+                            setComunicadosEnviados(prev =>
+                                prev.filter(comunicado => String(comunicado.id) !== idComunicado)
+                            );
                             Alert.alert('Sucesso', 'Comunicado excluído com sucesso!');
 
-                        } catch (error) {
-                            console.error("Erro ao excluir comunicado:", error);
-                            Alert.alert("Não é possível apagar comunicado.");
+                        } catch (error: any) {
+                            const errorMessage = handleApiError(error, 'excluir comunicado');
+                            Alert.alert("Erro", errorMessage);
                         }
                     },
                     style: 'destructive',
@@ -411,34 +443,28 @@ const ComunicadosScreen: React.FC = () => {
             ],
             { cancelable: true }
         );
-    };
+    }, [getToken, handleApiError]);
 
-    const hideComunicado = (comunicadoId: string) => {
+    const hideComunicado = useCallback((comunicadoId: string) => {
         setHiddenComunicados(prev => [...prev, String(comunicadoId)]);
         Alert.alert('Comunicado Oculto', 'Este comunicado não será mais exibido na sua lista.');
-    };
-
-    const visibleComunicados = comunicadosEnviados.filter(item => !hiddenComunicados.includes(String(item.id)));
+    }, []);
 
     return (
         <ScrollView style={styles.section}>
             <Text style={styles.sectionTitle}>Comunicados</Text>
 
-            {!mostrarFormulario && editingComunicadoId === null ? (
+            {userRole !== 'ATLETA' && !mostrarFormulario && editingComunicadoId === null && (
                 <Button
                     title="Adicionar Comunicado"
-                    onPress={() => {
-                        setMostrarFormulario(true);
-                        setEditingComunicadoId(null);
-                        setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-                        setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: ''});
-                        setSearchTerm('');
-                    }}
+                    onPress={startNewComunicado}
                     icon={faPlus}
                     style={{ marginBottom: 15 }}
                     textColor="#1c348e"
                 />
-            ) : (
+            )}
+
+            {userRole !== 'ATLETA' && (mostrarFormulario || editingComunicadoId !== null) && (
                 <View style={styles.formContainer}>
                     <Text style={styles.formTitle}>
                         {editingComunicadoId !== null ? "Editando Comunicado" : "Adicionando Comunicado"}
@@ -469,22 +495,15 @@ const ComunicadosScreen: React.FC = () => {
                     />
 
                     <ScrollView style={styles.dropdownContainer}>
-                        {usuarios
-                            .filter(u => {
-                                const currentDestinatarios = editingComunicadoId !== null ? editedComunicado.destinatarios : novoComunicado.destinatarios;
-                                const isAlreadySelected = currentDestinatarios.some(d => d.id === u.id);
-                                const matchesSearchTerm = u.nome.toLowerCase().includes(searchTerm.toLowerCase());
-                                return !isAlreadySelected && matchesSearchTerm;
-                            })
-                            .map(usuario => (
-                                <TouchableOpacity
-    key={getReactKey(usuario.id, `user-item`, usuario.tipo)} // <-- Key change here
-    style={styles.usuarioItem}
-    onPress={() => adicionarDestinatario(usuario)}
->
-    <Text>{usuario.nome} ({usuario.tipo})</Text>
-</TouchableOpacity>
-                            ))}
+                        {filteredUsuarios.map(usuario => (
+                            <TouchableOpacity
+                                key={getReactKey(usuario.id, `user-item`, usuario.tipo)}
+                                style={styles.usuarioItem}
+                                onPress={() => adicionarDestinatario(usuario)}
+                            >
+                                <Text>{usuario.nome} ({usuario.tipo})</Text>
+                            </TouchableOpacity>
+                        ))}
                     </ScrollView>
 
                     <Text style={styles.label}>Assunto:</Text>
@@ -510,18 +529,18 @@ const ComunicadosScreen: React.FC = () => {
                                 title={editingComunicadoId !== null ? "Salvar Alterações" : "Enviar"}
                                 onPress={editingComunicadoId !== null ? saveEditedComunicado : enviarComunicado}
                                 style={styles.submitButton}
-                                textColor='#fff' icon={undefined}                        />
+                                textColor='#fff' 
+                                icon={undefined}
+                                disabled={submittingForm}
+                        />
                         <Button
                                 title="Cancelar"
-                                onPress={() => {
-                                    setMostrarFormulario(false);
-                                    setEditingComunicadoId(null);
-                                    setEditedComunicado({ assunto: '', mensagem: '', destinatarios: [] });
-                                    setNovoComunicado({ assunto: '', mensagem: '', destinatarios: [], dataEnvio: '' });
-                                    setSearchTerm('');
-                                } }
+                                onPress={resetForm}
                                 textColor='#fff'
-                                style={styles.cancelButton} icon={undefined}                        />
+                                style={styles.cancelButton} 
+                                icon={undefined}
+                                disabled={submittingForm}
+                        />
                     </View>
                 </View>
             )}

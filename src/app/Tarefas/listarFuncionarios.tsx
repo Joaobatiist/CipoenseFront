@@ -1,8 +1,10 @@
+import { faArrowLeft, faSearch, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,7 +20,6 @@ import {
   View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Definindo as cores do tema com base no logo da Cipoense
 const COLORS = {
@@ -60,6 +61,8 @@ type Funcionarios = {
 
 const ListaFuncionarios = () => {
   const navigation = useNavigation();
+  const flatListRef = useRef<FlatList>(null);
+  const modalScrollViewRef = useRef<ScrollView>(null);
   const [funcionario, setFuncionario] = useState<Funcionarios[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -70,6 +73,50 @@ const ListaFuncionarios = () => {
   const [editLoading, setEditLoading] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>(''); // Novo estado para o termo de busca
   const [openRolesPicker, setOpenRolesPicker] = useState<boolean>(false); // Estado para o dropdown de roles
+
+  // Implementar navegação por teclado para web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      let currentScrollPosition = 0;
+      let modalScrollPosition = 0;
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (modalVisible) {
+          // Navegação no modal com ESC e scroll
+          if (event.key === 'Escape') {
+            setOpenRolesPicker(false);
+            setModalVisible(false);
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (modalScrollViewRef.current) {
+              const scrollDirection = event.key === 'ArrowDown' ? 50 : -50;
+              modalScrollPosition = Math.max(0, modalScrollPosition + scrollDirection);
+              modalScrollViewRef.current.scrollTo({
+                y: modalScrollPosition,
+                animated: true,
+              });
+            }
+          }
+        } else {
+          // Navegação na lista principal
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (flatListRef.current) {
+              const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
+              currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
+              flatListRef.current.scrollToOffset({
+                offset: currentScrollPosition,
+                animated: true,
+              });
+            }
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [modalVisible]);
 
   // Função para buscar funcionario na API
   const fetchAtletas = async () => {
@@ -213,14 +260,22 @@ const handleSaveEdit = async () => {
       return funcionario;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return funcionario.filter(funcionario =>
-      funcionario.nome.toLowerCase().includes(lowerCaseSearchTerm)
+    return funcionario.filter((func: Funcionarios) =>
+      func.nome.toLowerCase().includes(lowerCaseSearchTerm)
     );
   }, [funcionario, searchTerm]);
 
   // Função para renderizar cada item da lista de funcionario
   const renderAtletaItem = ({ item }: { item: Funcionarios }) => (
-    <TouchableOpacity style={styles.atletaCard} onPress={() => handleEditAtleta(item)}>
+    <TouchableOpacity 
+      style={styles.atletaCard} 
+      onPress={() => handleEditAtleta(item)}
+      {...(Platform.OS === 'web' && {
+        cursor: 'pointer',
+        activeOpacity: 0.7,
+      })}
+      accessibilityLabel={`Editar funcionário ${item.nome}`}
+    >
       <View style={styles.atletaInfo}>
         <Text style={styles.atletaName}>{item.nome}</Text>
         <Text style={styles.atletaDetail}>Cpf: {item.cpf}</Text>
@@ -231,8 +286,16 @@ const handleSaveEdit = async () => {
         <Text style={styles.atletaDetail}>Tipo: {item.roles ? item.roles : 'Não informado'}</Text>
     
       </View>
-      <TouchableOpacity onPress={() => handleDelete(item.id, item.roles)} style={styles.deleteButton}>
-        <MaterialIcons name="delete" size={24} color={COLORS.danger} />
+      <TouchableOpacity 
+        onPress={() => handleDelete(item.id, item.roles)} 
+        style={styles.deleteButton}
+        {...(Platform.OS === 'web' && {
+          cursor: 'pointer',
+          activeOpacity: 0.8,
+        })}
+        accessibilityLabel={`Excluir funcionário ${item.nome}`}
+      >
+        <FontAwesomeIcon icon={faTrashAlt} size={20} color={'#DC3545'} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -251,15 +314,23 @@ const handleSaveEdit = async () => {
     <View style={styles.container}>
       {/* Cabeçalho */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
-          <MaterialIcons name="arrow-back" size={24} color={COLORS.white} />
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()} 
+          style={styles.btnVoltar}
+          {...(Platform.OS === 'web' && {
+            cursor: 'pointer',
+            activeOpacity: 0.7,
+          })}
+          accessibilityLabel="Voltar"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} size={20} color={COLORS.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Funcionarios</Text>
       </View>
 
       {/* Campo de busca */}
       <View style={styles.searchContainer}>
-        <MaterialIcons name="search" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+        <FontAwesomeIcon icon={faSearch} size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar funcionario por nome..." 
@@ -279,12 +350,17 @@ const handleSaveEdit = async () => {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={filteredAtletas()} // Usa a lista filtrada
           keyExtractor={(item) => item.uniqueId}
           renderItem={renderAtletaItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, Platform.OS === 'web' && styles.webFlatList]}
           onRefresh={handleRefresh}
           refreshing={refreshing}
+          showsVerticalScrollIndicator={Platform.OS !== 'web'}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={Platform.OS === 'web'}
+          bounces={Platform.OS !== 'web'}
         />
       )}
 
@@ -302,7 +378,14 @@ const handleSaveEdit = async () => {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Editar Atleta</Text>
             {selectedFuncionario && (
-              <ScrollView style={styles.modalScrollView}>
+              <ScrollView 
+                ref={modalScrollViewRef}
+                style={[styles.modalScrollView, Platform.OS === 'web' && styles.webModalScrollView]}
+                showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={Platform.OS === 'web'}
+                bounces={Platform.OS !== 'web'}
+              >
                 <Text style={styles.inputLabel}>Nome:</Text>
                 <TextInput
                   style={styles.input}
@@ -377,6 +460,11 @@ const handleSaveEdit = async () => {
                   setOpenRolesPicker(false);
                   setModalVisible(false);
                 }}
+                {...(Platform.OS === 'web' && {
+                  cursor: 'pointer',
+                  activeOpacity: 0.8,
+                })}
+                accessibilityLabel="Cancelar edição"
               >
                 <Text style={styles.textStyle}>Cancelar</Text>
               </TouchableOpacity>
@@ -384,6 +472,14 @@ const handleSaveEdit = async () => {
                 style={[styles.button, styles.buttonSave]}
                 onPress={handleSaveEdit}
                 disabled={editLoading}
+                {...(Platform.OS === 'web' && !editLoading && {
+                  cursor: 'pointer',
+                  activeOpacity: 0.8,
+                })}
+                {...(Platform.OS === 'web' && editLoading && {
+                  cursor: 'not-allowed',
+                })}
+                accessibilityLabel="Salvar alterações"
               >
                 {editLoading ? (
                   <ActivityIndicator color={COLORS.white} />
@@ -419,6 +515,17 @@ const styles = StyleSheet.create({
     left: 10,
     top: Platform.OS === 'android' ? 47 : 15, // Alinha com o título
     padding: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  btnVoltarText: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 22,
@@ -460,6 +567,8 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+    fontSize: 16,
+    color: COLORS.textSecondary,
   },
   searchInput: {
     flex: 1,
@@ -504,6 +613,16 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    color: COLORS.white,
   },
   centeredView: {
     flex: 1,
@@ -665,6 +784,23 @@ const styles = StyleSheet.create({
   dropdownPlaceholder: {
     fontSize: 16,
     color: COLORS.textSecondary,
+  },
+  // Estilos específicos para web
+  webFlatList: {
+    ...Platform.select({
+      web: {
+        maxHeight: 600, // Use a numeric value for maxHeight
+        overflow: 'visible', // Use only 'visible' or 'hidden' for overflow
+      },
+    }),
+  },
+  webModalScrollView: {
+    ...Platform.select({
+      web: {
+        maxHeight: 400,
+        overflow: 'hidden',
+      },
+    }),
   },
 });
 

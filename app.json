@@ -26,7 +26,15 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Evolution - Sistema de Gestão Esportiva",
+      "shortName": "Evolution",
+      "lang": "pt-BR",
+      "scope": "/",
+      "themeColor": "#1c348e",
+      "backgroundColor": "#f5f5f5",
+      "display": "standalone",
+      "orientation": "any"
     },
     "plugins": [
       "expo-router",

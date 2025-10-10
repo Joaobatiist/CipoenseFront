@@ -1,8 +1,9 @@
 // app/Tarefas/ControleEstoque.tsx
-import { Ionicons } from '@expo/vector-icons';
+// Icons removidos - usando Text/Emoji
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList, // Importado para garantir a área segura
@@ -11,15 +12,13 @@ import {
   StatusBar // Importado para obter a altura da barra de status no Android
   ,
 
-
-
-
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -35,6 +34,7 @@ const Estoque: React.FC = () => {
   const [itemName, setItemName] = useState('');
   const [quantidade, setQuantidade] = useState('');
   const [editarItem, setEditarItem] = useState<Item | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const getToken = async (): Promise<string | null> => {
     try {
@@ -48,6 +48,48 @@ const Estoque: React.FC = () => {
 
   useEffect(() => {
     fetchItems();
+  }, []);
+
+  // Navegação por teclado na web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleKeyPress = (event: KeyboardEvent) => {
+        if (document.activeElement?.tagName === 'INPUT' || 
+            document.activeElement?.tagName === 'TEXTAREA') {
+          return; // Não interfere quando há input focado
+        }
+
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            flatListRef.current?.scrollToOffset({ offset: 100, animated: true });
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            flatListRef.current?.scrollToOffset({ offset: -100, animated: true });
+            break;
+          case 'PageDown':
+            event.preventDefault();
+            flatListRef.current?.scrollToOffset({ offset: 400, animated: true });
+            break;
+          case 'PageUp':
+            event.preventDefault();
+            flatListRef.current?.scrollToOffset({ offset: -400, animated: true });
+            break;
+          case 'Home':
+            event.preventDefault();
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            break;
+          case 'End':
+            event.preventDefault();
+            flatListRef.current?.scrollToEnd({ animated: true });
+            break;
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyPress);
+      return () => document.removeEventListener('keydown', handleKeyPress);
+    }
   }, []);
 
   const fetchItems = async () => {
@@ -117,6 +159,11 @@ const Estoque: React.FC = () => {
     };
 
     setItems((prevItems) => [...prevItems, newItemLocal]);
+
+    // Scroll para o final da lista após adicionar item
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
 
     setItemName('');
     setQuantidade('');
@@ -231,22 +278,14 @@ const Estoque: React.FC = () => {
   };
 
   const handleDeleteItem = async (id: string) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja excluir este item?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Excluir',
-          onPress: async () => {
-            const token = await getToken();
-            if (!token) {
-              Alert.alert('Erro de Autenticação', 'Você não está logado para excluir itens.', [{ text: 'OK', onPress: () => router.replace('../../') }]);
-              return;
-            }
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      Alert.alert('Tem certeza que deseja excluir este item?');
+    } else if (Platform.OS === 'web') {
+      window.alert("Tem certeza que deseja excluir este item?");
+    }
+           
+    
+    const token = await getToken();
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== id));
             Alert.alert('Item Excluído', 'O item foi removido da sua lista.');
@@ -274,10 +313,7 @@ const Estoque: React.FC = () => {
                 'Não foi possível sincronizar a exclusão com o servidor. O item pode reaparecer em um próximo carregamento.'
               );
             }
-          },
-        },
-      ]
-    );
+       
   };
 
   const handleEditClick = (item: Item) => {
@@ -287,6 +323,7 @@ const Estoque: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
+    
     setEditarItem(null);
     setItemName('');
     setQuantidade('');
@@ -309,7 +346,7 @@ const Estoque: React.FC = () => {
         <TouchableOpacity style={styles.editButton} onPress={() => handleEditClick(item)}>
           <Text style={styles.actionButtonText}>✏️</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteItem(item.id)}>
+        <TouchableOpacity style={styles.deleteButton} onPressIn={() => handleDeleteItem(item.id)}>
           <Text style={styles.actionButtonText}>🗑️</Text>
         </TouchableOpacity>
       </View>
@@ -320,7 +357,7 @@ const Estoque: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <FontAwesomeIcon icon={faArrowLeft} size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.title}>Estoque</Text>
       </View>
@@ -361,10 +398,18 @@ const Estoque: React.FC = () => {
         <Text style={styles.noItemsText}>Nenhum item cadastrado ainda.</Text>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
+          style={Platform.OS === 'web' ? styles.webFlatList : undefined}
+          // Otimizações para web
+          showsVerticalScrollIndicator={Platform.OS === 'web'}
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+          bounces={Platform.OS !== 'web'}
         />
       )}
     </SafeAreaView>
@@ -530,6 +575,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginTop: 20,
+  },
+  webFlatList: {
+    maxHeight: '70vh' as any,
+    overflow: 'auto' as any,
   },
 });
 

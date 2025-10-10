@@ -1,14 +1,24 @@
-// src/components/SupervisorAnalisesScreen.tsx
-
 import { faArrowLeft, faChartLine, faChevronRight, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
+// --- Interfaces ---
 interface Atleta {
     id: number;
     nomeCompleto: string;
@@ -24,8 +34,12 @@ interface AnaliseIa {
 }
 
 const SupervisorAnalisesScreen: React.FC = () => {
+    // --- Referencias para scroll ---
+    const scrollViewRef = useRef<ScrollView>(null);
+    const flatListRef = useRef<FlatList>(null);
+    
+    // --- Estados ---
     const [atletas, setAtletas] = useState<Atleta[]>([]);
-    const [filteredAtletas, setFilteredAtletas] = useState<Atleta[]>([]);
     const [searchText, setSearchText] = useState('');
     const [analises, setAnalises] = useState<AnaliseIa[]>([]);
     const [loadingAtletas, setLoadingAtletas] = useState(true);
@@ -33,36 +47,81 @@ const SupervisorAnalisesScreen: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [selectedAtleta, setSelectedAtleta] = useState<Atleta | null>(null);
 
-    useEffect(() => {
-        fetchAtletas();
-    }, []);
-
-    useEffect(() => {
-        const filtered = atletas.filter(atleta =>
-            atleta.nomeCompleto.toLowerCase().includes(searchText.toLowerCase())
+    // --- Computed Values ---
+    const filteredAtletas = useMemo(() => {
+        if (!searchText.trim()) return atletas;
+        return atletas.filter(atleta =>
+            atleta.nomeCompleto.toLowerCase().includes(searchText.toLowerCase().trim())
         );
-        setFilteredAtletas(filtered);
     }, [atletas, searchText]);
 
-    const getToken = async (): Promise<string | null> => {
+    // --- Funções Utilitárias ---
+    const getToken = useCallback(async (): Promise<string | null> => {
         try {
-            const token = await AsyncStorage.getItem('jwtToken');
-            return token;
-        } catch (err) {
-            console.error('Erro ao obter token:', err);
+            return await AsyncStorage.getItem('jwtToken');
+        } catch (error) {
+            console.error('Erro ao obter token:', error);
             return null;
         }
-    };
+    }, []);
 
-    const fetchAtletas = async () => {
+    const handleApiError = useCallback((error: any, context: string): string => {
+        console.error(`Erro em ${context}:`, error);
+        if (error.message?.includes('Token')) {
+            return 'Sessão expirada. Faça login novamente.';
+        }
+        if (error.message?.includes('Network')) {
+            return 'Erro de conexão. Verifique sua internet.';
+        }
+        return error.message || `Erro ao ${context.toLowerCase()}.`;
+    }, []);
+
+    // --- Navegação por teclado para web ---
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            let currentScrollPosition = 0;
+            let currentFlatListPosition = 0;
+
+            const handleKeyDown = (event: KeyboardEvent) => {
+                // Navegação com teclas de seta
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    
+                    // Se há atletas selecionados, navegar na FlatList
+                    if (selectedAtleta && flatListRef.current) {
+                        const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
+                        currentFlatListPosition = Math.max(0, currentFlatListPosition + scrollDirection);
+                        flatListRef.current.scrollToOffset({
+                            offset: currentFlatListPosition,
+                            animated: true,
+                        });
+                    } 
+                    // Caso contrário, navegar no ScrollView principal
+                    else if (scrollViewRef.current) {
+                        const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
+                        currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
+                        scrollViewRef.current.scrollTo({
+                            y: currentScrollPosition,
+                            animated: true,
+                        });
+                    }
+                }
+            };
+
+            window.addEventListener('keydown', handleKeyDown);
+            return () => window.removeEventListener('keydown', handleKeyDown);
+        }
+    }, [selectedAtleta]);
+
+    // --- Funções de API ---
+    const fetchAtletas = useCallback(async () => {
         setLoadingAtletas(true);
         setError(null);
+        
         try {
             const token = await getToken();
             if (!token) {
-                setError('Token de autenticação não encontrado.');
-                setLoadingAtletas(false);
-                return;
+                throw new Error('Token de autenticação não encontrado.');
             }
             
             const response = await fetch(`${API_BASE_URL}/api/atletas/listagem`, {
@@ -70,90 +129,178 @@ const SupervisorAnalisesScreen: React.FC = () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Erro ao buscar atletas: ${response.status}`);
+                throw new Error(`Erro ${response.status}: Falha ao buscar atletas`);
             }
 
             const data: Atleta[] = await response.json();
             setAtletas(data);
-        } catch (err: any) {
-            console.error("Falha ao buscar atletas:", err);
-            setError(err.message || 'Falha ao carregar a lista de atletas.');
+            
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'buscar atletas');
+            setError(errorMessage);
         } finally {
             setLoadingAtletas(false);
         }
-    };
+    }, [getToken, handleApiError]);
 
-    const fetchAnalisesByAtleta = async (atletaEmail: string) => {
-        if (!atletaEmail) {
-            console.warn("WARN: E-mail do atleta é undefined. Interrompendo a busca de análises.");
-            setLoadingAnalises(false);
+    // --- Efeitos ---
+    useEffect(() => {
+        fetchAtletas();
+    }, [fetchAtletas]);
+
+    const fetchAnalisesByAtleta = useCallback(async (atletaEmail: string) => {
+        if (!atletaEmail?.trim()) {
+            console.warn('E-mail do atleta inválido:', atletaEmail);
+            setAnalises([]);
             return;
         }
 
         setLoadingAnalises(true);
         setError(null);
         setAnalises([]);
+        
         try {
             const token = await getToken();
             if (!token) {
                 throw new Error('Token de autenticação não encontrado.');
             }
             
-            const response = await fetch(`${API_BASE_URL}/api/analises/atleta/${atletaEmail}`, {
+            const response = await fetch(`${API_BASE_URL}/api/analises/atleta/${encodeURIComponent(atletaEmail)}`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
 
+            if (response.status === 204 || response.status === 404) {
+                setAnalises([]);
+                return;
+            }
+
             if (!response.ok) {
-                if (response.status === 204) {
-                    setAnalises([]);
-                    return;
-                }
-                throw new Error(`Erro ao buscar análises: ${response.status}`);
+                throw new Error(`Erro ${response.status}: Falha ao buscar análises`);
             }
             
             const data: AnaliseIa[] = await response.json();
-            setAnalises(data);
+            setAnalises(Array.isArray(data) ? data : []);
 
-        } catch (err: any) {
-            console.error("ERRO na busca de análises:", err);
-            setError(err.message || 'Falha ao carregar as análises de desempenho.');
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'buscar análises');
+            setError(errorMessage);
+            setAnalises([]);
         } finally {
             setLoadingAnalises(false);
         }
-    };
-    
-    const handleSelectAtleta = (atleta: Atleta) => {
+    }, [getToken, handleApiError]);
+    // --- Funções de Interação ---
+    const handleSelectAtleta = useCallback((atleta: Atleta) => {
+        if (selectedAtleta?.id === atleta.id) {
+            // Se clicar no mesmo atleta, deseleciona
+            setSelectedAtleta(null);
+            setAnalises([]);
+            return;
+        }
+        
         setSelectedAtleta(atleta);
         fetchAnalisesByAtleta(atleta.email);
-    };
+    }, [selectedAtleta, fetchAnalisesByAtleta]);
 
-    const renderAtletaItem = ({ item }: { item: Atleta }) => (
-        <TouchableOpacity 
-            style={[styles.atletaCard, selectedAtleta?.id === item.id && styles.atletaCardSelected]} 
-            onPress={() => handleSelectAtleta(item)}
-        >
-            <Text style={styles.atletaName}>{item.nomeCompleto}</Text>
-            <FontAwesomeIcon icon={faChevronRight} size={16} color="#004A8F" />
-        </TouchableOpacity>
-    );
+    const handleSearchChange = useCallback((text: string) => {
+        setSearchText(text);
+        // Se houver um atleta selecionado e ele não aparecer na busca, deseleciona
+        if (selectedAtleta && !selectedAtleta.nomeCompleto.toLowerCase().includes(text.toLowerCase())) {
+            setSelectedAtleta(null);
+            setAnalises([]);
+        }
+    }, [selectedAtleta]);
 
-    const renderAnaliseItem = ({ item }: { item: AnaliseIa }) => (
-        <View style={styles.analiseCard}>
-            <View style={styles.analiseCardHeader}>
-                <FontAwesomeIcon icon={faChartLine} size={20} color="#004A8F" />
-                <Text style={styles.analiseTitle}>Análise - {new Date(item.dataAnalise).toLocaleDateString('pt-BR')}</Text>
+    // --- Componentes de Renderização ---
+    const renderAtletaItem = useCallback(({ item }: { item: Atleta }) => {
+        const isSelected = selectedAtleta?.id === item.id;
+        
+        return (
+            <TouchableOpacity 
+                style={[styles.atletaCard, isSelected && styles.atletaCardSelected]} 
+                onPress={() => handleSelectAtleta(item)}
+                activeOpacity={0.7}
+                {...(Platform.OS === 'web' && {
+                    cursor: 'pointer',
+                    activeOpacity: 0.8,
+                })}
+                accessibilityLabel={`Selecionar atleta ${item.nomeCompleto}`}
+            >
+                <View style={styles.atletaInfo}>
+                    <Text style={styles.atletaName}>{item.nomeCompleto}</Text>
+                    <Text style={styles.atletaEmail}>{item.email}</Text>
+                </View>
+                <FontAwesomeIcon 
+                    icon={faChevronRight} 
+                    size={16} 
+                    color={isSelected ? "#1c348e" : "#004A8F"} 
+                />
+            </TouchableOpacity>
+        );
+    }, [selectedAtleta, handleSelectAtleta]);
+
+    const renderAnaliseItem = useCallback(({ item }: { item: AnaliseIa }) => {
+        const dataFormatada = new Date(item.dataAnalise).toLocaleDateString('pt-BR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const paragrafos = item.respostaIA
+            .split('\n')
+            .filter(p => p.trim()) // Remove parágrafos vazios
+            .map(p => p.trim());
+
+        return (
+            <View style={styles.analiseCard}>
+                <View style={styles.analiseCardHeader}>
+                    <FontAwesomeIcon icon={faChartLine} size={20} color="#1c348e" />
+                    <Text style={styles.analiseTitle}>Análise de Desempenho</Text>
+                </View>
+                
+                <Text style={styles.analiseDate}>{dataFormatada}</Text>
+                
+                <View style={styles.analiseContent}>
+                    {paragrafos.map((paragrafo, index) => (
+                        <Text key={index} style={styles.analiseText}>
+                            {paragrafo}
+                        </Text>
+                    ))}
+                </View>
             </View>
-            {/* CORREÇÃO AQUI: Dividir o texto da análise por quebra de linha e renderizar cada parágrafo separadamente */}
-            {item.respostaIA.split('\n').map((paragraph, index) => (
-                <Text key={index} style={styles.analiseText}>{paragraph}</Text>
-            ))}
+        );
+    }, []);
+
+    const renderEmptyAtletas = useCallback(() => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+                {searchText ? 'Nenhum atleta encontrado para a busca.' : 'Nenhum atleta cadastrado.'}
+            </Text>
         </View>
-    );
+    ), [searchText]);
+
+    const renderEmptyAnalises = useCallback(() => (
+        <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+                Nenhuma análise de IA disponível para {selectedAtleta?.nomeCompleto}.
+            </Text>
+        </View>
+    ), [selectedAtleta]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => router.back()} 
+                    style={styles.backButton}
+                    {...(Platform.OS === 'web' && {
+                        cursor: 'pointer',
+                        activeOpacity: 0.7,
+                    })}
+                    accessibilityLabel="Voltar"
+                >
                     <FontAwesomeIcon icon={faArrowLeft} size={18} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Análises de Desempenho (IA)</Text>
@@ -164,7 +311,14 @@ const SupervisorAnalisesScreen: React.FC = () => {
             ) : error ? (
                 <Text style={styles.errorText}>{error}</Text>
             ) : (
-                <ScrollView style={styles.content}>
+                <ScrollView 
+                    ref={scrollViewRef}
+                    style={[styles.content, Platform.OS === 'web' && styles.webScrollView]}
+                    showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                    keyboardShouldPersistTaps="handled"
+                    nestedScrollEnabled={Platform.OS === 'web'}
+                    bounces={Platform.OS !== 'web'}
+                >
                     <View style={styles.searchContainer}>
                         <FontAwesomeIcon icon={faSearch} size={20} color="#888" style={styles.searchIcon} />
                         <TextInput
@@ -172,19 +326,26 @@ const SupervisorAnalisesScreen: React.FC = () => {
                             placeholder="Pesquisar atleta..."
                             placeholderTextColor="#888"
                             value={searchText}
-                            onChangeText={setSearchText}
+                            onChangeText={handleSearchChange}
+                            autoCapitalize="none"
+                            autoCorrect={false}
                         />
                     </View>
                     
                     <View style={styles.atletasListContainer}>
                         <Text style={styles.subTitle}>Atletas</Text>
                         <FlatList
+                            ref={flatListRef}
                             data={filteredAtletas}
-                            keyExtractor={(item) => item.id.toString()}
+                            keyExtractor={(item) => `atleta-${item.id}`}
                             renderItem={renderAtletaItem}
-                            ListEmptyComponent={<Text style={styles.emptyText}>Nenhum atleta encontrado.</Text>}
-                            contentContainerStyle={{ paddingBottom: 10 }}
+                            ListEmptyComponent={renderEmptyAtletas}
+                            contentContainerStyle={[{ paddingBottom: 10 }, Platform.OS === 'web' && styles.webFlatList]}
                             scrollEnabled={false}
+                            showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                            keyboardShouldPersistTaps="handled"
+                            nestedScrollEnabled={Platform.OS === 'web'}
+                            bounces={Platform.OS !== 'web'}
                         />
                     </View>
 
@@ -196,12 +357,17 @@ const SupervisorAnalisesScreen: React.FC = () => {
                             ) : analises.length > 0 ? (
                                 <FlatList
                                     data={analises}
-                                    keyExtractor={(item) => item.id.toString()}
+                                    keyExtractor={(item) => `analise-${item.id}`}
                                     renderItem={renderAnaliseItem}
                                     scrollEnabled={false}
+                                    showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                                    keyboardShouldPersistTaps="handled"
+                                    nestedScrollEnabled={Platform.OS === 'web'}
+                                    bounces={Platform.OS !== 'web'}
+                                    ItemSeparatorComponent={() => <View style={styles.separator} />}
                                 />
                             ) : (
-                                <Text style={styles.emptyText}>Nenhuma análise de IA disponível para {selectedAtleta.nomeCompleto}.</Text>
+                                renderEmptyAnalises()
                             )}
                         </View>
                     )}
@@ -227,10 +393,34 @@ const styles = StyleSheet.create({
         borderBottomRightRadius: 15,
         marginBottom: 10,
     },
-    headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 15, paddingLeft: 30 },
-    backButton: { padding: 5 },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    errorText: { textAlign: 'center', color: 'red', margin: 20 },
+    headerTitle: { 
+        color: '#fff', 
+        fontSize: 20, 
+        fontWeight: 'bold', 
+        marginLeft: 15, 
+        paddingLeft: 30,
+        flex: 1
+    },
+    backButton: { 
+        padding: 8,
+        borderRadius: 20,
+    },
+    centered: { 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center' 
+    },
+    errorText: { 
+        textAlign: 'center', 
+        color: '#e74c3c', 
+        margin: 20,
+        fontSize: 16,
+        backgroundColor: '#ffeaea',
+        padding: 15,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e74c3c'
+    },
     content: { 
         flex: 1,
         paddingHorizontal: 15,
@@ -238,8 +428,8 @@ const styles = StyleSheet.create({
     subTitle: { 
         fontSize: 18, 
         fontWeight: 'bold', 
-        marginBottom: 10,
-        color: '#333', 
+        marginBottom: 12,
+        color: '#2c3e50', 
     },
     searchContainer: {
         flexDirection: 'row',
@@ -249,13 +439,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         marginBottom: 15,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        elevation: 3,
     },
     searchIcon: {
-        marginRight: 10,
+        marginRight: 12,
     },
     searchInput: {
         flex: 1,
@@ -264,7 +454,7 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     atletasListContainer: { 
-        marginBottom: 10,
+        marginBottom: 15,
     },
     atletaCard: {
         flexDirection: 'row',
@@ -273,47 +463,115 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         paddingVertical: 15,
         paddingHorizontal: 20,
-        borderRadius: 10,
-        marginVertical: 4,
+        borderRadius: 12,
+        marginVertical: 3,
         borderWidth: 1,
-        borderColor: '#ddd',
+        borderColor: '#e0e0e0',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
+        shadowRadius: 3,
         elevation: 2,
     },
     atletaCardSelected: {
-        backgroundColor: '#e6f7ff',
-        borderColor: '#004A8F',
+        backgroundColor: '#e3f2fd',
+        borderColor: '#1c348e',
+        borderWidth: 2,
     },
-    atletaName: { fontSize: 16, color: '#333', fontWeight: '500' },
+    atletaInfo: {
+        flex: 1,
+        marginRight: 10,
+    },
+    atletaName: { 
+        fontSize: 16, 
+        color: '#2c3e50', 
+        fontWeight: '600',
+        marginBottom: 2
+    },
+    atletaEmail: {
+        fontSize: 14,
+        color: '#7f8c8d',
+        fontStyle: 'italic'
+    },
     analisesContainer: { 
-        marginTop: 10,
+        marginTop: 15,
     },
     analiseCard: {
         backgroundColor: '#fff',
         padding: 20,
         borderRadius: 12,
-        marginBottom: 10,
+        marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.12,
         shadowRadius: 4,
         elevation: 3,
+        borderLeftWidth: 4,
+        borderLeftColor: '#1c348e',
     },
     analiseCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 12,
+        paddingBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ecf0f1',
     },
-    analiseTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
-    analiseText: { fontSize: 14, color: '#555', lineHeight: 22 },
+    analiseTitle: { 
+        fontSize: 18, 
+        fontWeight: 'bold', 
+        marginLeft: 12,
+        color: '#2c3e50',
+        flex: 1
+    },
+    analiseDate: {
+        fontSize: 14,
+        color: '#7f8c8d',
+        marginBottom: 12,
+        fontStyle: 'italic'
+    },
+    analiseContent: {
+        marginTop: 8,
+    },
+    analiseText: { 
+        fontSize: 15, 
+        color: '#34495e', 
+        lineHeight: 24,
+        marginBottom: 8,
+        textAlign: 'justify'
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        padding: 30,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        marginVertical: 10,
+    },
     emptyText: {
         textAlign: 'center',
-        marginTop: 10,
         fontSize: 16,
-        color: '#888',
+        color: '#7f8c8d',
+        fontStyle: 'italic'
+    },
+    separator: {
+        height: 8,
+    },
+    // Estilos específicos para web
+    webScrollView: {
+        ...Platform.select({
+            web: {
+                maxHeight: 820, // or any appropriate numeric value
+                overflow: 'visible', // valid values: 'visible' or 'hidden'
+            },
+        }),
+    },
+    webFlatList: {
+        ...Platform.select({
+            web: {
+                maxHeight: 400, // Use a numeric value for maxHeight
+                overflow: 'visible', // Use a valid value for overflow
+            },
+        }),
     },
 });
 

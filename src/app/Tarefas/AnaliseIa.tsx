@@ -305,74 +305,79 @@ const SupervisorAnalisesScreen: React.FC = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Análises de Desempenho (IA)</Text>
             </View>
-
-            {loadingAtletas ? (
-                <ActivityIndicator size="large" color="#004A8F" style={styles.centered} />
-            ) : error ? (
-                <Text style={styles.errorText}>{error}</Text>
-            ) : (
-                <ScrollView 
-                    ref={scrollViewRef}
-                    style={[styles.content, Platform.OS === 'web' && styles.webScrollView]}
-                    showsVerticalScrollIndicator={Platform.OS !== 'web'}
-                    keyboardShouldPersistTaps="handled"
-                    nestedScrollEnabled={Platform.OS === 'web'}
-                    bounces={Platform.OS !== 'web'}
-                >
-                    <View style={styles.searchContainer}>
-                        <FontAwesomeIcon icon={faSearch} size={20} color="#888" style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Pesquisar atleta..."
-                            placeholderTextColor="#888"
-                            value={searchText}
-                            onChangeText={handleSearchChange}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-                    </View>
-                    
-                    <View style={styles.atletasListContainer}>
-                        <Text style={styles.subTitle}>Atletas</Text>
-                        <FlatList
-                            ref={flatListRef}
-                            data={filteredAtletas}
-                            keyExtractor={(item) => `atleta-${item.id}`}
-                            renderItem={renderAtletaItem}
-                            ListEmptyComponent={renderEmptyAtletas}
-                            contentContainerStyle={[{ paddingBottom: 10 }, Platform.OS === 'web' && styles.webFlatList]}
-                            scrollEnabled={false}
-                            showsVerticalScrollIndicator={Platform.OS !== 'web'}
-                            keyboardShouldPersistTaps="handled"
-                            nestedScrollEnabled={Platform.OS === 'web'}
-                            bounces={Platform.OS !== 'web'}
-                        />
-                    </View>
-
-                    {selectedAtleta && (
-                        <View style={styles.analisesContainer}>
-                            <Text style={styles.subTitle}>Análises de {selectedAtleta.nomeCompleto}</Text>
-                            {loadingAnalises ? (
-                                <ActivityIndicator size="large" color="#004A8F" />
-                            ) : analises.length > 0 ? (
-                                <FlatList
-                                    data={analises}
-                                    keyExtractor={(item) => `analise-${item.id}`}
-                                    renderItem={renderAnaliseItem}
-                                    scrollEnabled={false}
-                                    showsVerticalScrollIndicator={Platform.OS !== 'web'}
-                                    keyboardShouldPersistTaps="handled"
-                                    nestedScrollEnabled={Platform.OS === 'web'}
-                                    bounces={Platform.OS !== 'web'}
-                                    ItemSeparatorComponent={() => <View style={styles.separator} />}
-                                />
-                            ) : (
-                                renderEmptyAnalises()
-                            )}
+            
+            {/* NOVO CONTAINER DE RESPONSIVIDADE WEB */}
+            <View style={Platform.OS === 'web' ? styles.webContainer : styles.flex1}>
+            {/* FIM NOVO CONTAINER */}
+            
+                {loadingAtletas ? (
+                    <ActivityIndicator size="large" color="#004A8F" style={styles.centered} />
+                ) : error ? (
+                    <Text style={styles.errorText}>{error}</Text>
+                ) : (
+                    <ScrollView 
+                        ref={scrollViewRef}
+                        style={[styles.content, Platform.OS === 'web' && styles.webScrollView]}
+                        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled={Platform.OS === 'web'}
+                        bounces={Platform.OS !== 'web'}
+                    >
+                        <View style={styles.searchContainer}>
+                            <FontAwesomeIcon icon={faSearch} size={20} color="#888" style={styles.searchIcon} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Pesquisar atleta..."
+                                placeholderTextColor="#888"
+                                value={searchText}
+                                onChangeText={handleSearchChange}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
                         </View>
-                    )}
-                </ScrollView>
-            )}
+                        
+                        <View style={styles.atletasListContainer}>
+                            <Text style={styles.subTitle}>Atletas</Text>
+                            <FlatList
+                                ref={flatListRef}
+                                data={filteredAtletas}
+                                keyExtractor={(item) => `atleta-${item.id}`}
+                                renderItem={renderAtletaItem}
+                                ListEmptyComponent={renderEmptyAtletas}
+                                contentContainerStyle={[{ paddingBottom: 10 }, Platform.OS === 'web' && styles.webFlatList]}
+                                scrollEnabled={false}
+                                showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                                keyboardShouldPersistTaps="handled"
+                                nestedScrollEnabled={Platform.OS === 'web'}
+                                bounces={Platform.OS !== 'web'}
+                            />
+                        </View>
+
+                        {selectedAtleta && (
+                            <View style={styles.analisesContainer}>
+                                <Text style={styles.subTitle}>Análises de {selectedAtleta.nomeCompleto}</Text>
+                                {loadingAnalises ? (
+                                    <ActivityIndicator size="large" color="#004A8F" />
+                                ) : analises.length > 0 ? (
+                                    <FlatList
+                                        data={analises}
+                                        keyExtractor={(item) => `analise-${item.id}`}
+                                        renderItem={renderAnaliseItem}
+                                        scrollEnabled={false}
+                                        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                                        keyboardShouldPersistTaps="handled"
+                                        nestedScrollEnabled={Platform.OS === 'web'}
+                                        bounces={Platform.OS !== 'web'}
+                                        ItemSeparatorComponent={() => <View style={styles.separator} />}
+                                    />
+                                ) : (
+                                    renderEmptyAnalises()
+                                )}
+                            </View>
+                        )}
+                    </ScrollView>
+                )}
+            </View> {/* FIM NOVO CONTAINER */}
         </SafeAreaView>
     );
 };
@@ -556,23 +561,38 @@ const styles = StyleSheet.create({
     separator: {
         height: 8,
     },
+    flex1: {
+        flex: 1,
+    },
     // Estilos específicos para web
+    webContainer: {
+        ...Platform.select({
+            web: {
+                // Limita a largura do conteúdo e centraliza para telas maiores
+                maxWidth: 800, 
+                width: '100%', 
+                alignSelf: 'center', 
+                flex: 1,
+            },
+        }),
+    },
     webScrollView: {
         ...Platform.select({
             web: {
-                maxHeight: 820, // or any appropriate numeric value
-                overflow: 'visible', // valid values: 'visible' or 'hidden'
+                // Permite scroll com o mouse na web
+                overflowY: 'auto',
+                maxHeight: '90vh',
             },
         }),
-    },
+    } as any,
     webFlatList: {
         ...Platform.select({
             web: {
-                maxHeight: 400, // Use a numeric value for maxHeight
-                overflow: 'visible', // Use a valid value for overflow
+                // Removendo maxHeight para permitir a visualização de todos os atletas
+                maxHeight: undefined, 
             },
         }),
-    },
+    } as any,
 });
 
 export default SupervisorAnalisesScreen;

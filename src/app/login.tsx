@@ -24,16 +24,13 @@ interface CustomJwtPayload extends JwtPayload {
   roles?: string[];
 }
 
+const screenData = Dimensions.get('screen');
+const isDesktop = screenData.width >= 1024;
+
 const LoginScreen = () => {
   const [emailAluno, setEmailAluno] = useState('');
   const [senhaAluno, setSenhaAluno] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Hook para responsividade
-  const screenData = Dimensions.get('screen');
-  const isDesktop = screenData.width >= 1024;
-  const isTablet = screenData.width >= 768 && screenData.width < 1024;
-  const isMobile = screenData.width < 768;
 
   const handleCadastro = () => router.navigate('./Cadastro/CadastroAlun');
   const handleVoltar = () => router.back();
@@ -90,60 +87,62 @@ const LoginScreen = () => {
 
   const content = (
     <ScrollView
-      contentContainerStyle={styles.container}
+      contentContainerStyle={styles.mainContainer}
       keyboardShouldPersistTaps="always"
-      onTouchStart={Keyboard.dismiss} // 👈 substitui Pressable externo
+      onTouchStart={Keyboard.dismiss}
     >
-      <Image
-        source={require('../../assets/images/escudo.png')}
-        style={styles.logo}
-      />
+      <View style={styles.cardContainer}> 
+        <Image
+          source={require('../../assets/images/escudo.png')}
+          style={styles.logo}
+        />
 
-      <Text style={styles.title}>Login</Text>
+        <Text style={styles.title}>Seja Bem vindo!</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={emailAluno}
-        onChangeText={setEmailAluno}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        returnKeyType="next"
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={emailAluno}
+          onChangeText={setEmailAluno}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          returnKeyType="next"
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        secureTextEntry
-        value={senhaAluno}
-        onChangeText={setSenhaAluno}
-        returnKeyType="done"
-        onSubmitEditing={handleLogin}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          secureTextEntry
+          value={senhaAluno}
+          onChangeText={setSenhaAluno}
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+        />
 
-      <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          pressed && { opacity: 0.8 },
-          loading && { opacity: 0.5 }
-        ]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : (
-          <Text style={styles.buttonText}>Entrar</Text>
-        )}
-      </Pressable>
-
-      <View style={styles.signupButton}>
-        <Pressable onPress={handleCadastro}>
-          <Text style={styles.signupButtonText}>Cadastre-se</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && { opacity: 0.8 },
+            loading && { opacity: 0.5 }
+          ]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#ffffff" />
+          ) : (
+            <Text style={styles.buttonText}>Entrar</Text>
+          )}
         </Pressable>
-        <Pressable onPress={handleVoltar}>
-          <Text style={styles.signupButtonText}>Menu</Text>
-        </Pressable>
+
+        <View style={styles.signupButton}>
+          <Pressable onPress={handleCadastro}>
+            <Text style={styles.signupButtonText}>Cadastre-se</Text>
+          </Pressable>
+          <Pressable onPress={handleVoltar}>
+            <Text style={styles.signupButtonText}>Menu</Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
   );
@@ -160,25 +159,49 @@ const LoginScreen = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
-  container: {
+
+  mainContainer: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 10,
     backgroundColor: '#f5f5f5',
   },
+  
+  cardContainer: {
+    width: '100%',
+    maxWidth: Platform.select({
+      web: isDesktop ? 500 : '100%',
+      default: '100%',
+    }),
+    alignSelf: 'center',
+    padding: isDesktop ? 30 : 0,
+    borderRadius: isDesktop ? 12 : 0,
+    backgroundColor: isDesktop ? '#fff' : 'transparent',
+    
+    ...Platform.select({
+      web: isDesktop && {
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      },
+    }),
+  },
+  
   logo: {
     width: '100%',
-    height: 200,
-    borderRadius: 55,
-    marginBottom: 20,
+    height: Platform.OS === 'web' ? 400 : 350, 
+    resizeMode: 'contain',
+    marginBottom: -60, // Removido ou reduzido para aproximar do título
   },
+  
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 20, // Aumentado para dar espaço entre o título e o primeiro input
     color: '#333',
+    textAlign: 'center',
+    marginTop: 0, // Removido para garantir proximidade com a logo
   },
   input: {
     width: '100%',
@@ -207,7 +230,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signupButton: {
-    justifyContent: 'center',
+    flexDirection: isDesktop ? 'row' : 'column',
+    justifyContent: 'space-around',
     alignItems: 'center',
     marginTop: 25,
     gap: 20,
@@ -216,6 +240,7 @@ const styles = StyleSheet.create({
     color: '#1c348e',
     fontSize: 16,
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
 

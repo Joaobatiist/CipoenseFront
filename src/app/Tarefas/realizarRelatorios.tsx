@@ -9,15 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
+ 
   Text,
   TextInput,
   TouchableOpacity,
   View,
+
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import {styles } from '../../Styles/realizarRelatorios';
 
 interface AthleteEvaluation {
   Controle: number;
@@ -159,6 +161,7 @@ const AthleteEvaluationForm = () => {
           event.preventDefault();
           if (scrollViewRef.current) {
             const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
+            // Atualiza a posição de scroll baseada na estimativa
             currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
             scrollViewRef.current.scrollTo({
               y: currentScrollPosition,
@@ -661,14 +664,7 @@ const AthleteEvaluationForm = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
     >
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={[styles.scrollViewContent, Platform.OS === 'web' && styles.webScrollView]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={Platform.OS !== 'web'}
-        nestedScrollEnabled={Platform.OS === 'web'}
-        bounces={Platform.OS !== 'web'}
-      >
+        {/* CORREÇÃO: Header movido para fora do ScrollView para ficar fixo */}
        <View style={styles.header}>
                <TouchableOpacity
                  onPress={() => navigation.goBack()}
@@ -683,419 +679,228 @@ const AthleteEvaluationForm = () => {
                <FontAwesomeIcon icon={faArrowLeft} size={24} color="#fff" />
                </TouchableOpacity>
                <Text style={styles.titulo}>Avaliação de Desempenho</Text>
-             </View>
+       </View>
 
-        <View style={[styles.card, { zIndex: 3000 }]}>
-          
-          <Text style={styles.label}>Nome do Atleta:</Text>
-          <DropDownPicker
-            open={openAtletaPicker}
-            value={selectedAtletaId}
-            items={atletasPickerItems}
-            setOpen={setOpenAtletaPicker}
-            setValue={setSelectedAtletaId}
-            onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
-            placeholder="Selecione um Atleta"
-            style={styles.dropdown}
-            containerStyle={styles.dropdownContainer}
-            zIndex={3000}
-            listMode="SCROLLVIEW"
-            itemSeparator={true}
-            itemSeparatorStyle={styles.itemSeparator}
-          />
+      <ScrollView
+        ref={scrollViewRef}
+        // CORREÇÃO: Aplica webScrollView no 'style' para habilitar scroll do mouse
+        style={Platform.OS === 'web' && styles.webScrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={Platform.OS !== 'web'}
+        nestedScrollEnabled={Platform.OS === 'web'}
+        bounces={Platform.OS !== 'web'}
+      >
+        {/* NOVO CONTAINER: Envolve todo o conteúdo para limitar e centralizar (MAX_WIDTH) */}
+        <View style={styles.mainContentContainer}>
 
-          <Text style={styles.label}>Nome do Avaliador:</Text>
-          <TextInput
-            style={styles.input}
-            value={nomeAvaliador}
-            editable={false}
-          />
+            <View style={[styles.card, { zIndex: 3000 }]}>
+            
+            <Text style={styles.label}>Nome do Atleta:</Text>
+            <DropDownPicker
+                open={openAtletaPicker}
+                value={selectedAtletaId}
+                items={atletasPickerItems}
+                setOpen={setOpenAtletaPicker}
+                setValue={setSelectedAtletaId}
+                onSelectItem={(item) => handleAtletaChange(item.value as number | null)}
+                placeholder="Selecione um Atleta"
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                zIndex={3000}
+                listMode="SCROLLVIEW"
+                itemSeparator={true}
+                itemSeparatorStyle={styles.itemSeparator}
+            />
 
-          <Text style={styles.label}>Subdivisão:</Text>
-          <DropDownPicker
-            open={openSubdivisaoPicker}
-            value={selectedSubdivisao}
-            items={subdivisaoPickerItems}
-            setOpen={setOpenSubdivisaoPicker}
-            setValue={setSelectedSubdivisao}
-            onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
-            placeholder="Selecione uma Subdivisão"
-            style={styles.dropdown}
-            containerStyle={styles.dropdownContainer}
-            disabled={isSubdivisaoPickerDisabled}
-            zIndex={2000}
-            listMode="SCROLLVIEW"
-            itemSeparator={true}
-            itemSeparatorStyle={styles.itemSeparator}
-          />
+            <Text style={styles.label}>Nome do Avaliador:</Text>
+            <TextInput
+                style={styles.input}
+                value={nomeAvaliador}
+                editable={false}
+            />
 
-          <Text style={styles.label}>Posição:</Text>
-          <DropDownPicker
-            open={openPosicaoPicker}
-            value={selectedPosicao}
-            items={posicaoPickerItems}
-            setOpen={setOpenPosicaoPicker}
-            setValue={setSelectedPosicao}
-            onSelectItem={(item) => handlePosicaoFilterChange(item.value as string)}
-            placeholder="Selecione uma Posição"
-            style={styles.dropdown}
-            containerStyle={styles.dropdownContainer}
-            disabled={isPosicaoPickerDisabled}
-            zIndex={1000}
-            listMode="SCROLLVIEW"
-            itemSeparator={true}
-            itemSeparatorStyle={styles.itemSeparator}
-          />
+            <Text style={styles.label}>Subdivisão:</Text>
+            <DropDownPicker
+                open={openSubdivisaoPicker}
+                value={selectedSubdivisao}
+                items={subdivisaoPickerItems}
+                setOpen={setOpenSubdivisaoPicker}
+                setValue={setSelectedSubdivisao}
+                onSelectItem={(item) => handleSubdivisaoFilterChange(item.value as string)}
+                placeholder="Selecione uma Subdivisão"
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                disabled={isSubdivisaoPickerDisabled}
+                zIndex={2000}
+                listMode="SCROLLVIEW"
+                itemSeparator={true}
+                itemSeparatorStyle={styles.itemSeparator}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Período"
-            value={periodo}
-            onChangeText={setPeriodo}
-          />
-        </View>
+            <Text style={styles.label}>Posição:</Text>
+            <DropDownPicker
+                open={openPosicaoPicker}
+                value={selectedPosicao}
+                items={posicaoPickerItems}
+                setOpen={setOpenPosicaoPicker}
+                setValue={setSelectedPosicao}
+                onSelectItem={(item) => handlePosicaoFilterChange(item.value as string)}
+                placeholder="Selecione uma Posição"
+                style={styles.dropdown}
+                containerStyle={styles.dropdownContainer}
+                disabled={isPosicaoPickerDisabled}
+                zIndex={1000}
+                listMode="SCROLLVIEW"
+                itemSeparator={true}
+                itemSeparatorStyle={styles.itemSeparator}
+            />
 
-        {renderAvaliacaoTable('Desempenho do Atleta', [
-          'Controle',
-          'recepcao',
-          'dribles',
-          'passe',
-          'tiro',
-          'cruzamento',
-          'giro',
-          'manuseioBola',
-          'forcaChute',
-          'GerenciamentoGols',
-          'jogoOfensivo',
-          'jogoDefensivo',
-        ])}
+            <TextInput
+                style={styles.input}
+                placeholder="Período"
+                value={periodo}
+                onChangeText={setPeriodo}
+            />
+            </View>
 
-        {renderAvaliacaoTable('Avaliação Tática/Psicológica/Física', [
-          'esportividade',
-          'disciplina',
-          'foco',
-          'confianca',
-          'tomadaDecisoes',
-          'compromisso',
-          'lideranca',
-          'trabalhoEquipe',
-          'atributosFisicos',
-          'capacidadeSobPressao',
-        ])}
+            {renderAvaliacaoTable('Desempenho do Atleta', [
+            'Controle',
+            'recepcao',
+            'dribles',
+            'passe',
+            'tiro',
+            'cruzamento',
+            'giro',
+            'manuseioBola',
+            'forcaChute',
+            'GerenciamentoGols',
+            'jogoOfensivo',
+            'jogoDefensivo',
+            ])}
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Avaliação Geral do Jogador</Text>
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Feedback do Treinador"
-            value={feedbackTreinador}
-            onChangeText={setFeedbackTreinador}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Feedback do Avaliador"
-            value={feedbackAvaliador}
-            onChangeText={setFeedbackAvaliador}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Pontos Fortes"
-            value={pontosFortes}
-            onChangeText={setPontosFortes}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Pontos Fracos"
-            value={pontosFracos}
-            onChangeText={setPontosFracos}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Áreas de Aprimoramento"
-            value={areasAprimoramento}
-            onChangeText={setAreasAprimoramento}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-          <TextInput
-            style={[styles.input, styles.multilineInput]}
-            placeholder="Metas/Planos/Objetivos"
-            value={metasObjetivos}
-            onChangeText={setMetasObjetivos}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-        </View>
+            {renderAvaliacaoTable('Avaliação Tática/Psicológica/Física', [
+            'esportividade',
+            'disciplina',
+            'foco',
+            'confianca',
+            'tomadaDecisoes',
+            'compromisso',
+            'lideranca',
+            'trabalhoEquipe',
+            'atributosFisicos',
+            'capacidadeSobPressao',
+            ])}
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Finalização</Text>
-          <TextInputMask
-            style={styles.input}
-            type={'datetime'}
-            options={{
-              format: 'DD/MM/YYYY',
-            }}
-            value={dataAvaliacao}
-            onChangeText={setDataAvaliacao}
-            placeholder="Data da avaliação (DD/MM/YYYY)"
-            keyboardType="numeric"
-          />
-         
+            <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Avaliação Geral do Jogador</Text>
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Feedback do Treinador"
+                value={feedbackTreinador}
+                onChangeText={setFeedbackTreinador}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Feedback do Avaliador"
+                value={feedbackAvaliador}
+                onChangeText={setFeedbackAvaliador}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Pontos Fortes"
+                value={pontosFortes}
+                onChangeText={setPontosFortes}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Pontos Fracos"
+                value={pontosFracos}
+                onChangeText={setPontosFracos}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Áreas de Aprimoramento"
+                value={areasAprimoramento}
+                onChangeText={setAreasAprimoramento}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            <TextInput
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Metas/Planos/Objetivos"
+                value={metasObjetivos}
+                onChangeText={setMetasObjetivos}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+            />
+            </View>
 
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && styles.buttonDisabled
-              ]}
-              onPress={handleSubmit}
-              disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao}
-              {...(Platform.OS === 'web' && !(isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
-                cursor: 'pointer',
-                activeOpacity: 0.8,
-              })}
-              {...(Platform.OS === 'web' && (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
-                cursor: 'not-allowed',
-              })}
-              accessibilityLabel="Salvar avaliação do atleta"
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Salvar Avaliação</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.goBack()}>
-              <Text style={styles.buttonTextSecondary}>Voltar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Finalização</Text>
+            <TextInputMask
+                style={styles.input}
+                type={'datetime'}
+                options={{
+                format: 'DD/MM/YYYY',
+                }}
+                value={dataAvaliacao}
+                onChangeText={setDataAvaliacao}
+                placeholder="Data da avaliação (DD/MM/YYYY)"
+                keyboardType="numeric"
+            />
+            
+
+            <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                style={[
+                    styles.button,
+                    (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && styles.buttonDisabled
+                ]}
+                onPress={handleSubmit}
+                disabled={isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao}
+                {...(Platform.OS === 'web' && !(isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
+                    cursor: 'pointer',
+                    activeOpacity: 0.8,
+                })}
+                {...(Platform.OS === 'web' && (isLoading || !authToken || !isTokenLoaded || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) && {
+                    cursor: 'not-allowed',
+                })}
+                accessibilityLabel="Salvar avaliação do atleta"
+                >
+                {isLoading ? (
+                    <ActivityIndicator color="#fff" />
+                ) : (
+                    <Text style={styles.buttonText}>Salvar Avaliação</Text>
+                )}
+                </TouchableOpacity>
+                {/* CORREÇÃO: Estilo do botão secundário para ter fundo transparente */}
+                <TouchableOpacity style={styles.buttonSecondary} onPress={() => navigation.goBack()}>
+                <Text style={styles.buttonTextSecondary}>Voltar</Text>
+                </TouchableOpacity>
+            </View>
+            </View>
+        </View> {/* Fim do mainContentContainer */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 
-const styles = StyleSheet.create({
-  keyboardAvoidingContainer: {
-    flex: 1,
-    
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1c348e',
-    textAlign: 'center',
-    marginBottom: 24,
-    marginTop: 50,
-  },
-   header: {
-    backgroundColor: "#1c348e",
-    padding: 10,
-    paddingTop: Platform.OS === 'android' ? 40 : 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5c228',
-  },
-  titulo:{
-    flex: 1,
-    color: "#ffffffff",
-     marginLeft: 40,
-     top: 5,
-     paddingLeft: 20,
-    fontSize: 20,
-    fontWeight: 'bold',
-  
-  },
-  btnVoltar: {
-    padding: 5,
-    top: 5,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5c228',
-    paddingBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#555',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#1c348e',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: '#333',
-    backgroundColor: '#f7db6142',
-    marginBottom: 10,
-  },
-  multilineInput: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  table: {
-    width: '100%',
-    marginBottom: 10,
-  },
-  tableHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  tableHead: {
-    width: '50%',
-    fontWeight: 'bold',
-    color: '#1c348e',
-    paddingHorizontal: 12,
-    fontSize: 14,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingVertical: 12,
-  },
-  tableCell: {
-    width: '50%',
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: '#555',
-  },
-  ratingOptionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '50%',
-    alignItems: 'center',
-  },
-  ratingOption: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 16,
-    backgroundColor: '#e0e0e0',
-  },
-  ratingOptionSelected: {
-    backgroundColor: '#1c348e', // Cor principal para seleção
-  },
-  ratingOptionText: {
-    color: '#555',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  ratingOptionTextSelected: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    backgroundColor: '#1c348e',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  buttonSecondary: {
-    flex: 1,
-    backgroundColor: '#1c348e',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#1c348e',
-  },
-  buttonText: {
-    color: '#ffffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  buttonTextSecondary: {
-    color: '#f5f5f5ff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  buttonDisabled: {
-    backgroundColor: '#1c348e',
-  },
-  dropdownContainer: {
-    height: 50,
-    marginBottom: 10,
-  },
-  dropdown: {
-    backgroundColor: '#fff',
-    borderColor: '#ccc',
-    borderRadius: 8,
-  },
-  itemSeparator: {
-    height: 1,
-    backgroundColor: '#eee',
-  },
-  // Estilo específico para web
-  webScrollView: {
-    ...Platform.select({
-      web: {
-        maxHeight: 800, // Use a numeric value for maxHeight
-        overflow: 'visible', // Use only 'visible' or 'hidden'
-      },
-    }),
-  },
-});
+// --- NOVOS ESTILOS RESPONSIVOS ---
+
 
 export default AthleteEvaluationForm;

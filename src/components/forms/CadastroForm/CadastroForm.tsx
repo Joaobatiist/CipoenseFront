@@ -143,7 +143,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
     <View style={[styles.fieldContainer, { zIndex: open ? zIndex : 1 }]}>
       <Text style={styles.fieldLabel}>
         {label}
-        {required && <Text style={styles.requiredIndicator}> *</Text>}
+        {required && <Text style={styles.requiredIndicator}> </Text>}
       </Text>
       <DropDownPicker
         open={open}
@@ -546,12 +546,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           nestedScrollEnabled={Platform.OS === 'web'}
           bounces={Platform.OS !== 'web'}
         >
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('../../../../assets/images/escudo.png')}
-              style={styles.logo}
-            />
-          </View>
+          
 
           {/* Common Fields */}
           <FormField

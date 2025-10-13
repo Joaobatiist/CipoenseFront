@@ -1,18 +1,27 @@
-import { faArrowLeft, faSearch, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+  faArrowLeft,
+  faEdit,
+  faSearch,
+  faTrashAlt
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import axios from 'axios';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  NavigationProp,
+  useFocusEffect,
+  useNavigation
+} from '@react-navigation/native';
+import axios, { isAxiosError } from 'axios';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
   Alert,
-  Button,
   FlatList,
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -21,22 +30,22 @@ import {
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 
-// Definindo as cores do tema com base no logo da Cipoense
+// Definindo as cores do tema
 const COLORS = {
-  primary: '#0E2A5C', // Azul Escuro (base do escudo)
-  secondary: '#FDCB01', // Amarelo Ouro (destaques)
+  primary: '#0E2A5C', 
+  secondary: '#FDCB01', 
   white: '#FFFFFF',
-  textPrimary: '#333333', // Texto principal
-  textSecondary: '#555555', // Texto secundário
-  success: '#28a745', // Verde para sucesso
-  danger: '#DC3545', // Vermelho para perigo/excluir
-  info: '#007BFF', // Azul para ações informativas/botões
-  background: '#F0F2F5', // Um cinza claro para o fundo geral
+  textPrimary: '#333333', 
+  textSecondary: '#555555', 
+  danger: '#DC3545', 
+  background: '#F0F2F5', 
   cardBackground: '#FFFFFF',
-  borderColor: '#E0E0E0', // Cor de borda leve
-  // Adicionando um tom de azul para bordas/separadores se necessário
-  blueBorder: '#1E4E8A', 
+  borderColor: '#E0E0E0',
+  headerColor: '#1c348e', 
 };
+
+const STATUS_BAR_HEIGHT = Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 0;
+const HEADER_HEIGHT = Platform.OS === 'web' ? 70 : 60 + STATUS_BAR_HEIGHT; 
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
@@ -56,206 +65,33 @@ type Funcionarios = {
   telefone: string;
   roles: string;
   uniqueId: string;
-  
 };
 
+// Tipagem correta para a navegação
+type RootStackParamList = {
+    ListaFuncionarios: undefined;
+    // Adicione outras telas se houver links de navegação para elas
+};
+type ListaFuncionariosNavigationProp = NavigationProp<RootStackParamList, 'ListaFuncionarios'>;
+
+
 const ListaFuncionarios = () => {
-  const navigation = useNavigation();
-  const flatListRef = useRef<FlatList>(null);
+  const navigation = useNavigation<ListaFuncionariosNavigationProp>();
+  const flatListRef = useRef<FlatList<Funcionarios>>(null);
   const modalScrollViewRef = useRef<ScrollView>(null);
   const [funcionario, setFuncionario] = useState<Funcionarios[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedFuncionario, setSelectedFuncionario] = useState<Funcionarios | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Funcionarios>>({
-  });
+  const [editForm, setEditForm] = useState<Partial<Funcionarios>>({});
   const [editLoading, setEditLoading] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>(''); // Novo estado para o termo de busca
-  const [openRolesPicker, setOpenRolesPicker] = useState<boolean>(false); // Estado para o dropdown de roles
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [openRolesPicker, setOpenRolesPicker] = useState<boolean>(false); 
+  const [focusIndex, setFocusIndex] = useState<number>(-1);
 
-  // Implementar navegação por teclado para web
-  useEffect(() => {
-    if (Platform.OS === 'web') {
-      let currentScrollPosition = 0;
-      let modalScrollPosition = 0;
-
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (modalVisible) {
-          // Navegação no modal com ESC e scroll
-          if (event.key === 'Escape') {
-            setOpenRolesPicker(false);
-            setModalVisible(false);
-          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (modalScrollViewRef.current) {
-              const scrollDirection = event.key === 'ArrowDown' ? 50 : -50;
-              modalScrollPosition = Math.max(0, modalScrollPosition + scrollDirection);
-              modalScrollViewRef.current.scrollTo({
-                y: modalScrollPosition,
-                animated: true,
-              });
-            }
-          }
-        } else {
-          // Navegação na lista principal
-          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (flatListRef.current) {
-              const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
-              currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
-              flatListRef.current.scrollToOffset({
-                offset: currentScrollPosition,
-                animated: true,
-              });
-            }
-          }
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [modalVisible]);
-
-  // Função para buscar funcionario na API
-  const fetchAtletas = async () => {
-    try {
-      setLoading(true);
-      const token = await AsyncStorage.getItem('jwtToken');
-      const response = await axios.get<Funcionarios[]>(`${API_URL}/api/funcionarios/listarfuncionarios`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFuncionario(response.data);
-    } catch (error) {
-      console.error('Erro ao carregar lista de funcionario:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a lista de contatos.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Efeito para carregar funcionario ao focar na tela
-  useFocusEffect(
-    useCallback(() => {
-      fetchAtletas();
-    }, [])
-  );
-
-  // Manipulador para atualização da lista (pull-to-refresh)
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchAtletas();
-  };
-
-  // Função utilitária para formatar a data
-  const formatarData = (dataString: string) => {
-    if (!dataString || dataString === 'Não informada') return dataString;
-    try {
-      const [ano, mes, dia] = dataString.split('-');
-      if (ano && mes && dia) {
-        return `${dia}/${mes}/${ano}`;
-      }
-      return dataString;
-    } catch {
-      return dataString;
-    }
-  };
-
-  
-
-  // Manipulador para abrir o modal de edição de funcionario
-  const handleEditAtleta = (funcionario: Funcionarios) => {
-    setSelectedFuncionario(funcionario);
-    setEditForm({
-      nome: funcionario.nome,
-      email: funcionario.email,
-      dataNascimento: funcionario.dataNascimento,
-      cpf: funcionario.cpf,
-      telefone: funcionario.telefone,
-      roles: funcionario.roles,
-    });
-    setOpenRolesPicker(false); // Garante que o dropdown está fechado
-    setModalVisible(true);
-  };
-
-  // Manipulador para salvar as edições do funcionario
-const handleSaveEdit = async () => {
-  if (!selectedFuncionario || !editForm.nome || !editForm.roles) {
-    Alert.alert('Erro', 'Nome e tipo (roles) são obrigatórios.');
-    return;
-  }
-
-  try {
-    setEditLoading(true);
-    const token = await AsyncStorage.getItem('jwtToken');
-    
-    // Altere o ID para ser enviado na URL
-    const url = `${API_URL}/api/funcionarios/${selectedFuncionario.id}`;
-
-    // Envie o DTO de atualização com os dados do formulário
-    const updateDTO = {
-      ...editForm,
-      id: selectedFuncionario.id,
-      roles: editForm.roles
-    };
-    
-    await axios.put(url, updateDTO, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    // Atualiza a lista de funcionário com os dados editados
-    // A melhor prática é recarregar a lista para garantir que os dados estejam sincronizados
-    await fetchAtletas();
-
-    Alert.alert('Sucesso', 'Perfil do funcionário atualizado com sucesso!');
-    setOpenRolesPicker(false); // Fecha o dropdown
-    setModalVisible(false); // Fecha o modal após salvar
-  } catch (error) {
-    console.error('Erro ao salvar edições:', error);
-    Alert.alert('Erro', 'Não foi possível atualizar o perfil do funcionário.');
-  } finally {
-    setEditLoading(false);
-  }
-};
-
-  // Manipulador para excluir um funcionario
- const handleDelete = (funcionarioId: number, funcionarioRole: string) => {
-  Alert.alert(
-    'Confirmar Exclusão',
-    'Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.',
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        onPress: async () => {
-          try {
-            const token = await AsyncStorage.getItem('jwtToken');
-
-            // Mude a URL para incluir o ID e passe o cargo como parâmetro
-            const url = `${API_URL}/api/funcionarios/${funcionarioId}`;
-            await axios.delete(url, {
-              headers: { Authorization: `Bearer ${token}` },
-              params: { roles: funcionarioRole }
-            });
-
-            // Recarrega a lista para mostrar a exclusão
-            await fetchAtletas();
-
-            Alert.alert('Sucesso', 'Funcionário excluído com sucesso!');
-          } catch (error) {
-            console.error('Erro ao excluir funcionário:', error);
-            Alert.alert('Erro', 'Não foi possível excluir o funcionário.');
-          }
-        },
-        style: 'destructive',
-      },
-    ]
-  );
-};
-
-  const filteredAtletas = useCallback(() => {
+  // --- REFACTOR 1: Usa useMemo para Filtragem Otimizada ---
+  const filteredData = useMemo(() => {
     if (!searchTerm) {
       return funcionario;
     }
@@ -265,42 +101,248 @@ const handleSaveEdit = async () => {
     );
   }, [funcionario, searchTerm]);
 
-  // Função para renderizar cada item da lista de funcionario
-  const renderAtletaItem = ({ item }: { item: Funcionarios }) => (
-    <TouchableOpacity 
-      style={styles.atletaCard} 
-      onPress={() => handleEditAtleta(item)}
-      {...(Platform.OS === 'web' && {
-        cursor: 'pointer',
-        activeOpacity: 0.7,
-      })}
-      accessibilityLabel={`Editar funcionário ${item.nome}`}
-    >
-      <View style={styles.atletaInfo}>
-        <Text style={styles.atletaName}>{item.nome}</Text>
-        <Text style={styles.atletaDetail}>Cpf: {item.cpf}</Text>
-        <Text style={styles.atletaDetail}>Email: {item.email}</Text>
-        <Text style={styles.atletaDetail}>telefone: {item.telefone}</Text>
-        <Text style={styles.atletaDetail}>email: {item.email}</Text>
-        <Text style={styles.atletaDetail}>Data Nascismento: {formatarData(item.dataNascimento)}</Text>
-        <Text style={styles.atletaDetail}>Tipo: {item.roles ? item.roles : 'Não informado'}</Text>
-    
-      </View>
-      <TouchableOpacity 
-        onPress={() => handleDelete(item.id, item.roles)} 
-        style={styles.deleteButton}
-        {...(Platform.OS === 'web' && {
-          cursor: 'pointer',
-          activeOpacity: 0.8,
-        })}
-        accessibilityLabel={`Excluir funcionário ${item.nome}`}
-      >
-        <FontAwesomeIcon icon={faTrashAlt} size={20} color={'#DC3545'} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+  // Função para buscar funcionário na API
+  const fetchFuncionarios = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      const response = await axios.get<Funcionarios[]>(`${API_URL}/api/funcionarios/listarfuncionarios`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFuncionario(response.data);
+      setFocusIndex(0);
+    } catch (error) {
+      console.error('Erro ao carregar lista de funcionários:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a lista de contatos.');
+      setFuncionario([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchFuncionarios();
+    }, [])
   );
 
-  // Exibe indicador de carregamento se a lista estiver vazia e estiver carregando
+  // Manipulador para atualização da lista (pull-to-refresh)
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchFuncionarios();
+  };
+
+  // Função utilitária para formatar a data (desabilitada temporariamente)
+  // const formatarData = (dataString: string) => {
+  //   if (!dataString || dataString === 'Não informada') return dataString;
+  //   try {
+  //     const datePart = dataString.split('T')[0];
+  //     const [ano, mes, dia] = datePart.split('-');
+  //     if (ano && mes && dia) {
+  //       return `${dia}/${mes}/${ano}`;
+  //     }
+  //     return dataString;
+  //   } catch {
+  //     return dataString;
+  //   }
+  // };
+
+  // Manipulador para abrir o modal de edição
+  const handleEditAtleta = (funcionario: Funcionarios) => {
+    setSelectedFuncionario(funcionario);
+    const dataNascimentoFormatada = funcionario.dataNascimento?.split('T')[0] || funcionario.dataNascimento;
+    
+    setEditForm({
+      nome: funcionario.nome,
+      email: funcionario.email,
+      dataNascimento: dataNascimentoFormatada,
+      cpf: funcionario.cpf,
+      telefone: funcionario.telefone,
+      roles: funcionario.roles,
+    });
+    setOpenRolesPicker(false);
+    setModalVisible(true);
+  };
+
+  // Manipulador para salvar as edições
+  const handleSaveEdit = async () => {
+    if (!selectedFuncionario || !editForm.nome || !editForm.roles) {
+      Alert.alert('Erro', 'Nome e tipo (roles) são obrigatórios.');
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      const token = await AsyncStorage.getItem('jwtToken');
+      
+      const url = `${API_URL}/api/funcionarios/${selectedFuncionario.id}`;
+
+      const updateDTO = {
+        ...editForm,
+        id: selectedFuncionario.id,
+        roles: editForm.roles,
+        dataNascimento: editForm.dataNascimento?.split('T')[0] || editForm.dataNascimento,
+      };
+      
+      await axios.put(url, updateDTO, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      await fetchFuncionarios();
+
+      Alert.alert('Sucesso', 'Perfil do funcionário atualizado com sucesso!');
+      setOpenRolesPicker(false);
+      setModalVisible(false);
+    } catch (error) {
+        console.error('Erro ao salvar edições:', error);
+        let errorMessage = 'Não foi possível atualizar o perfil do funcionário.';
+        if (isAxiosError(error) && error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        }
+        Alert.alert('Erro', errorMessage);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Manipulador para excluir
+  const handleDelete = (funcionarioId: number, funcionarioRole: string) => {
+    Alert.alert(
+      'Confirmar Exclusão',
+      'Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('jwtToken');
+              const url = `${API_URL}/api/funcionarios/${funcionarioId}`;
+              
+              await axios.delete(url, {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { roles: funcionarioRole }
+              });
+
+              await fetchFuncionarios();
+
+              Alert.alert('Sucesso', 'Funcionário excluído com sucesso!');
+            } catch (error) {
+              console.error('Erro ao excluir funcionário:', error);
+              let errorMessage = 'Não foi possível excluir o funcionário.';
+              if (isAxiosError(error) && error.response?.data?.message) {
+                  errorMessage = error.response.data.message;
+              }
+              Alert.alert('Erro', errorMessage);
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
+
+  // --- REFACTOR 2: Implementação da Navegação por Teclado na Web (Aprimorada) ---
+  const scrollItemToView = useCallback((index: number) => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && focusIndex >= 0) {
+      scrollItemToView(focusIndex);
+    }
+  }, [focusIndex, scrollItemToView]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (modalVisible) {
+          if (event.key === 'Escape') {
+            setOpenRolesPicker(false);
+            setModalVisible(false);
+          }
+          return; 
+        }
+
+        const listLength = filteredData.length;
+        if (listLength === 0) return;
+
+        let newIndex = focusIndex;
+
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            newIndex = Math.min(focusIndex + 1, listLength - 1);
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            newIndex = Math.max(focusIndex - 1, 0);
+            break;
+          case 'Enter':
+            if (focusIndex >= 0 && focusIndex < listLength) {
+              event.preventDefault();
+              handleEditAtleta(filteredData[focusIndex]);
+            }
+            return;
+          default:
+            return;
+        }
+
+        setFocusIndex(newIndex);
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [modalVisible, focusIndex, filteredData]);
+  // --- FIM REFACTOR 2 ---
+
+
+  // Função para renderizar cada item da lista
+  const renderFuncionarioItem = ({ item, index }: { item: Funcionarios, index: number }) => {
+    const isFocused = Platform.OS === 'web' && focusIndex === index;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.atletaCard, isFocused && styles.atletaCardFocused]} 
+        onPress={() => {
+          setFocusIndex(index);
+          handleEditAtleta(item);
+        }}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`Funcionário ${item.nome}, Cargo ${item.roles}. Pressione para editar.`}
+      >
+        <View style={styles.atletaInfo}>
+          <Text style={styles.atletaName} numberOfLines={1} ellipsizeMode="tail">{item.nome}</Text>
+          <Text style={styles.atletaDetail}>Cargo: {item.roles ? item.roles : 'Não informado'}</Text>
+          <Text style={styles.atletaDetail}>Email: {item.email}</Text>
+          <Text style={styles.atletaDetail}>Tel: {item.telefone}</Text>
+        </View>
+        <View style={styles.atletaActions}>
+          <TouchableOpacity 
+            onPress={() => handleEditAtleta(item)}
+            style={styles.editButton}
+            accessibilityLabel={`Editar ${item.nome}`}
+          >
+            <FontAwesomeIcon icon={faEdit} size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => handleDelete(item.id, item.roles)} 
+            style={styles.deleteButton}
+            accessibilityLabel={`Excluir ${item.nome}`}
+          >
+            <FontAwesomeIcon icon={faTrashAlt} size={20} color={COLORS.danger} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+  
   if (loading && funcionario.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -312,59 +354,69 @@ const handleSaveEdit = async () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabeçalho */}
+      {/* Header Fixo (Responsivo) */}
       <View style={styles.header}>
         <TouchableOpacity 
           onPress={() => navigation.goBack()} 
           style={styles.btnVoltar}
-          {...(Platform.OS === 'web' && {
-            cursor: 'pointer',
-            activeOpacity: 0.7,
-          })}
           accessibilityLabel="Voltar"
         >
           <FontAwesomeIcon icon={faArrowLeft} size={20} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Funcionarios</Text>
+        <Text style={styles.headerTitle}>Funcionários</Text>
       </View>
 
-      {/* Campo de busca */}
-      <View style={styles.searchContainer}>
-        <FontAwesomeIcon icon={faSearch} size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar funcionario por nome..." 
-          placeholderTextColor={COLORS.textSecondary}
-          value={searchTerm}
-          onChangeText={setSearchTerm} // Atualiza o termo de busca
-        />
-      </View>
-
-      {/* Exibição da lista de funcionario ou mensagem de vazio */}
-      {filteredAtletas().length === 0 ? (
-        <View style={styles.emptyListContainer}>
-          <Text style={styles.emptyListText}>
-            {searchTerm ? 'Nenhum funcionario encontrado com este nome.' : 'Nenhum funcionario encontrado.'}
-          </Text>
-          {!searchTerm && <Button title="Recarregar" onPress={handleRefresh} color={COLORS.primary} />}
+      {/* Conteúdo Principal (Compensa o header fixo) */}
+      <View style={styles.contentWrapper}>
+        
+        {/* Campo de busca */}
+        <View style={styles.searchContainer}>
+          <FontAwesomeIcon icon={faSearch} size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar funcionário por nome..." 
+            placeholderTextColor={COLORS.textSecondary}
+            value={searchTerm}
+            onChangeText={(text) => {
+              setSearchTerm(text);
+              setFocusIndex(0);
+            }} 
+            accessibilityRole="search"
+          />
         </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={filteredAtletas()} // Usa a lista filtrada
-          keyExtractor={(item) => item.uniqueId}
-          renderItem={renderAtletaItem}
-          contentContainerStyle={[styles.listContent, Platform.OS === 'web' && styles.webFlatList]}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-          showsVerticalScrollIndicator={Platform.OS !== 'web'}
-          keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled={Platform.OS === 'web'}
-          bounces={Platform.OS !== 'web'}
-        />
-      )}
 
-      {/* Modal de Edição de Atleta */}
+        {/* Exibição da lista */}
+        {filteredData.length === 0 ? (
+          <View style={styles.emptyListContainer}>
+            <Text style={styles.emptyListText}>
+              {searchTerm ? 'Nenhum funcionário encontrado com este nome.' : 'Nenhum funcionário encontrado.'}
+            </Text>
+            {!searchTerm && (
+                <TouchableOpacity style={styles.reloadButton} onPress={handleRefresh}>
+                    <Text style={styles.reloadButtonText}>Recarregar</Text>
+                </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={filteredData}
+            keyExtractor={(item) => item.uniqueId}
+            renderItem={renderFuncionarioItem}
+            contentContainerStyle={styles.listContent}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            showsVerticalScrollIndicator={Platform.OS === 'web'}
+            scrollEnabled={true}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={Platform.OS === 'web'}
+            bounces={Platform.OS !== 'web'}
+            initialNumToRender={15} // Otimização de performance
+          />
+        )}
+      </View>
+
+      {/* Modal de Edição */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -376,12 +428,12 @@ const handleSaveEdit = async () => {
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Editar Atleta</Text>
+            <Text style={styles.modalTitle}>Editar Funcionário</Text>
             {selectedFuncionario && (
               <ScrollView 
                 ref={modalScrollViewRef}
-                style={[styles.modalScrollView, Platform.OS === 'web' && styles.webModalScrollView]}
-                showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                style={styles.modalScrollView}
+                showsVerticalScrollIndicator={Platform.OS === 'web'}
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled={Platform.OS === 'web'}
                 bounces={Platform.OS !== 'web'}
@@ -394,6 +446,7 @@ const handleSaveEdit = async () => {
                   placeholder="Nome completo"
                   placeholderTextColor={COLORS.textSecondary}
                 />
+                
                 <Text style={styles.inputLabel}>Email:</Text>
                 <TextInput
                   style={styles.input}
@@ -403,7 +456,7 @@ const handleSaveEdit = async () => {
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="email-address"
                 />
-                <Text style={styles.inputLabel}>Data de Nascimento:</Text>
+                <Text style={styles.inputLabel}>Data de Nascimento (AAAA-MM-DD):</Text>
                 <TextInput
                   style={styles.input}
                   value={editForm.dataNascimento}
@@ -412,7 +465,7 @@ const handleSaveEdit = async () => {
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="numeric"
                 />
-                <Text style={styles.inputLabel}>Cpf:</Text>
+                <Text style={styles.inputLabel}>CPF:</Text>
                 <TextInput
                   style={styles.input}
                   value={editForm.cpf}
@@ -430,6 +483,7 @@ const handleSaveEdit = async () => {
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="numeric"
                 />
+
                 <Text style={styles.inputLabel}>Tipo:</Text>
                 <View style={styles.dropdownContainer}>
                   <DropDownPicker
@@ -446,8 +500,9 @@ const handleSaveEdit = async () => {
                     dropDownContainerStyle={styles.dropdownList}
                     textStyle={styles.dropdownText}
                     placeholderStyle={styles.dropdownPlaceholder}
-                    zIndex={1000}
+                    zIndex={3000} 
                     listMode="SCROLLVIEW"
+                    scrollViewProps={{ nestedScrollEnabled: true }}
                   />
                 </View>
 
@@ -460,10 +515,6 @@ const handleSaveEdit = async () => {
                   setOpenRolesPicker(false);
                   setModalVisible(false);
                 }}
-                {...(Platform.OS === 'web' && {
-                  cursor: 'pointer',
-                  activeOpacity: 0.8,
-                })}
                 accessibilityLabel="Cancelar edição"
               >
                 <Text style={styles.textStyle}>Cancelar</Text>
@@ -472,13 +523,6 @@ const handleSaveEdit = async () => {
                 style={[styles.button, styles.buttonSave]}
                 onPress={handleSaveEdit}
                 disabled={editLoading}
-                {...(Platform.OS === 'web' && !editLoading && {
-                  cursor: 'pointer',
-                  activeOpacity: 0.8,
-                })}
-                {...(Platform.OS === 'web' && editLoading && {
-                  cursor: 'not-allowed',
-                })}
                 accessibilityLabel="Salvar alterações"
               >
                 {editLoading ? (
@@ -495,7 +539,7 @@ const handleSaveEdit = async () => {
   );
 };
 
-// Estilos
+// --- REFACTOR 3: Estilos Otimizados para Responsividade ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -505,32 +549,53 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    backgroundColor: '#1c348e', // Azul escuro do time
+    paddingVertical: 12,
+    backgroundColor: COLORS.headerColor,
     paddingHorizontal: 10,
-    paddingTop: Platform.OS === 'android' ? 50 : 20, // Ajuste para status bar
+    minHeight: HEADER_HEIGHT, 
+    ...Platform.select({
+      web: {
+        position: 'fixed',
+        top: 0,
+        width: '100%',
+        zIndex: 10,
+        paddingTop: 15, // Padrão Web
+      },
+      default: { 
+        paddingTop: STATUS_BAR_HEIGHT + 12,
+      },
+    }),
   },
   btnVoltar: {
     position: 'absolute',
     left: 10,
-    top: Platform.OS === 'android' ? 47 : 15, // Alinha com o título
-    padding: 5,
+    top: Platform.select({
+      web: 15,
+      default: STATUS_BAR_HEIGHT + 10,
+    }),
+    padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  btnVoltarText: {
-    color: COLORS.white,
-    fontSize: 20,
-    fontWeight: 'bold',
+    zIndex: 11,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.white,
+    textAlign: 'center',
+  },
+  contentWrapper: {
+    flex: 1,
+    paddingHorizontal: 10,
+    // Compensação da altura do header fixo para Web e Mobile
+    marginTop: Platform.OS === 'web' ? HEADER_HEIGHT : 0, 
+    width: '100%',
+    maxWidth: 1200, 
+    alignSelf: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -547,15 +612,23 @@ const styles = StyleSheet.create({
   emptyListText: {
     fontSize: 18,
     color: COLORS.textSecondary,
-    marginBottom: 10,
+    marginBottom: 15,
     textAlign: 'center',
+  },
+  reloadButton: {
+      backgroundColor: COLORS.primary,
+      padding: 10,
+      borderRadius: 8,
+  },
+  reloadButtonText: {
+      color: COLORS.white,
+      fontWeight: 'bold',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.cardBackground,
     borderRadius: 8,
-    marginHorizontal: 10,
     marginTop: 10,
     marginBottom: 10,
     paddingHorizontal: 10,
@@ -575,10 +648,10 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web' && { outline: 'none' as any }),
   },
   listContent: {
-    padding: 10,
-    paddingBottom: 20, // Espaço extra no final
+    paddingBottom: 20, 
   },
   atletaCard: {
     flexDirection: 'row',
@@ -594,16 +667,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderLeftWidth: 5,
-    borderLeftColor: COLORS.primary, // Detalhe com a cor primária
+    borderLeftColor: COLORS.primary, 
+  },
+  atletaCardFocused: {
+    borderColor: COLORS.secondary,
+    borderWidth: 1,
+    borderLeftWidth: 5, 
+    shadowOpacity: 0.3,
+    elevation: 6,
   },
   atletaInfo: {
     flex: 1,
-    marginRight: 10, // Espaçamento entre info e botão de delete
+    marginRight: 10, 
+    overflow: 'hidden',
+  },
+  atletaActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
   },
   atletaName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: COLORS.primary, // Nome com a cor primária do time
+    color: COLORS.primary, 
     marginBottom: 5,
   },
   atletaDetail: {
@@ -611,41 +697,42 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: 2,
   },
+  editButton: {
+      padding: 8,
+  },
   deleteButton: {
     padding: 8,
-    backgroundColor: "#fff",
+    backgroundColor: "transparent",
     borderRadius: 20,
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteButtonText: {
-    fontSize: 16,
-    color: COLORS.white,
-  },
   centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)', // Fundo escurecido
+    backgroundColor: 'rgba(0,0,0,0.6)', 
+    ...Platform.select({ web: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, overflowY: 'auto' } }),
   },
   modalView: {
     margin: 20,
     backgroundColor: COLORS.white,
-    borderRadius: 15, // Bordas mais suaves
+    borderRadius: 15, 
     padding: 25,
     alignItems: 'center',
     shadowColor: COLORS.textPrimary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 8,
     width: '90%',
-    maxHeight: '85%', // Ajuste para telas menores
+    maxWidth: 600,
+    maxHeight: '90%', 
+    minHeight: 300,
+    zIndex: 20,
+    ...Platform.select({ web: { marginVertical: 40 } }),
   },
   modalTitle: {
     fontSize: 24,
@@ -656,6 +743,7 @@ const styles = StyleSheet.create({
   modalScrollView: {
     width: '100%',
     paddingHorizontal: 5,
+    ...Platform.select({ web: { maxHeight: 400, overflowY: 'auto' } }),
   },
   inputLabel: {
     alignSelf: 'flex-start',
@@ -666,7 +754,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    height: 45, // Um pouco maior
+    height: 45, 
     borderColor: COLORS.borderColor,
     borderWidth: 1,
     borderRadius: 8,
@@ -674,27 +762,29 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web' && { outline: 'none' as any }),
   },
   modalButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 25, // Mais espaçamento
+    marginTop: 25, 
   },
   button: {
     borderRadius: 10,
-    paddingVertical: 12, // Um pouco mais de padding
+    paddingVertical: 12, 
     elevation: 2,
     flex: 1,
-    marginHorizontal: 8, // Mais espaçamento entre botões
+    marginHorizontal: 8, 
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({ web: { cursor: 'pointer' } }),
   },
   buttonClose: {
-    backgroundColor: COLORS.textSecondary, // Cinza mais escuro
+    backgroundColor: COLORS.textSecondary, 
   },
   buttonSave: {
-    backgroundColor: COLORS.primary, // Azul escuro do time
+    backgroundColor: COLORS.primary, 
   },
   textStyle: {
     color: COLORS.white,
@@ -702,67 +792,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
   },
-  switchContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 15,
-    paddingVertical: 5,
-    paddingHorizontal: 5,
-    backgroundColor: COLORS.background, // Fundo leve para o switch
-    borderRadius: 8,
-  },
-  downloadPdfButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary, // Azul escuro para o botão de download na lista
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  downloadPdfButtonText: {
-    color: COLORS.white,
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  pdfSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-    flexWrap: 'wrap',
-    justifyContent: 'center', // Centraliza botões PDF
-  },
-  buttonPdfAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary, // Azul escuro para ações de PDF
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderWidth: 1,
-    borderColor: COLORS.blueBorder, // Borda em um tom de azul
-    marginBottom: 10,
-    marginRight: 5, // Espaçamento entre os botões de ação
-  },
-  buttonPdfActionText: {
-    color: COLORS.white,
-    marginLeft: 8,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
   dropdownContainer: {
     width: '100%',
     marginBottom: 15,
-    zIndex: 1000,
+    // ZIndex alto para garantir que o dropdown do Picker apareça sobre outros campos no modal
+    zIndex: 3000, 
   },
   dropdown: {
     borderColor: COLORS.borderColor,
@@ -770,6 +804,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: COLORS.white,
     minHeight: 45,
+    ...(Platform.OS === 'web' && { outline: 'none' as any }),
   },
   dropdownList: {
     borderColor: COLORS.borderColor,
@@ -784,23 +819,6 @@ const styles = StyleSheet.create({
   dropdownPlaceholder: {
     fontSize: 16,
     color: COLORS.textSecondary,
-  },
-  // Estilos específicos para web
-  webFlatList: {
-    ...Platform.select({
-      web: {
-        maxHeight: 600, // Use a numeric value for maxHeight
-        overflow: 'visible', // Use only 'visible' or 'hidden' for overflow
-      },
-    }),
-  },
-  webModalScrollView: {
-    ...Platform.select({
-      web: {
-        maxHeight: 400,
-        overflow: 'hidden',
-      },
-    }),
   },
 });
 

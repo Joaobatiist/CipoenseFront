@@ -1,87 +1,110 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const isLargeScreen = width >= 768; 
+const MAX_WIDTH = 1250; // Alinhado com o formulário
 
 export const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: isLargeScreen ? 30 : 20,
+    maxWidth: isLargeScreen ? MAX_WIDTH : '100%',
+    alignSelf: 'center',
+    width: '100%',
+    paddingHorizontal: isLargeScreen ? 0 : 10,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: isLargeScreen ? 20 : 18,
     fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    color: '#333',
+    marginBottom: isLargeScreen ? 15 : 10,
+    color: '#1c348e',
+    textAlign: 'center',
   },
   eventCard: {
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderRadius: 10,
+    padding: isLargeScreen ? 20 : 15,
+    marginBottom: isLargeScreen ? 15 : 10,
+    borderLeftWidth: 5,
+    borderLeftColor: '#e5c228',
+    
+    // Sombra responsiva
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 4,
+    ...Platform.select({
+        web: {
+            transition: 'transform 0.2s',
+        } as any,
+    }),
   },
   eventDate: {
-    fontSize: 16,
+    fontSize: isLargeScreen ? 17 : 16,
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#555',
+    color: '#1c348e',
   },
   eventDescription: {
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: isLargeScreen ? 16 : 15,
+    marginBottom: 8,
     color: '#333',
   },
   eventDetail: {
-    fontSize: 14,
+    fontSize: isLargeScreen ? 14 : 13,
     color: '#666',
     marginBottom: 3,
   },
   eventActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    marginTop: 15,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#f0f0f0',
     paddingTop: 10,
+    gap: 10,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#007bff',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: isLargeScreen ? 10 : 8,
+    paddingHorizontal: isLargeScreen ? 15 : 12,
     borderRadius: 5,
-    marginRight: 10,
+    // Removido marginRight para usar gap no eventActions
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#dc3545',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: isLargeScreen ? 10 : 8,
+    paddingHorizontal: isLargeScreen ? 15 : 12,
     borderRadius: 5,
-    marginRight: 10,
+    // Removido marginRight para usar gap no eventActions
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
-    marginLeft: 5,
+    fontSize: isLargeScreen ? 14 : 13,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    justifyContent: 'center',
+    paddingVertical: isLargeScreen ? 50 : 30,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   emptyMessage: {
+    fontSize: isLargeScreen ? 18 : 16,
     color: '#666',
     textAlign: 'center',
-    marginVertical: 20,
+    marginBottom: 10,
   },
   emptySubMessage: {
-    fontSize: 12,
+    fontSize: isLargeScreen ? 14 : 12,
     color: '#999',
     textAlign: 'center',
   },

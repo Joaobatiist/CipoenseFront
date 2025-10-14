@@ -4,6 +4,7 @@ import { Calendar } from 'react-native-calendars';
 import { TextInputMask } from 'react-native-masked-text';
 import { Button } from '../../button/index';
 import { styles } from './styles';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface Evento {
   id: string;
@@ -97,7 +98,7 @@ export const EventForm: React.FC<EventFormProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>
-        {editingEvent ? 'Editar Treino' : 'Adicionar Treino'}
+        {editingEvent ? 'Editar evento' : 'Agenda'}
       </Text>
 
       <Calendar
@@ -154,24 +155,31 @@ export const EventForm: React.FC<EventFormProps> = ({
         keyboardType="numeric"
       />
 
-      <View style={styles.buttonContainer}>
-        <Button
-          title={editingEvent ? "Atualizar treino" : "Adicionar treino"}
-          textColor="#fff"
-          onPress={handleSave}
-          style={styles.submitButton}
-          icon={undefined}
-        />
-        {editingEvent && (
-          <Button
-            title="Cancelar Edição"
-            textColor="#fff"
-            onPress={handleCancel}
-            style={styles.cancelButton}
-            icon={undefined}
-          />
-        )}
-      </View>
+    <View style={styles.buttonContainer}>
+  {!editingEvent && (
+    <Button
+      title="Adicionar evento"
+      icon={faPlus}
+    />
+  )}
+
+  {editingEvent && (
+    <>
+      <Button
+        title="Atualizar evento"
+        textColor="#fff"
+        onPress={handleSave}
+        style={styles.submitButton}
+      />
+      <Button
+        title="Cancelar Edição"
+        textColor="#fff"
+        onPress={handleCancel}
+        style={styles.cancelButton}
+      />
+    </>
+  )}
+</View>
     </View>
   );
 };

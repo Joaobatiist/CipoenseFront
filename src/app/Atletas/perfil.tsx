@@ -6,13 +6,11 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  StyleSheet,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-// Icons removidos - usando Text/Emoji
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from "../../Styles/Perfil";
 import axios from 'axios';
@@ -49,7 +47,6 @@ const PerfilAtleta = () => {
         });
 
         const dados = response.data;
-        const fotoParaExibir = dados.foto;
 
         setAtleta({
           id: dados.id,
@@ -58,7 +55,7 @@ const PerfilAtleta = () => {
           email: dados.email || 'Email não informado',
           subDivisao: dados.subDivisao || 'Não informado',
           dataNascimento: dados.dataNascimento || 'Não informada',
-          foto: fotoParaExibir,
+          foto: dados.foto,
           contatoResponsavel: dados.contatoResponsavel || 'Não informado',
         });
 
@@ -90,7 +87,7 @@ const PerfilAtleta = () => {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'Images' as any,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 1,
@@ -163,9 +160,7 @@ const PerfilAtleta = () => {
     if (!dataString || dataString === 'Não informada') return dataString;
     try {
       const [ano, mes, dia] = dataString.split('-');
-      if (ano && mes && dia) {
-        return `${dia}/${mes}/${ano}`;
-      }
+      if (ano && mes && dia) return `${dia}/${mes}/${ano}`;
       return dataString;
     } catch {
       return dataString;
@@ -194,22 +189,7 @@ const PerfilAtleta = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setAtleta(prevAtleta => {
-        if (prevAtleta) {
-          return {
-            ...prevAtleta,
-            nome: response.data.nome,
-            email: response.data.email,
-            matricula: response.data.matricula?.toString() || prevAtleta.matricula,
-            dataNascimento: response.data.dataNascimento,
-            subDivisao: response.data.subDivisao,
-            contatoResponsavel: response.data.contatoResponsavel,
-            foto: prevAtleta.foto
-          };
-        }
-        return null;
-      });
-
+      setAtleta(prev => prev ? { ...prev, ...response.data } : null);
       setEditando(false);
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
     } catch (error) {
@@ -237,13 +217,19 @@ const PerfilAtleta = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{
+        alignItems: 'center',
+        paddingBottom: 50,
+        width: '100%',
+      }}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
-          
+          <Text>⬅️</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meu Perfil</Text>
-       
       </View>
 
       <View style={styles.profileContainer}>
@@ -257,7 +243,6 @@ const PerfilAtleta = () => {
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                
                 <Text style={styles.avatarPlaceholderText}>Adicionar Foto</Text>
               </View>
             )}
@@ -344,8 +329,6 @@ const PerfilAtleta = () => {
             </View>
           )}
         </View>
-
-        
       </View>
     </ScrollView>
   );

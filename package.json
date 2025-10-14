@@ -49,6 +49,7 @@
     "jwt-decode": "^4.0.0",
     "react": "19.1.0",
     "react-calendars": "^1.2.0",
+    "react-datepicker": "^8.7.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.4",
     "react-native-calendars": "^1.1312.1",

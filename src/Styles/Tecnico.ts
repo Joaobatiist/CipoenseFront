@@ -125,7 +125,7 @@ export const styles = StyleSheet.create({
     // --- Formulário (Estilo de Container INTERNO) ---
     formContainer: {
         backgroundColor: '#f9f9f9', // Fundo levemente diferente do section
-        padding: IS_LARGE_SCREEN ? 25 : 15,
+        padding: IS_LARGE_SCREEN ? 20 : 15,
         borderRadius: 8,
         marginBottom: 20,
         borderWidth: 1,
@@ -216,18 +216,21 @@ export const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginTop: 10,
         gap: 10,
+        paddingHorizontal: IS_LARGE_SCREEN ? 200 : 10,
     },
     cancelButton: {
         flex: 1,
         backgroundColor: '#dc3545',
-        borderRadius: 16,
-        paddingVertical: IS_LARGE_SCREEN ? 12 : 8,
+        borderRadius: 10,
+        paddingVertical: IS_LARGE_SCREEN ? 10 : 8,
+        
     },
     submitButton: {
         flex: 1,
         backgroundColor: "#1c348e",
-        borderRadius: 16,
-        paddingVertical: IS_LARGE_SCREEN ? 12 : 8,
+        borderRadius: 10,
+        paddingVertical: IS_LARGE_SCREEN ? 10 : 8,
+       
     },
 
     // --- Cards de Comunicado (Estilo de Container INTERNO) ---

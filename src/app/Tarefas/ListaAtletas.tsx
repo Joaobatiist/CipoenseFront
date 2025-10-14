@@ -19,10 +19,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 // Assumindo que você está usando @expo/vector-icons
+import { DropdownItem } from '@/components/forms/CadastroForm';
 import { MaterialIcons } from '@expo/vector-icons';
 
 
@@ -80,7 +82,7 @@ const ListaContatosAtletas = () => {
   const [selectedAtleta, setSelectedAtleta] = useState<AtletaProfileDto | null>(null);
   const flatListRef = useRef<FlatList<AtletaProfileDto>>(null);
   const modalScrollViewRef = useRef<ScrollView>(null);
-
+  
   // --- Estados Faltantes ---
   const [editForm, setEditForm] = useState<Partial<AtletaProfileDto>>({
     isAptoParaJogar: false,
@@ -90,10 +92,42 @@ const ListaContatosAtletas = () => {
   const [editLoading, setEditLoading] = useState<boolean>(false);
   const [uploadingPdf, setUploadingPdf] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [focusIndex, setFocusIndex] = useState<number>(-1); // Foco para navegação por teclado (Web)
-  // --- Fim Estados Faltantes ---
+  const [focusIndex, setFocusIndex] = useState<number>(-1); 
+  const [openPosicoesPicker, setOpenPosicoesPicker] = useState<boolean>(false);
+  const [openSubDivisoesPicker, setOpenSubDivisoesPicker] = useState<boolean>(false);
+  const POSICOES: DropdownItem[] = [
+    { id: 10, label: 'Goleiro', value: 'GOLEIRO' },
+    { id: 11, label: 'Zagueiro', value: 'ZAGUEIRO' },
+    { id: 12, label: 'Lateral Direito', value: 'LATERAL_DIREITO' },
+  { id: 13, label: 'Lateral Esquerdo', value: 'LATERAL_ESQUERDO' },
+  { id: 14, label: 'Ala Defensiva Direita', value: 'ALA_DEFENSIVA_DIREITA' },
+  { id: 15, label: 'Ala Defensiva Esquerda', value: 'ALA_DEFENSIVA_ESQUERDA' },
+  { id: 16, label: 'Volante', value: 'VOLANTE' },
+  { id: 17, label: 'Meia Central', value: 'MEIA_CENTRAL' },
+  { id: 18, label: 'Meia Atacante', value: 'MEIA_ATACANTE' },
+  { id: 19, label: 'Ponta Direita', value: 'PONTA_DIREITA' },
+  { id: 20, label: 'Ponta Esquerda', value: 'PONTA_ESQUERDA' },
+  { id: 21, label: 'Segundo Atacante', value: 'SEGUNDO_ATACANTE' },
+  { id: 22, label: 'Atacante', value: 'ATACANTE' },
+];
 
-  // --- Funções Auxiliares ---
+const SUBDIVISOES: DropdownItem[] = [
+  { id: 1, label: 'Sub-4', value: 'SUB_4' },
+  { id: 1, label: 'Sub-5', value: 'SUB_5' },
+  { id: 1, label: 'Sub-6', value: 'SUB_6' },
+  { id: 1, label: 'Sub-7', value: 'SUB_7' },
+  { id: 1, label: 'Sub-8', value: 'SUB_8' },
+  { id: 1, label: 'Sub-9', value: 'SUB_9' },
+  { id: 1, label: 'Sub-10', value: 'SUB_10' },
+  { id: 2, label: 'Sub-11', value: 'SUB_11' },
+  { id: 3, label: 'Sub-12', value: 'SUB_12' },
+  { id: 4, label: 'Sub-13', value: 'SUB_13' },
+  { id: 5, label: 'Sub-14', value: 'SUB_14' },
+  { id: 6, label: 'Sub-15', value: 'SUB_15' },
+  { id: 7, label: 'Sub-16', value: 'SUB_16' },
+  { id: 8, label: 'Sub-17', value: 'SUB_17' },
+  { id: 9, label: 'Sub-18', value: 'SUB_18' },
+];
   const formatarData = (dataString: string) => {
     if (!dataString || dataString === 'Não informada') return dataString;
     try {
@@ -684,21 +718,47 @@ const ListaContatosAtletas = () => {
                   keyboardType="numeric"
                 />
                 <Text style={styles.inputLabel}>Subdivisão:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.subDivisao}
-                  onChangeText={(text) => setEditForm({ ...editForm, subDivisao: text })}
-                  placeholder="Ex: Sub-20"
-                  placeholderTextColor={COLORS.textSecondary}
-                />
+                <View style={[styles.dropdownContainer, { zIndex: 4000 }]}>
+                  <DropDownPicker
+                    open={openSubDivisoesPicker}
+                    value={editForm.subDivisao ?? null}
+                    items={SUBDIVISOES}
+                    setOpen={setOpenSubDivisoesPicker}
+                    setValue={(callback) => {
+                      const value = typeof callback === 'function' ? callback(editForm.subDivisao ?? null) : callback;
+                      setEditForm({ ...editForm, subDivisao: value });
+                    }}
+                    placeholder="Selecione a Subdivisão"
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownList}
+                    textStyle={styles.dropdownText}
+                    placeholderStyle={styles.dropdownPlaceholder}
+                    zIndex={4000} 
+                    listMode="SCROLLVIEW"
+                    scrollViewProps={{ nestedScrollEnabled: true }}
+                  />
+                </View>
                 <Text style={styles.inputLabel}>Posição:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.posicao}
-                  onChangeText={(text) => setEditForm({ ...editForm, posicao: text })}
-                  placeholder="Ex: Atacante"
-                  placeholderTextColor={COLORS.textSecondary}
-                />
+               <View style={[styles.dropdownContainer, { zIndex: 3000 }]}>
+                  <DropDownPicker
+                    open={openPosicoesPicker}
+                    value={editForm.posicao ?? null}
+                    items={POSICOES}
+                    setOpen={setOpenPosicoesPicker}
+                    setValue={(callback) => {
+                      const value = typeof callback === 'function' ? callback(editForm.posicao ?? null) : callback;
+                      setEditForm({ ...editForm, posicao: value });
+                    }}
+                    placeholder="Selecione a posição"
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownList}
+                    textStyle={styles.dropdownText}
+                    placeholderStyle={styles.dropdownPlaceholder}
+                    zIndex={3000} 
+                    listMode="SCROLLVIEW"
+                    scrollViewProps={{ nestedScrollEnabled: true }}
+                  />
+                </View>
                 <Text style={styles.inputLabel}>Contato Responsável:</Text>
                 <TextInput
                   style={styles.input}
@@ -869,6 +929,34 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   },
+  dropdownPlaceholder: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+  },
+  dropdownContainer: {
+    width: '100%',
+    marginBottom: 15,
+    // ZIndex alto para garantir que o dropdown do Picker apareça sobre outros campos no modal
+    zIndex: 3000, 
+  },
+   dropdown: {
+      borderColor: COLORS.borderColor,
+      borderWidth: 1,
+      borderRadius: 8,
+      backgroundColor: COLORS.white,
+      minHeight: 45,
+      ...(Platform.OS === 'web' && { outline: 'none' as any }),
+    }, 
+     dropdownText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+    dropdownList: {
+      borderColor: COLORS.borderColor,
+      backgroundColor: COLORS.white,
+      borderRadius: 8,
+      maxHeight: 150,
+    },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

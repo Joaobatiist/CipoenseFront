@@ -684,8 +684,7 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: COLORS.primary,
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+        textAlign: 'center',
         paddingVertical: 15,
         borderBottomWidth: 2,
         borderBottomColor: COLORS.secondary,

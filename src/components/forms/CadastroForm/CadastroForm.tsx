@@ -196,6 +196,12 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
 
 // Constants for dropdown options
 const SUBDIVISOES: DropdownItem[] = [
+  { id: 1, label: 'Sub-4', value: 'SUB_4' },
+  { id: 1, label: 'Sub-5', value: 'SUB_5' },
+  { id: 1, label: 'Sub-6', value: 'SUB_6' },
+  { id: 1, label: 'Sub-7', value: 'SUB_7' },
+  { id: 1, label: 'Sub-8', value: 'SUB_8' },
+  { id: 1, label: 'Sub-9', value: 'SUB_9' },
   { id: 1, label: 'Sub-10', value: 'SUB_10' },
   { id: 2, label: 'Sub-11', value: 'SUB_11' },
   { id: 3, label: 'Sub-12', value: 'SUB_12' },

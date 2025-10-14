@@ -38,13 +38,7 @@ export const globalStyles = StyleSheet.create({
     elevation: 5,
   },
   
-  // Typography
-  title: {
-    fontSize: TYPOGRAPHY.sizes.xxl,
-    fontWeight: TYPOGRAPHY.weights.bold,
-    color: COLORS.text.primary,
-    marginBottom: SPACING.md,
-  },
+
   subtitle: {
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.medium,

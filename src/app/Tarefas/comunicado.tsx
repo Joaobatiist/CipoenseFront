@@ -459,8 +459,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
                     title="Adicionar Comunicado"
                     onPress={startNewComunicado}
                     icon={faPlus}
-                    style={{ marginBottom: 15 }}
-                    textColor="#1c348e"
+                    
                 />
             )}
 
@@ -529,8 +528,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
                                 title={editingComunicadoId !== null ? "Salvar Alterações" : "Enviar"}
                                 onPress={editingComunicadoId !== null ? saveEditedComunicado : enviarComunicado}
                                 style={styles.submitButton}
-                                textColor='#fff' 
-                                icon={undefined}
+                                textColor='#fff'
                                 disabled={submittingForm}
                         />
                         <Button
@@ -538,7 +536,6 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
                                 onPress={resetForm}
                                 textColor='#fff'
                                 style={styles.cancelButton} 
-                                icon={undefined}
                                 disabled={submittingForm}
                         />
                     </View>

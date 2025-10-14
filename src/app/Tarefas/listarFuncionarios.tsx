@@ -133,22 +133,7 @@ const ListaFuncionarios = () => {
     fetchFuncionarios();
   };
 
-  // Função utilitária para formatar a data (desabilitada temporariamente)
-  // const formatarData = (dataString: string) => {
-  //   if (!dataString || dataString === 'Não informada') return dataString;
-  //   try {
-  //     const datePart = dataString.split('T')[0];
-  //     const [ano, mes, dia] = datePart.split('-');
-  //     if (ano && mes && dia) {
-  //       return `${dia}/${mes}/${ano}`;
-  //     }
-  //     return dataString;
-  //   } catch {
-  //     return dataString;
-  //   }
-  // };
 
-  // Manipulador para abrir o modal de edição
   const handleEditAtleta = (funcionario: Funcionarios) => {
     setSelectedFuncionario(funcionario);
     const dataNascimentoFormatada = funcionario.dataNascimento?.split('T')[0] || funcionario.dataNascimento;

@@ -2,7 +2,7 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width } = Dimensions.get('window');
 // Considera "tela grande" (Large Screen) como Tablet ou Desktop
-const isLargeScreen = width >= 768; 
+const isLargeScreen = width >= 600; 
 const MAX_WIDTH = 1250; // Largura máxima do formulário em telas grandes
 
 export const styles = StyleSheet.create({
@@ -85,27 +85,34 @@ export const styles = StyleSheet.create({
   inputLabel: { fontSize: 14, fontWeight: '600', marginBottom: 5, color: '#555' },
 
 
-  // CONTAINER DE BOTÕES (SALVAR/CANCELAR)
   buttonContainer: {
-    flexDirection: isLargeScreen ? 'row' : 'column',
-    justifyContent: 'space-between',
-    marginTop: 15,
-    gap: 15, // Espaçamento entre os botões (nativo do React Native)
-  },
-  
-  // ESTILOS DE BOTÃO (BASE)
+  flexDirection: isLargeScreen ? 'row' : 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: 15,
+  marginTop: 15,
+  width: '100%',
+  maxWidth: 900,
+  alignSelf: 'center',
+},
+
   submitButton: {
-    flex: 1,
-    backgroundColor: "#1c348e",
-    borderRadius: 8,
-    padding: isLargeScreen ? 15 : 12,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#dc3545',
-    borderRadius: 8,
-    padding: isLargeScreen ? 15 : 12,
-    alignItems: 'center',
-  },
+  flex: 1,
+  backgroundColor: "#1c348e",
+  borderRadius: 8,
+  padding: isLargeScreen ? 10 : 12,
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: isLargeScreen ? 180 : '100%', // lado a lado no desktop, empilhado no mobile
+},
+
+cancelButton: {
+  flex: 1,
+  backgroundColor: '#dc3545',
+  borderRadius: 8,
+  padding: isLargeScreen ? 10 : 12,
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: isLargeScreen ? 180 : '100%',
+},
 });

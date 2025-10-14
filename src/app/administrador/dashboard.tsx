@@ -160,7 +160,7 @@ const UniversalDashboard: React.FC = () => {
     return (
       <View style={globalStyles.safeArea}>
         <View style={globalStyles.centerContainer}>
-          <Text style={globalStyles.title}>Erro de Autenticação</Text>
+          
           <Text style={globalStyles.bodyText}>
             Não foi possível identificar seu perfil. Por favor, faça login novamente.
           </Text>
@@ -206,7 +206,7 @@ const UniversalDashboard: React.FC = () => {
         bounces={Platform.OS !== 'web'}
       >
         <View onLayout={(event) => handleLayout(event, 'agenda')}>
-          <Text style={globalStyles.title}>Agenda de Treinos</Text>
+          
           
           <EventForm
             editingEvent={editingEvent}

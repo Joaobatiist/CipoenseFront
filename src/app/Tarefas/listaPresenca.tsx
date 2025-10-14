@@ -1,5 +1,3 @@
-import React, { JSX, useCallback, useEffect, useRef, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
 import { faArrowLeft, faCalendarAlt, faCheckCircle, faChevronRight, faCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +6,7 @@ import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { isAxiosError } from 'axios';
 import { router, useFocusEffect } from 'expo-router';
 import moment from 'moment';
+import React, { JSX, useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,12 +14,12 @@ import {
   Modal,
   Platform,
   Pressable,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
-  StyleSheet,
-  StatusBar,
 } from 'react-native';
 import Api from '../../Config/Api';
 
@@ -423,17 +422,47 @@ export default function ListaPresencaScreen(): JSX.Element {
         <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
 
         {viewMode === 'registro' && (
-          <TouchableOpacity
-            onPress={() => {
-              setTempSelectedDate(selectedDate);
-              setShowDatePickerModal(true);
-            }}
-            style={styles.calendarButton}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir calendário"
-          >
-            <FontAwesomeIcon icon={faCalendarAlt} size={20} color="#fff" />
-          </TouchableOpacity>
+          Platform.OS === 'web' ? (
+            <View style={styles.calendarButtonWeb}>
+              <FontAwesomeIcon icon={faCalendarAlt} size={20} color="#fff" />
+              <input
+                type="date"
+                value={moment(selectedDate).format('YYYY-MM-DD')}
+                onChange={(e: any) => {
+                  const dateString = e.target.value; // "2025-10-10"
+                  // Cria a data no fuso horário local (meio-dia para evitar problemas de timezone)
+                  const [year, month, day] = dateString.split('-').map(Number);
+                  const newDate = new Date(year, month - 1, day, 12, 0, 0);
+                  
+                  if (!isNaN(newDate.getTime())) {
+                    setSelectedDate(newDate);
+                  }
+                }}
+                style={{
+                  position: 'absolute',
+                  top: -10,
+                  left: -10,
+                  width: "100%",
+                  height: 60,
+                  opacity: 0,
+                  cursor: 'pointer',
+                  zIndex: 12,
+                }}
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                setTempSelectedDate(selectedDate);
+                setShowDatePickerModal(true);
+              }}
+              style={styles.calendarButton}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir calendário"
+            >
+              <FontAwesomeIcon icon={faCalendarAlt} size={20} color="#fff" />
+            </TouchableOpacity>
+          )
         )}
       </View>
 
@@ -581,6 +610,12 @@ const styles = StyleSheet.create({
   calendarButton: {
     position: 'absolute',
     right: 16,
+    padding: 8,
+    zIndex: 11,
+  },
+  calendarButtonWeb: {
+    position: 'absolute',
+    right: "43%",
     padding: 8,
     zIndex: 11,
   },

@@ -10,7 +10,7 @@ import { useAuth, useEventos } from '@/hooks';
 import { globalStyles } from '@/Styles/themes/global';
 import { Evento } from '@/types';
 import { ptBR } from '../../utils/localendarConfig';
-import ComunicadosSection from '../tarefas/comunicado';
+import ComunicadosScreen from '../tarefas/comunicado';
 
 interface CustomJwtPayload extends JwtPayload {
   roles?: string[];
@@ -224,7 +224,7 @@ const UniversalDashboard: React.FC = () => {
         </View>
 
         <View onLayout={(event) => handleLayout(event, 'comunicados')}>
-          <ComunicadosSection />
+          <ComunicadosScreen />
         </View>
       </ScrollView>
     </View>

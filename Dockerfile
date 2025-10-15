@@ -1,7 +1,11 @@
 # ====================================================================
-# STAGE 1: BUILDER - Faz o build estático, incluindo dependências de dev
+# STAGE 1: BUILDER - Cria a build estática, incluindo dependências de dev
 # ====================================================================
 FROM node:22-alpine AS builder
+
+# A CORREÇÃO PRINCIPAL: Instala as ferramentas de compilação nativas
+# (necessárias para muitos pacotes que não são puramente JS, comuns em projetos RN/Expo)
+RUN apk add --no-cache python3 make g++
 
 # Define a pasta de trabalho dentro do container
 WORKDIR /app
@@ -9,15 +13,13 @@ WORKDIR /app
 # Copia os arquivos de configuração de pacotes
 COPY package*.json ./
 
-# Instala todas as dependências (incluindo devDependencies necessárias para o 'expo export')
+# Instala todas as dependências
 RUN npm install --force
 
 # Copia o restante do código fonte
 COPY . .
 
-# Executa o script de build que cria a pasta 'web-build'
-# O script 'heroku-postbuild' ou 'build' do seu package.json deve ser executado aqui.
-# Usaremos 'npm run heroku-postbuild' que executa o 'npm run build'
+# Executa o script de build para criar a pasta 'web-build'
 RUN npm run heroku-postbuild
 
 
@@ -26,8 +28,7 @@ RUN npm run heroku-postbuild
 # ====================================================================
 FROM node:22-alpine
 
-# A porta padrão do Dokku/Heroku é 5000, mas vamos usar 8080 ou 5000 e deixar o Dokku mapear
-# Usaremos 5000 para compatibilidade, mas o Dokku mapeia a porta interna.
+# Define a porta que o Dokku usará para rotear
 ENV PORT 5000
 EXPOSE 5000
 
@@ -41,5 +42,4 @@ WORKDIR /usr/src/app
 COPY --from=builder /app/web-build ./web-build
 
 # Comando de inicialização: Serve a pasta web-build na porta definida
-# O '$PORT' será automaticamente preenchido pelo Dokku no tempo de execução.
 CMD ["serve", "-s", "web-build", "-l", "tcp/0.0.0.0:${PORT}"]

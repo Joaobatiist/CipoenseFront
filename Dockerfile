@@ -1,29 +1,33 @@
 # ====================================================================
-# STAGE 1: BUILD - Cria o build estático
+# STAGE 1: BUILDER
 # ====================================================================
-FROM node:22 AS builder # <-- IMPORTANTE: AS builder DEVE ESTAR AQUI
+FROM node:22-alpine AS builder
+
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
-# ... o resto do seu código de build (npm install, npm run build)
+
+COPY package*.json ./
+
+RUN npm install --force
+
+COPY . .
+
+RUN npm run heroku-postbuild
 
 # ====================================================================
-# STAGE 2: PRODUCTION - Servir apenas a build estática com 'http-server'
+# STAGE 2: PRODUCTION
 # ====================================================================
 FROM node:22-alpine
 
-# Define a porta que o Dokku usará para rotear (pode ser redundante, mas ajuda)
 ENV PORT 5000
 EXPOSE 5000
 
-# MUDANÇA: Instala o 'http-server'
-RUN npm install -g http-server
+RUN npm install -g serve
 
-# Cria o diretório de trabalho final
 WORKDIR /usr/src/app
 
-# Copia APENAS o resultado do build do Stage 1
 COPY --from=builder /app/web-build ./web-build
 
-# Comando de inicialização para o http-server
-# Usando '|| 5000' como fallback caso $PORT não seja expandido corretamente
-CMD http-server web-build -d false -p ${PORT:-5000} -a 0.0.0.0
+# Sintaxe mais robusta: usa $PORT se definida pelo Dokku, senão usa 5000
+CMD serve -s web-build -l tcp://0.0.0.0:${PORT:-5000}

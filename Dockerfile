@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala todas as dependências (incluindo devDependencies necessárias para o 'expo export')
-RUN npm install
+RUN npm install --force
 
 # Copia o restante do código fonte
 COPY . .

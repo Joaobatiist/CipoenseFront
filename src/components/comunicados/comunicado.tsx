@@ -12,8 +12,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { Button } from "../../components/button/index";
 import { styles } from "../../Styles/Tecnico";
+import { Button } from "../button/index";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 

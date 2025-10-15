@@ -9,8 +9,8 @@ import { Header, Sidebar } from '@/components/layout';
 import { useAuth, useEventos } from '@/hooks';
 import { globalStyles } from '@/Styles/themes/global';
 import { Evento } from '@/types';
+import ComunicadosScreen from '../../components/comunicados/comunicado';
 import { ptBR } from '../../utils/localendarConfig';
-import ComunicadosScreen from '../tarefas/comunicado';
 
 interface CustomJwtPayload extends JwtPayload {
   roles?: string[];

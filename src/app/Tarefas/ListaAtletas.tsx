@@ -631,7 +631,7 @@ const SUBDIVISOES: DropdownItem[] = [
       <View style={styles.contentWrapper}>
         {/* Campo de busca */}
         <View style={styles.searchContainer}>
-          <FontAwesomeIcon icon={faSearch} size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
+          <FontAwesomeIcon icon={faSearch} size={20} color={COLORS.textSecondary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar atleta por nome..."
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     minHeight: HEADER_HEIGHT,
     ...Platform.select({
       web: {
-        position: 'fixed',
+        position: 'fixed' as any,
         top: 0,
         width: '100%',
         zIndex: 10,
@@ -886,7 +886,7 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 12,
       },
     }),
-  },
+  } as any,
   btnVoltar: {
     position: 'absolute',
     left: 10,
@@ -1056,15 +1056,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     ...Platform.select({
       web: {
-        position: 'fixed',
+        position: 'fixed' as any,
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        overflowY: 'auto',
+        overflowY: 'auto' as any,
       },
     }),
-  },
+  } as any,
   modalView: {
     margin: 20,
     backgroundColor: COLORS.white,

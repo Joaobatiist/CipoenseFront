@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5c228',
     ...Platform.select({
       web: { 
-        position: 'fixed', 
+        position: 'fixed' as any, 
         top: 0, 
         zIndex: 10,
       }, 
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
         paddingTop: (Platform.OS === 'android' ? (StatusBar.currentHeight || 20) : 0) + 12,
       },
     }),
-  },
+  } as any,
   headerTitle: {
     color: '#fff',
     fontSize: 18,
@@ -663,8 +663,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#ddd',
     width: '100%',
-    ...Platform.select({ web: { position: 'fixed', bottom: 0, zIndex: 9 }, default: {} }),
-  },
+    ...Platform.select({ web: { position: 'fixed' as any, bottom: 0, zIndex: 9 }, default: {} }),
+  } as any,
   footerContent: {
     flexDirection: 'row',
     justifyContent: 'center',

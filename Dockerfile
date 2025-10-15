@@ -1,5 +1,30 @@
 # ====================================================================
-# STAGE 2: PRODUCTION - Servir apenas a build estática com 'http-server'
+# STAGE 1: BUILDER - Cria a build estática, incluindo dependências de dev
+# ====================================================================
+FROM node:22-alpine AS builder
+
+# A CORREÇÃO PRINCIPAL: Instala as ferramentas de compilação nativas
+# (necessárias para muitos pacotes que não são puramente JS, comuns em projetos RN/Expo)
+RUN apk add --no-cache python3 make g++
+
+# Define a pasta de trabalho dentro do container
+WORKDIR /app
+
+# Copia os arquivos de configuração de pacotes
+COPY package*.json ./
+
+# Instala todas as dependências
+RUN npm install --force
+
+# Copia o restante do código fonte
+COPY . .
+
+# Executa o script de build para criar a pasta 'web-build'
+RUN npm run heroku-postbuild
+
+
+# ====================================================================
+# STAGE 2: PRODUCTION - Servir apenas a build estática com 'serve'
 # ====================================================================
 FROM node:22-alpine
 
@@ -7,8 +32,8 @@ FROM node:22-alpine
 ENV PORT 5000
 EXPOSE 5000
 
-# MUDANÇA 1: Instala o 'http-server' no lugar do 'serve'
-RUN npm install -g http-server
+# Instala o 'serve' globalmente para ser usado como servidor web estático
+RUN npm install -g serve
 
 # Cria o diretório de trabalho final
 WORKDIR /usr/src/app
@@ -16,9 +41,7 @@ WORKDIR /usr/src/app
 # Copia APENAS o resultado do build (a pasta web-build) do Stage 1
 COPY --from=builder /app/web-build ./web-build
 
-# MUDANÇA 2: Novo Comando de inicialização para o http-server
-# -d false: desabilita o fallback para index.html (bom para SPAs)
-# -p $PORT: usa a variável do Dokku
-# -a 0.0.0.0: escuta em todas as interfaces
-# MUDANÇA 3: Usamos a pasta de build como primeiro argumento
-CMD http-server web-build -d false -p $PORT -a 0.0.0.0
+# Comando de inicialização: Serve a pasta web-build na porta definida
+# ALTERNATIVA (Se a de cima não funcionar):
+# A sintaxe mais simples, confiando que o serve usará 0.0.0.0:5000 por padrão.
+CMD serve -s web-build -l tcp/0.0.0.0:5000

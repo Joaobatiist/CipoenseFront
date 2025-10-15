@@ -1,47 +1,29 @@
 # ====================================================================
-# STAGE 1: BUILDER - Cria a build estática, incluindo dependências de dev
+# STAGE 1: BUILD - Cria o build estático
 # ====================================================================
-FROM node:22-alpine AS builder
+FROM node:22 AS builder # <-- IMPORTANTE: AS builder DEVE ESTAR AQUI
 
-# A CORREÇÃO PRINCIPAL: Instala as ferramentas de compilação nativas
-# (necessárias para muitos pacotes que não são puramente JS, comuns em projetos RN/Expo)
-RUN apk add --no-cache python3 make g++
-
-# Define a pasta de trabalho dentro do container
 WORKDIR /app
-
-# Copia os arquivos de configuração de pacotes
-COPY package*.json ./
-
-# Instala todas as dependências
-RUN npm install --force
-
-# Copia o restante do código fonte
-COPY . .
-
-# Executa o script de build para criar a pasta 'web-build'
-RUN npm run heroku-postbuild
-
+# ... o resto do seu código de build (npm install, npm run build)
 
 # ====================================================================
-# STAGE 2: PRODUCTION - Servir apenas a build estática com 'serve'
+# STAGE 2: PRODUCTION - Servir apenas a build estática com 'http-server'
 # ====================================================================
 FROM node:22-alpine
 
-# Define a porta que o Dokku usará para rotear
+# Define a porta que o Dokku usará para rotear (pode ser redundante, mas ajuda)
 ENV PORT 5000
 EXPOSE 5000
 
-# Instala o 'serve' globalmente para ser usado como servidor web estático
-RUN npm install -g serve
+# MUDANÇA: Instala o 'http-server'
+RUN npm install -g http-server
 
 # Cria o diretório de trabalho final
 WORKDIR /usr/src/app
 
-# Copia APENAS o resultado do build (a pasta web-build) do Stage 1
+# Copia APENAS o resultado do build do Stage 1
 COPY --from=builder /app/web-build ./web-build
 
-# Comando de inicialização: Serve a pasta web-build na porta definida
-# ALTERNATIVA (Se a de cima não funcionar):
-# A sintaxe mais simples, confiando que o serve usará 0.0.0.0:5000 por padrão.
-CMD serve -s web-build -l tcp/0.0.0.0:5000
+# Comando de inicialização para o http-server
+# Usando '|| 5000' como fallback caso $PORT não seja expandido corretamente
+CMD http-server web-build -d false -p ${PORT:-5000} -a 0.0.0.0

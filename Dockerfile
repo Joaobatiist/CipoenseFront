@@ -42,4 +42,6 @@ WORKDIR /usr/src/app
 COPY --from=builder /app/web-build ./web-build
 
 # Comando de inicialização: Serve a pasta web-build na porta definida
-CMD serve -s web-build -l 0.0.0.0:$PORT
+# ALTERNATIVA (Se a de cima não funcionar):
+# A sintaxe mais simples, confiando que o serve usará 0.0.0.0:5000 por padrão.
+CMD serve -s web-build -l tcp/0.0.0.0:5000

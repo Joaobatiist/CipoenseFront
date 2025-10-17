@@ -5,7 +5,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -15,7 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
@@ -393,7 +392,11 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       
       if (!validation.isValid) {
         const errorMessages = validation.errors.map(error => error.message).join('\n');
-        Alert.alert('Erro de Validação', errorMessages);
+        if (Platform.OS === 'web') {
+          window.alert('Erro de Validação\n\n' + errorMessages);
+        } else {
+          Alert.alert('Erro de Validação', errorMessages);
+        }
         return;
       }
       
@@ -403,12 +406,20 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         await defaultSubmitHandler(data);
       }
       
-      Alert.alert('Sucesso', `${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
+      if (Platform.OS === 'web') {
+        window.alert(`${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
+      } else {
+        Alert.alert('Sucesso', `${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
+      }
       router.back();
       
     } catch (error) {
       console.error('Erro no cadastro:', error);
-      Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro. Tente novamente.');
+      if (Platform.OS === 'web') {
+        window.alert('Ocorreu um erro ao realizar o cadastro. Tente novamente.');
+      } else {
+        Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -418,7 +429,11 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
     const token = await AsyncStorage.getItem('jwtToken');
     
     if (!token) {
-      Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
+      if (Platform.OS === 'web') {
+        window.alert('Token não encontrado. Faça login novamente.');
+      } else {
+        Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
+      }
       router.replace('/login');
       return;
     }
@@ -462,16 +477,12 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       endpoint = '/cadastro/funcionarios';
     }
 
-    console.log("Dados a serem enviados:", payload);
-    console.log("Endpoint:", endpoint);
-    console.log("Token sendo usado:", token);
-    console.log("Header Authorization:", `Bearer ${token}`);
 
     try {
       // O interceptor já adiciona o token automaticamente
       const response = await Api.post(endpoint, payload);
       
-      console.log("Resposta da API:", response.data);
+      
       return response.data;
       
     } catch (error: any) {
@@ -480,7 +491,11 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       console.error('Dados do erro:', error.response?.data);
       
       if (error.response?.status === 401 || error.response?.status === 403) {
-        Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+        if (Platform.OS === 'web') {
+          window.alert('Sua sessão expirou. Faça login novamente.');
+        } else {
+          Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
+        }
         await AsyncStorage.removeItem('jwtToken');
         router.replace('/login');
         return;
@@ -542,7 +557,11 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         <View style={styles.headerSpacer} />
       </View>
       
-      <Pressable onPress={Keyboard.dismiss} style={{ flex: 1 }}>
+      <Pressable 
+        onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} 
+        style={{ flex: 1 }}
+        disabled={Platform.OS === 'web'}
+      >
         <ScrollView 
           ref={scrollViewRef}
           style={[{ flex: 1 }, Platform.OS === 'web' && styles.webScrollView]}

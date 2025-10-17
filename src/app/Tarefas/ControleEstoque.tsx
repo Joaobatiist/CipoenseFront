@@ -95,7 +95,7 @@ const Estoque: React.FC = () => {
 
     const fetchItems = async () => {
         // ... (lógica de fetchItems mantida) ...
-        console.log('FETCH_ITEMS (Estoque): Iniciando busca de itens do estoque...');
+        
         const token = await getToken();
 
         if (!token) {
@@ -144,7 +144,7 @@ const Estoque: React.FC = () => {
             }
             const data: Item[] = await response.json();
             setItems(data);
-            console.log('FETCH_ITEMS (Estoque): Itens do estoque carregados com sucesso. Total:', data.length);
+            console.error('FETCH_ITEMS (Estoque): Itens do estoque carregados com sucesso. Total:', data.length);
         } catch (error) {
             console.error('Erro ao buscar itens:', error);
             const errorMsg = `Não foi possível carregar os itens. ${error instanceof Error ? error.message : 'Verifique a conexão com o servidor.'}`;

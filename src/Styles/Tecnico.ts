@@ -97,7 +97,7 @@ export const styles = StyleSheet.create({
         // Responsividade para centralizar e limitar a largura na Web
         padding: IS_LARGE_SCREEN ? 30 : 20,
         marginVertical: IS_LARGE_SCREEN ? 20 : 10,
-        maxWidth: MAX_WIDTH + 50, // Largura máxima do container principal
+        maxWidth: MAX_WIDTH + 35, // Largura máxima do container principal
         alignSelf: 'center', // Centraliza o container
         width: '100%',
     },

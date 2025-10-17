@@ -47,7 +47,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const listaAtletas = () => {
-    router.navigate("../tarefas/listaAtletas");
+    router.navigate("/tarefas/ListaAtletas");
   };
 
   const realizarRelatorio = () => {
@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const controleEstoque = () => {
-    router.navigate('/tarefas/controleEstoque');
+    router.navigate('/tarefas/ControleEstoque');
   };
 
   const listaDeFuncionarios = () => {

@@ -10,11 +10,12 @@ export const styles = StyleSheet.create({
     maxWidth: isLargeScreen ? MAX_WIDTH : '100%',
     alignSelf: 'center',
     width: '100%',
-    paddingHorizontal: isLargeScreen ? 0 : 10,
+    paddingHorizontal: isLargeScreen ? 10 : 10,
   },
   sectionTitle: {
     fontSize: isLargeScreen ? 20 : 18,
     fontWeight: 'bold',
+    
     marginBottom: isLargeScreen ? 15 : 10,
     color: '#1c348e',
     textAlign: 'center',
@@ -91,11 +92,11 @@ export const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: isLargeScreen ? 50 : 30,
+    paddingVertical: isLargeScreen ? 80 : 30,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ffffffff',
   },
   emptyMessage: {
     fontSize: isLargeScreen ? 18 : 16,

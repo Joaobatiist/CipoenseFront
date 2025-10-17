@@ -286,33 +286,51 @@ const SUBDIVISOES: DropdownItem[] = [
   };
 
   const handleDeleteAtleta = (atletaId: string) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Excluir',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('jwtToken');
-              await axios.delete(`${API_URL}/api/supervisor/atletas/deletar/${atletaId}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              setAtletas(prevAtletas => prevAtletas.filter(atleta => atleta.id !== atletaId));
-              Alert.alert('Sucesso', 'Atleta excluído com sucesso!');
-            } catch (error) {
-              console.error('Erro ao excluir atleta:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o atleta.');
-            }
+    const executeDelete = async () => {
+      try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        await axios.delete(`${API_URL}/api/supervisor/atletas/deletar/${atletaId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setAtletas(prevAtletas => prevAtletas.filter(atleta => atleta.id !== atletaId));
+        
+        if (Platform.OS === 'web') {
+          window.alert('Atleta excluído com sucesso!');
+        } else {
+          Alert.alert('Sucesso', 'Atleta excluído com sucesso!');
+        }
+      } catch (error) {
+        console.error('Erro ao excluir atleta:', error);
+        if (Platform.OS === 'web') {
+          window.alert('Não foi possível excluir o atleta.');
+        } else {
+          Alert.alert('Erro', 'Não foi possível excluir o atleta.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.');
+      if (confirmed) {
+        executeDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirmar Exclusão',
+        'Tem certeza que deseja excluir este atleta? Esta ação não pode ser desfeita.',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
           },
-          style: 'destructive',
-        },
-      ]
-    );
+          {
+            text: 'Excluir',
+            onPress: executeDelete,
+            style: 'destructive',
+          },
+        ]
+      );
+    }
   };
 
   const handlePdfUpload = async (atletaId: string) => {
@@ -375,46 +393,64 @@ const SUBDIVISOES: DropdownItem[] = [
   };
 
   const handleDeleteMainPdf = async (atletaId: string) => {
-    Alert.alert(
-      'Remover PDF',
-      'Tem certeza que deseja remover o documento PDF principal deste atleta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('jwtToken');
-              await axios.delete(`${API_URL}/api/supervisor/atletas/${atletaId}/documento-pdf`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              
-              setAtletas(prevAtletas =>
-                prevAtletas.map(atleta =>
-                  atleta.id === atletaId
-                    ? {
-                      ...atleta,
-                      documentoPdfBase64: null,
-                      documentoPdfContentType: null,
-                    }
-                    : atleta
-                )
-              );
-              setEditForm(prevForm => ({
-                ...prevForm,
+    const executeRemovePdf = async () => {
+      try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        await axios.delete(`${API_URL}/api/supervisor/atletas/${atletaId}/documento-pdf`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        setAtletas(prevAtletas =>
+          prevAtletas.map(atleta =>
+            atleta.id === atletaId
+              ? {
+                ...atleta,
                 documentoPdfBase64: null,
                 documentoPdfContentType: null,
-              }));
-              Alert.alert('Sucesso', 'Documento PDF removido com sucesso.');
-            } catch (error) {
-              console.error('Erro ao remover PDF:', error);
-              Alert.alert('Erro', 'Não foi possível remover o documento PDF.');
-            }
+              }
+              : atleta
+          )
+        );
+        setEditForm(prevForm => ({
+          ...prevForm,
+          documentoPdfBase64: null,
+          documentoPdfContentType: null,
+        }));
+        
+        if (Platform.OS === 'web') {
+          window.alert('Documento PDF removido com sucesso.');
+        } else {
+          Alert.alert('Sucesso', 'Documento PDF removido com sucesso.');
+        }
+      } catch (error) {
+        console.error('Erro ao remover PDF:', error);
+        if (Platform.OS === 'web') {
+          window.alert('Não foi possível remover o documento PDF.');
+        } else {
+          Alert.alert('Erro', 'Não foi possível remover o documento PDF.');
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Tem certeza que deseja remover o documento PDF principal deste atleta?');
+      if (confirmed) {
+        executeRemovePdf();
+      }
+    } else {
+      Alert.alert(
+        'Remover PDF',
+        'Tem certeza que deseja remover o documento PDF principal deste atleta?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Remover',
+            onPress: executeRemovePdf,
+            style: 'destructive',
           },
-          style: 'destructive',
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
   // --- Fim Funções de API e Handlers de Ação ---
 

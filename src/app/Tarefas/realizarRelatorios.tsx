@@ -520,7 +520,7 @@ const AthleteEvaluationForm = () => {
       },
     };
 
-    console.log('Dados enviados para /api/relatoriogeral/cadastrar:', JSON.stringify(requestBody, null, 2));
+    
 
     try {
       const geralResponse = await fetch(`${API_BASE_URL}/api/relatoriogeral/cadastrar`, {
@@ -533,7 +533,7 @@ const AthleteEvaluationForm = () => {
         const errorText = await geralResponse.text();
         throw new Error(`HTTP error! Status: ${geralResponse.status}, Message: ${errorText} for Avaliação Geral`);
       }
-      console.log('Avaliação Geral data sent successfully!');
+      
 
       Alert.alert(
         'Sucesso!',
@@ -542,7 +542,7 @@ const AthleteEvaluationForm = () => {
           {
             text: 'Não',
             onPress: () => {
-              console.log('Usuário escolheu não cadastrar nova avaliação. Redirecionando...');
+             
               navigation.goBack();
             },
             style: 'cancel',
@@ -550,7 +550,7 @@ const AthleteEvaluationForm = () => {
           {
             text: 'Sim',
             onPress: () => {
-              console.log('Usuário escolheu cadastrar nova avaliação. Reiniciando formulário...');
+              
               resetFormState();
             },
           },

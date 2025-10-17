@@ -1,4 +1,4 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -18,24 +18,25 @@ export const styles = StyleSheet.create({
 
   header: {
     backgroundColor: '#1c348e',
-    padding: 15,
-    paddingTop: Platform.OS === 'web' ? 20 : 35,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderBottomWidth: 2,
     borderBottomColor: '#e5c228',
-    justifyContent: 'flex-start',
     paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingTop: Platform.OS === 'web' ? 15 : 45,
     width: '100%',
   },
 
   btnVoltar: {
     padding: 5,
-    marginRight: 15,
   },
 
   headerTitle: {
     color: '#fff',
+    flex: 1,
+    textAlign: 'center',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -255,5 +256,50 @@ export const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: 'bold',
     marginLeft: 5,
+  },
+
+  photoButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 20,
+    flexWrap: 'wrap',
+  },
+
+  changePhotoButton: {
+    backgroundColor: '#1c348e',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 140,
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+
+  changePhotoButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+
+  deletePhotoButton: {
+    backgroundColor: '#DC3545',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 140,
+    ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+  },
+
+  deletePhotoButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

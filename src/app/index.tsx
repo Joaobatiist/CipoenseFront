@@ -1,13 +1,14 @@
 import { router } from 'expo-router';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
+  Dimensions,
+  Platform,
   SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  Dimensions
+  View
 } from 'react-native';
 
 
@@ -30,7 +31,10 @@ const WelcomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.container}
+        style={styles.webScrollView}
+      >
         
         {/* Seção Principal (Herói) com a ilustração e chamada para ação */}
         <View style={styles.heroSection}>
@@ -103,6 +107,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F0F4F8', // Um azul bem claro para o fundo
   },
+  webScrollView: {
+    ...Platform.select({
+      web: {
+        // Permite scroll com o mouse na web
+        overflowY: 'auto' as any,
+        maxHeight: '90vh',
+      },
+    }),
+  } as any,
   container: {
     paddingBottom: 32,
     alignItems: 'center',
@@ -215,6 +228,7 @@ const styles = StyleSheet.create({
     color: '#0A2463', // Azul Escuro
     marginTop: 8,
   },
+  
 });
 
 export default WelcomeScreen;

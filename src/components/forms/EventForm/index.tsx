@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Text, TextInput, View } from 'react-native';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Platform, Text, TextInput, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { TextInputMask } from 'react-native-masked-text';
 import { Button } from '../../button/index';
 import { styles } from './styles';
-import { faPlus } from '@fortawesome/free-solid-svg-icons';
 
 interface Evento {
   id: string;
@@ -41,6 +41,16 @@ export const EventForm: React.FC<EventFormProps> = ({
   const [local, setLocal] = useState('');
   const [horario, setHorario] = useState('');
 
+  const resetForm = useCallback((): void => {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    setSelectedDate(new Date(today.getTime() - offset).toISOString().split('T')[0]);
+    setDescricao('');
+    setProfessor(userName);
+    setLocal('');
+    setHorario('');
+  }, [userName]);
+
   // Carrega dados do evento para edição
   useEffect(() => {
     if (editingEvent) {
@@ -55,21 +65,19 @@ export const EventForm: React.FC<EventFormProps> = ({
     } else {
       resetForm();
     }
-  }, [editingEvent, userName]);
-
-  const resetForm = (): void => {
-    const today = new Date();
-    const offset = today.getTimezoneOffset() * 60000;
-    setSelectedDate(new Date(today.getTime() - offset).toISOString().split('T')[0]);
-    setDescricao('');
-    setProfessor(userName);
-    setLocal('');
-    setHorario('');
-  };
+  }, [editingEvent, userName, resetForm]);
 
   const handleSave = async (): Promise<void> => {
+    // Validação: verifica se todos os campos obrigatórios estão preenchidos
     if (!descricao.trim() || !professor.trim() || !local.trim() || !horario.trim()) {
-      Alert.alert('Erro', 'Preencha todos os campos do treino.');
+      if (Platform.OS === 'web') {
+        window.alert('Por favor, preencha todos os campos obrigatórios:\n- Descrição\n- Professor\n- Local\n- Horário');
+      } else {
+        Alert.alert(
+          'Campos obrigatórios',
+          'Por favor, preencha todos os campos obrigatórios:\n- Descrição\n- Professor\n- Local\n- Horário'
+        );
+      }
       return;
     }
 
@@ -85,7 +93,7 @@ export const EventForm: React.FC<EventFormProps> = ({
       if (!editingEvent) {
         resetForm();
       }
-    } catch (error) {
+    } catch {
       // Error handling is done in the hook
     }
   };
@@ -160,6 +168,9 @@ export const EventForm: React.FC<EventFormProps> = ({
     <Button
       title="Adicionar evento"
       icon={faPlus}
+      onPress={handleSave}
+      textColor="#fff"
+      disabled={loading}
     />
   )}
 
@@ -170,12 +181,14 @@ export const EventForm: React.FC<EventFormProps> = ({
         textColor="#fff"
         onPress={handleSave}
         style={styles.submitButton}
+        disabled={loading}
       />
       <Button
         title="Cancelar Edição"
         textColor="#fff"
         onPress={handleCancel}
         style={styles.cancelButton}
+        disabled={loading}
       />
     </>
   )}

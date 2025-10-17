@@ -113,7 +113,11 @@ const ListaFuncionarios = () => {
       setFocusIndex(0);
     } catch (error) {
       console.error('Erro ao carregar lista de funcionários:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a lista de contatos.');
+      if (Platform.OS === 'web') {
+        window.alert('Não foi possível carregar a lista de contatos.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível carregar a lista de contatos.');
+      }
       setFuncionario([]);
     } finally {
       setLoading(false);
@@ -153,7 +157,11 @@ const ListaFuncionarios = () => {
   // Manipulador para salvar as edições
   const handleSaveEdit = async () => {
     if (!selectedFuncionario || !editForm.nome || !editForm.roles) {
-      Alert.alert('Erro', 'Nome e tipo (roles) são obrigatórios.');
+      if (Platform.OS === 'web') {
+        window.alert('Nome e tipo (roles) são obrigatórios.');
+      } else {
+        Alert.alert('Erro', 'Nome e tipo (roles) são obrigatórios.');
+      }
       return;
     }
 
@@ -176,7 +184,11 @@ const ListaFuncionarios = () => {
 
       await fetchFuncionarios();
 
-      Alert.alert('Sucesso', 'Perfil do funcionário atualizado com sucesso!');
+      if (Platform.OS === 'web') {
+        window.alert('Perfil do funcionário atualizado com sucesso!');
+      } else {
+        Alert.alert('Sucesso', 'Perfil do funcionário atualizado com sucesso!');
+      }
       setOpenRolesPicker(false);
       setModalVisible(false);
     } catch (error) {
@@ -185,7 +197,11 @@ const ListaFuncionarios = () => {
         if (isAxiosError(error) && error.response?.data?.message) {
             errorMessage = error.response.data.message;
         }
-        Alert.alert('Erro', errorMessage);
+        if (Platform.OS === 'web') {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert('Erro', errorMessage);
+        }
     } finally {
       setEditLoading(false);
     }
@@ -193,39 +209,56 @@ const ListaFuncionarios = () => {
 
   // Manipulador para excluir
   const handleDelete = (funcionarioId: number, funcionarioRole: string) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          onPress: async () => {
-            try {
-              const token = await AsyncStorage.getItem('jwtToken');
-              const url = `${API_URL}/api/funcionarios/${funcionarioId}`;
-              
-              await axios.delete(url, {
-                headers: { Authorization: `Bearer ${token}` },
-                params: { roles: funcionarioRole }
-              });
+    const executeDelete = async () => {
+      try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        const url = `${API_URL}/api/funcionarios/${funcionarioId}`;
+        
+        await axios.delete(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { roles: funcionarioRole }
+        });
 
-              await fetchFuncionarios();
+        await fetchFuncionarios();
 
-              Alert.alert('Sucesso', 'Funcionário excluído com sucesso!');
-            } catch (error) {
-              console.error('Erro ao excluir funcionário:', error);
-              let errorMessage = 'Não foi possível excluir o funcionário.';
-              if (isAxiosError(error) && error.response?.data?.message) {
-                  errorMessage = error.response.data.message;
-              }
-              Alert.alert('Erro', errorMessage);
-            }
+        if (Platform.OS === 'web') {
+          window.alert('Funcionário excluído com sucesso!');
+        } else {
+          Alert.alert('Sucesso', 'Funcionário excluído com sucesso!');
+        }
+      } catch (error) {
+        console.error('Erro ao excluir funcionário:', error);
+        let errorMessage = 'Não foi possível excluir o funcionário.';
+        if (isAxiosError(error) && error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        if (Platform.OS === 'web') {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert('Erro', errorMessage);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.');
+      if (confirmed) {
+        executeDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirmar Exclusão',
+        'Tem certeza que deseja excluir este funcionário? Esta ação não pode ser desfeita.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            onPress: executeDelete,
+            style: 'destructive',
           },
-          style: 'destructive',
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
 

@@ -58,6 +58,7 @@ export const styles = StyleSheet.create({
       color: "#ffffffff",
       // Ajuste de margem para telas grandes
       marginLeft: IS_LARGE_SCREEN ? 30 : 40,
+      textAlign: "center",
       top: 5,
       paddingLeft: 20,
       fontSize: IS_LARGE_SCREEN ? 24 : 20,

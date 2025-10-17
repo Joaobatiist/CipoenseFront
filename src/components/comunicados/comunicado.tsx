@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     FlatList,
+    Platform,
     ScrollView,
     Text,
     TextInput,
@@ -404,46 +405,72 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
         }
     }, [editingComunicadoId, editedComunicado, getToken, groupDestinatariosByType, resetForm, handleApiError]);
 
-    const deleteComunicado = useCallback((idComunicado: string) => {
-        Alert.alert(
-            'Confirmar Exclusão',
-            'Tem certeza que deseja excluir este comunicado?',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                    text: 'Excluir',
-                    onPress: async () => {
-                        try {
-                            const token = await getToken();
-                            if (!token) {
-                                throw new Error('Token de autenticação não encontrado.');
-                            }
-                            
-                            const response = await fetch(`${API_BASE_URL}/api/comunicados/${idComunicado}`, {
-                                method: 'DELETE',
-                                headers: { 'Authorization': `Bearer ${token}` },
-                            });
+    const executeDelete = useCallback(async (idComunicado: string) => {
+        try {
+            const token = await getToken();
+            if (!token) {
+                throw new Error('Token de autenticação não encontrado.');
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/api/comunicados/${idComunicado}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
 
-                            if (!response.ok) {
-                                throw new Error(`Erro ${response.status}: Falha ao excluir comunicado`);
-                            }
+            if (!response.ok) {
+                throw new Error(`Erro ${response.status}: Falha ao excluir comunicado`);
+            }
 
-                            setComunicadosEnviados(prev =>
-                                prev.filter(comunicado => String(comunicado.id) !== idComunicado)
-                            );
-                            Alert.alert('Sucesso', 'Comunicado excluído com sucesso!');
+            setComunicadosEnviados(prev =>
+                prev.filter(comunicado => String(comunicado.id) !== idComunicado)
+            );
+            
+            if (Platform.OS === 'web') {
+                window.alert('Comunicado excluído com sucesso!');
+            } else {
+                Alert.alert('Sucesso', 'Comunicado excluído com sucesso!');
+            }
 
-                        } catch (error: any) {
-                            const errorMessage = handleApiError(error, 'excluir comunicado');
-                            Alert.alert("Erro", errorMessage);
-                        }
-                    },
-                    style: 'destructive',
-                },
-            ],
-            { cancelable: true }
-        );
+        } catch (error: any) {
+            const errorMessage = handleApiError(error, 'excluir comunicado');
+            if (Platform.OS === 'web') {
+                window.alert(`Erro: ${errorMessage}`);
+            } else {
+                Alert.alert("Erro", errorMessage);
+            }
+        }
     }, [getToken, handleApiError]);
+
+    const deleteComunicado = useCallback(async (idComunicado: string) => {
+        if (Platform.OS === 'web') {
+            // Confirmação para web usando window.confirm
+            const confirmed = window.confirm(
+                "Tem certeza que deseja excluir este comunicado? Esta ação é irreversível."
+            );
+            
+            if (!confirmed) {
+                return; // Usuário cancelou
+            }
+        } else {
+            // Alert.alert para mobile (iOS/Android)
+            Alert.alert(
+                "Confirmar Exclusão",
+                "Tem certeza que deseja excluir este comunicado? Esta ação é irreversível.",
+                [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                        text: "Sim, Excluir",
+                        style: "destructive",
+                        onPress: async () => await executeDelete(idComunicado),
+                    },
+                ]
+            );
+            return; // No mobile, a exclusão será feita pelo callback do Alert
+        }
+
+        // Se chegou aqui, é web e usuário confirmou
+        await executeDelete(idComunicado);
+    }, [executeDelete]); 
 
     const hideComunicado = useCallback((comunicadoId: string) => {
         setHiddenComunicados(prev => [...prev, String(comunicadoId)]);
@@ -554,14 +581,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
                        const isRecipient = item.destinatarios.some((d: Usuario) => currentUserId !== null && String(d.id) === currentUserId);
 
                         // Debug logs para identificar por que os botões não aparecem
-                        console.log('DEBUG BOTÕES:', {
-                            comunicadoId: item.id,
-                            currentUserId,
-                            remetenteId: item.remetente?.id,
-                            remetente: item.remetente,
-                            isSender,
-                            isRecipient
-                        });
+                       
 
                         return (
                             <View key={getReactKey(item.id, `comunicado-card-${item.id}`)} style={styles.comunicadoCard}> 

@@ -312,26 +312,50 @@ const RelatoriosScreen: React.FC = () => {
     };
 
     const handleDeleteEvaluation = (id: number) => {
-        Alert.alert(
-            "Confirmar Exclusão",
-            "Tem certeza que deseja excluir esta avaliação? Esta ação é irreversível.",
-            [
-                { text: "Cancelar", style: "cancel" },
-                {
-                    text: "Sim, Excluir",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            await deleteAthletesList(id);
-                            Alert.alert("Sucesso", "Avaliação excluída com sucesso.");
-                            loadEvaluationsAndAthletes(); // Recarrega a lista
-                        } catch {
-                            Alert.alert("Erro", "Não foi possível excluir a avaliação.");
-                        }
+        if (Platform.OS === 'web') {
+            // Confirmação para web usando window.confirm
+            const confirmed = window.confirm(
+                "Tem certeza que deseja excluir esta avaliação? Esta ação é irreversível."
+            );
+            
+            if (confirmed) {
+                deleteEvaluationById(id);
+            }
+        } else {
+            // Alert.alert para mobile (iOS/Android)
+            Alert.alert(
+                "Confirmar Exclusão",
+                "Tem certeza que deseja excluir esta avaliação? Esta ação é irreversível.",
+                [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                        text: "Sim, Excluir",
+                        style: "destructive",
+                        onPress: () => deleteEvaluationById(id),
                     },
-                },
-            ]
-        );
+                ]
+            );
+        }
+    };
+
+    const deleteEvaluationById = async (id: number) => {
+        try {
+            await deleteAthletesList(id);
+            
+            if (Platform.OS === 'web') {
+                window.alert("Avaliação excluída com sucesso.");
+            } else {
+                Alert.alert("Sucesso", "Avaliação excluída com sucesso.");
+            }
+            
+            loadEvaluationsAndAthletes(); // Recarrega a lista
+        } catch {
+            if (Platform.OS === 'web') {
+                window.alert("Erro: Não foi possível excluir a avaliação.");
+            } else {
+                Alert.alert("Erro", "Não foi possível excluir a avaliação.");
+            }
+        }
     };
 
     // --- Lógica de Navegação por Teclado na Web (Aprimorada) ---

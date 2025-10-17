@@ -20,8 +20,8 @@ RUN npm run heroku-postbuild
 # ====================================================================
 FROM node:22-alpine
 
-ENV PORT 5000
-EXPOSE 5000
+ENV PORT 80
+EXPOSE 80
 
 RUN npm install -g serve
 

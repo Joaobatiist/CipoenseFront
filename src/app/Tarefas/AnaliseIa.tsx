@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Platform,
     SafeAreaView,
@@ -181,6 +182,16 @@ const SupervisorAnalisesScreen: React.FC = () => {
             const data: AnaliseIa[] = await response.json();
             setAnalises(Array.isArray(data) ? data : []);
 
+            // Alerta de sucesso cross-platform
+            if (data && data.length > 0) {
+                const mensagem = `${data.length} análise${data.length > 1 ? 's' : ''} carregada${data.length > 1 ? 's' : ''} com sucesso!`;
+                if (Platform.OS === 'web') {
+                    window.alert(mensagem);
+                } else {
+                    Alert.alert('Sucesso', mensagem);
+                }
+            }
+
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'buscar análises');
             setError(errorMessage);
@@ -189,6 +200,66 @@ const SupervisorAnalisesScreen: React.FC = () => {
             setLoadingAnalises(false);
         }
     }, [getToken, handleApiError]);
+
+    // --- Função para deletar análise ---
+    const handleDeleteAnalise = useCallback(async (analiseId: number) => {
+        const executeDelete = async () => {
+            try {
+                const token = await getToken();
+                if (!token) {
+                    throw new Error('Token não encontrado');
+                }
+
+                // Backend espera o ID como query parameter: ?id=xxx
+                const response = await fetch(`${API_BASE_URL}/api/analises/delete?id=${analiseId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro ao deletar: ${response.status}`);
+                }
+
+                // Atualiza a lista removendo a análise deletada
+                setAnalises(prev => prev.filter(analise => analise.id !== analiseId));
+
+                if (Platform.OS === 'web') {
+                    window.alert('Análise deletada com sucesso!');
+                } else {
+                    Alert.alert('Sucesso', 'Análise deletada com sucesso!');
+                }
+            } catch (error: any) {
+                console.error('Erro ao deletar análise:', error);
+                const errorMessage = handleApiError(error, 'deletar análise');
+                if (Platform.OS === 'web') {
+                    window.alert(errorMessage);
+                } else {
+                    Alert.alert('Erro', errorMessage);
+                }
+            }
+        };
+
+        // Confirmação antes de deletar
+        if (Platform.OS === 'web') {
+            const confirmed = window.confirm('Tem certeza que deseja deletar esta análise? Esta ação não pode ser desfeita.');
+            if (confirmed) {
+                executeDelete();
+            }
+        } else {
+            Alert.alert(
+                'Confirmar Exclusão',
+                'Tem certeza que deseja deletar esta análise? Esta ação não pode ser desfeita.',
+                [
+                    { text: 'Cancelar', style: 'cancel' },
+                    { text: 'Deletar', onPress: executeDelete, style: 'destructive' },
+                ]
+            );
+        }
+    }, [getToken, handleApiError]);
+
     // --- Funções de Interação ---
     const handleSelectAtleta = useCallback((atleta: Atleta) => {
         if (selectedAtleta?.id === atleta.id) {
@@ -256,8 +327,19 @@ const SupervisorAnalisesScreen: React.FC = () => {
         return (
             <View style={styles.analiseCard}>
                 <View style={styles.analiseCardHeader}>
-                    <FontAwesomeIcon icon={faChartLine} size={20} color="#1c348e" />
-                    <Text style={styles.analiseTitle}>Análise de Desempenho</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <FontAwesomeIcon icon={faChartLine} size={20} color="#1c348e" />
+                        <Text style={styles.analiseTitle}>Análise de Desempenho</Text>
+                    </View>
+                    <TouchableOpacity
+                        onPress={() => handleDeleteAnalise(item.id)}
+                        style={styles.deleteButton}
+                        activeOpacity={0.7}
+                        {...(Platform.OS === 'web' && { cursor: 'pointer' as any })}
+                        accessibilityLabel="Deletar análise"
+                    >
+                        <Text style={styles.deleteButtonText}>🗑️ Deletar</Text>
+                    </TouchableOpacity>
                 </View>
                 
                 <Text style={styles.analiseDate}>{dataFormatada}</Text>
@@ -271,7 +353,7 @@ const SupervisorAnalisesScreen: React.FC = () => {
                 </View>
             </View>
         );
-    }, []);
+    }, [handleDeleteAnalise]);
 
     const renderEmptyAtletas = useCallback(() => (
         <View style={styles.emptyContainer}>
@@ -391,11 +473,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row', 
         alignItems: 'center', 
         padding: 15, 
+        
         backgroundColor: '#1c348e',
         paddingTop: Platform.OS === 'android' ? 50 : 10,
         paddingLeft: Platform.OS === 'android' ? 15 : 0,
-        borderBottomLeftRadius: 15,
-        borderBottomRightRadius: 15,
+        borderBottomLeftRadius: 1,
+        borderBottomRightRadius: 1,
         marginBottom: 10,
     },
     headerTitle: { 
@@ -403,6 +486,7 @@ const styles = StyleSheet.create({
         fontSize: 20, 
         fontWeight: 'bold', 
         marginLeft: 15, 
+        textAlign: 'center',
         paddingLeft: 30,
         flex: 1
     },
@@ -563,6 +647,19 @@ const styles = StyleSheet.create({
     },
     flex1: {
         flex: 1,
+    },
+    deleteButton: {
+        backgroundColor: '#e74c3c',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        marginLeft: 10,
+        ...(Platform.OS === 'web' && { cursor: 'pointer' }),
+    },
+    deleteButtonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '600',
     },
     // Estilos específicos para web
     webContainer: {

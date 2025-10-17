@@ -1,7 +1,7 @@
 import { apiService } from '@/services';
 import { Evento } from '@/types';
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 
 interface UseEventosReturn {
   eventos: Evento[];
@@ -94,30 +94,53 @@ export const useEventos = (): UseEventosReturn => {
   };
 
   const deleteEvento = async (id: string): Promise<void> => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      'Tem certeza que deseja excluir este treino?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await apiService.delete(`/api/eventos/${id}`);
-              setEventos(prev => prev.filter(evento => evento.id !== id));
-              Alert.alert('Sucesso', 'Treino excluído com sucesso!');
-            } catch (error) {
-              console.error('Erro ao excluir evento:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o treino.');
-            } finally {
-              setLoading(false);
-            }
+    if (Platform.OS === 'web') {
+      // Confirmação para web usando window.confirm
+      const confirmed = window.confirm('Tem certeza que deseja excluir este treino?');
+      
+      if (!confirmed) {
+        return; // Usuário cancelou
+      }
+
+      // Se confirmou, executa a exclusão
+      try {
+        setLoading(true);
+        await apiService.delete(`/api/eventos/${id}`);
+        setEventos(prev => prev.filter(evento => evento.id !== id));
+        window.alert('Treino excluído com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir evento:', error);
+        window.alert('Erro: Não foi possível excluir o treino.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Alert.alert para mobile (iOS/Android)
+      Alert.alert(
+        'Confirmar Exclusão',
+        'Tem certeza que deseja excluir este treino?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                setLoading(true);
+                await apiService.delete(`/api/eventos/${id}`);
+                setEventos(prev => prev.filter(evento => evento.id !== id));
+                Alert.alert('Sucesso', 'Treino excluído com sucesso!');
+              } catch (error) {
+                console.error('Erro ao excluir evento:', error);
+                Alert.alert('Erro', 'Não foi possível excluir o treino.');
+              } finally {
+                setLoading(false);
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const refreshEventos = async (): Promise<void> => {

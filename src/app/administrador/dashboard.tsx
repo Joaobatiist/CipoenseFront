@@ -92,7 +92,7 @@ const UniversalDashboard: React.FC = () => {
             : null;
           
           setUserRole(role);
-          console.log('UserRole obtido do JWT:', role);
+          
         }
       } catch (error) {
         console.error('Erro ao obter userRole do JWT:', error);

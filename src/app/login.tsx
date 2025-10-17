@@ -6,17 +6,17 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  Pressable,
   View,
-  Dimensions,
 } from 'react-native';
 import Api from '../Config/Api';
 
@@ -38,7 +38,11 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     
     if (!emailAluno || !senhaAluno) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      if (Platform.OS === 'web') {
+        window.alert('Por favor, preencha todos os campos.');
+      } else {
+        Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      }
       return;
     }
 
@@ -56,7 +60,11 @@ const LoginScreen = () => {
         const decodedToken = jwtDecode<CustomJwtPayload>(jwt);
         const userRole = decodedToken.roles?.[0];
 
-        Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        if (Platform.OS === 'web') {
+          window.alert('Login realizado com sucesso!');
+        } else {
+          Alert.alert('Sucesso', 'Login realizado com sucesso!');
+        }
 
         if (userRole === 'ATLETA') {
           router.replace('/atletas/Atleta');
@@ -64,21 +72,42 @@ const LoginScreen = () => {
           router.replace('/administrador/dashboard');
         }
       } else {
-        Alert.alert('Erro', 'Token JWT não recebido na resposta.');
+        if (Platform.OS === 'web') {
+          window.alert('Token JWT não recebido na resposta.');
+        } else {
+          Alert.alert('Erro', 'Token JWT não recebido na resposta.');
+        }
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response) {
           if (error.response.status === 401) {
-            Alert.alert('Erro', 'Email ou senha incorretos.');
+            if (Platform.OS === 'web') {
+              window.alert('Email ou senha incorretos.');
+            } else {
+              Alert.alert('Erro', 'Email ou senha incorretos.');
+            }
           } else {
-            Alert.alert('Erro', `Falha no login: ${error.response.data.message || 'Erro desconhecido.'}`);
+            const errorMsg = `Falha no login: ${error.response.data.message || 'Erro desconhecido.'}`;
+            if (Platform.OS === 'web') {
+              window.alert(errorMsg);
+            } else {
+              Alert.alert('Erro', errorMsg);
+            }
           }
         } else if (error.request) {
-          Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+          if (Platform.OS === 'web') {
+            window.alert('Não foi possível conectar ao servidor.');
+          } else {
+            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+          }
         }
       } else {
-        Alert.alert('Erro', 'Ocorreu um erro inesperado.');
+        if (Platform.OS === 'web') {
+          window.alert('Ocorreu um erro inesperado.');
+        } else {
+          Alert.alert('Erro', 'Ocorreu um erro inesperado.');
+        }
       }
     } finally {
       setLoading(false);
@@ -136,9 +165,6 @@ const LoginScreen = () => {
         </Pressable>
 
         <View style={styles.signupButton}>
-          <Pressable onPress={handleCadastro}>
-            <Text style={styles.signupButtonText}>Cadastre-se</Text>
-          </Pressable>
           <Pressable onPress={handleVoltar}>
             <Text style={styles.signupButtonText}>Menu</Text>
           </Pressable>

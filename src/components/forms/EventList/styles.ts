@@ -6,18 +6,25 @@ const MAX_WIDTH = 1250; // Alinhado com o formulário
 
 export const styles = StyleSheet.create({
   container: {
-    marginTop: isLargeScreen ? 30 : 20,
+    marginTop: isLargeScreen ? 20 : 20,
     maxWidth: isLargeScreen ? MAX_WIDTH : '100%',
+    padding: isLargeScreen ? 20 : 15,
     alignSelf: 'center',
     width: '100%',
     paddingHorizontal: isLargeScreen ? 10 : 10,
+    borderRadius: 17,
+     ...Platform.select({
+                    web: isLargeScreen && {
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    },
+                }),
   },
   sectionTitle: {
-    fontSize: isLargeScreen ? 20 : 18,
+    fontSize: isLargeScreen ? 21 : 18,
     fontWeight: 'bold',
     
     marginBottom: isLargeScreen ? 15 : 10,
-    color: '#1c348e',
+    color: '#000000ff',
     textAlign: 'center',
   },
   eventCard: {
@@ -93,10 +100,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: isLargeScreen ? 80 : 30,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#ffffffff',
+    
+    
+  
   },
   emptyMessage: {
     fontSize: isLargeScreen ? 18 : 16,

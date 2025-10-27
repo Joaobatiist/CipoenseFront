@@ -1,357 +1,78 @@
-import { faArrowLeft, faChartLine, faChevronRight, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { ToastContainer } from '@/components/Toast';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Platform,
     SafeAreaView,
-    ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
-    View
+    View,
+    ScrollView
 } from 'react-native';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
-// --- Interfaces ---
-interface Atleta {
-    id: number;
-    nomeCompleto: string;
-    email: string;
-}
+import AtletaCard from '@/components/analiseIA/AtletaCard'; 
+import AtletaSearchInput from '@/components/analiseIA/AtletaSearchInput'; 
+import AnaliseCard from '@/components/analiseIA/AnaliseCard'; 
 
-interface AnaliseIa {
-    id: number;
-    atletaEmail: string;
-    prompt: string;
-    respostaIA: string;
-    dataAnalise: string;
-}
+
+import { useSupervisorAnalises } from '../../hooks/useSupervisorAnalises'; 
+import { Atleta, AnaliseIa, COLORS_ANALISE } from '../../types/analiseTypes'; 
 
 const SupervisorAnalisesScreen: React.FC = () => {
-    // --- Referencias para scroll ---
-    const scrollViewRef = useRef<ScrollView>(null);
-    const flatListRef = useRef<FlatList>(null);
     
-    // --- Estados ---
-    const [atletas, setAtletas] = useState<Atleta[]>([]);
-    const [searchText, setSearchText] = useState('');
-    const [analises, setAnalises] = useState<AnaliseIa[]>([]);
-    const [loadingAtletas, setLoadingAtletas] = useState(true);
-    const [loadingAnalises, setLoadingAnalises] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedAtleta, setSelectedAtleta] = useState<Atleta | null>(null);
+    const {
+        // Refs
+        scrollViewRef,
+        flatListRef,
+        // Estado e Dados
+        filteredAtletas,
+        analises,
+        loadingAtletas,
+        loadingAnalises,
+        error,
+        selectedAtleta,
+        searchText,
+        sidebarOpen,
+        userName,
+        userRole,
+        // Handlers
+        toggleSidebar,
+        closeSidebar,
+        handleSearchChange,
+        handleSelectAtleta,
+        handleDeleteAnalise,
+        fetchAtletas,
+    } = useSupervisorAnalises();
 
-    // --- Computed Values ---
-    const filteredAtletas = useMemo(() => {
-        if (!searchText.trim()) return atletas;
-        return atletas.filter(atleta =>
-            atleta.nomeCompleto.toLowerCase().includes(searchText.toLowerCase().trim())
-        );
-    }, [atletas, searchText]);
 
-    // --- Funções Utilitárias ---
-    const getToken = useCallback(async (): Promise<string | null> => {
-        try {
-            return await AsyncStorage.getItem('jwtToken');
-        } catch (error) {
-            console.error('Erro ao obter token:', error);
-            return null;
-        }
-    }, []);
 
-    const handleApiError = useCallback((error: any, context: string): string => {
-        console.error(`Erro em ${context}:`, error);
-        if (error.message?.includes('Token')) {
-            return 'Sessão expirada. Faça login novamente.';
-        }
-        if (error.message?.includes('Network')) {
-            return 'Erro de conexão. Verifique sua internet.';
-        }
-        return error.message || `Erro ao ${context.toLowerCase()}.`;
-    }, []);
 
-    // --- Navegação por teclado para web ---
-    useEffect(() => {
-        if (Platform.OS === 'web') {
-            let currentScrollPosition = 0;
-            let currentFlatListPosition = 0;
-
-            const handleKeyDown = (event: KeyboardEvent) => {
-                // Navegação com teclas de seta
-                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                    event.preventDefault();
-                    
-                    // Se há atletas selecionados, navegar na FlatList
-                    if (selectedAtleta && flatListRef.current) {
-                        const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
-                        currentFlatListPosition = Math.max(0, currentFlatListPosition + scrollDirection);
-                        flatListRef.current.scrollToOffset({
-                            offset: currentFlatListPosition,
-                            animated: true,
-                        });
-                    } 
-                    // Caso contrário, navegar no ScrollView principal
-                    else if (scrollViewRef.current) {
-                        const scrollDirection = event.key === 'ArrowDown' ? 100 : -100;
-                        currentScrollPosition = Math.max(0, currentScrollPosition + scrollDirection);
-                        scrollViewRef.current.scrollTo({
-                            y: currentScrollPosition,
-                            animated: true,
-                        });
-                    }
-                }
-            };
-
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
-        }
-    }, [selectedAtleta]);
-
-    // --- Funções de API ---
-    const fetchAtletas = useCallback(async () => {
-        setLoadingAtletas(true);
-        setError(null);
-        
-        try {
-            const token = await getToken();
-            if (!token) {
-                throw new Error('Token de autenticação não encontrado.');
-            }
-            
-            const response = await fetch(`${API_BASE_URL}/api/atletas/listagem`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Erro ${response.status}: Falha ao buscar atletas`);
-            }
-
-            const data: Atleta[] = await response.json();
-            setAtletas(data);
-            
-        } catch (error: any) {
-            const errorMessage = handleApiError(error, 'buscar atletas');
-            setError(errorMessage);
-        } finally {
-            setLoadingAtletas(false);
-        }
-    }, [getToken, handleApiError]);
-
-    // --- Efeitos ---
-    useEffect(() => {
-        fetchAtletas();
-    }, [fetchAtletas]);
-
-    const fetchAnalisesByAtleta = useCallback(async (atletaEmail: string) => {
-        if (!atletaEmail?.trim()) {
-            console.warn('E-mail do atleta inválido:', atletaEmail);
-            setAnalises([]);
-            return;
-        }
-
-        setLoadingAnalises(true);
-        setError(null);
-        setAnalises([]);
-        
-        try {
-            const token = await getToken();
-            if (!token) {
-                throw new Error('Token de autenticação não encontrado.');
-            }
-            
-            const response = await fetch(`${API_BASE_URL}/api/analises/atleta/${encodeURIComponent(atletaEmail)}`, {
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-
-            if (response.status === 204 || response.status === 404) {
-                setAnalises([]);
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`Erro ${response.status}: Falha ao buscar análises`);
-            }
-            
-            const data: AnaliseIa[] = await response.json();
-            setAnalises(Array.isArray(data) ? data : []);
-
-            // Alerta de sucesso cross-platform
-            if (data && data.length > 0) {
-                const mensagem = `${data.length} análise${data.length > 1 ? 's' : ''} carregada${data.length > 1 ? 's' : ''} com sucesso!`;
-                if (Platform.OS === 'web') {
-                    window.alert(mensagem);
-                } else {
-                    Alert.alert('Sucesso', mensagem);
-                }
-            }
-
-        } catch (error: any) {
-            const errorMessage = handleApiError(error, 'buscar análises');
-            setError(errorMessage);
-            setAnalises([]);
-        } finally {
-            setLoadingAnalises(false);
-        }
-    }, [getToken, handleApiError]);
-
-    // --- Função para deletar análise ---
-    const handleDeleteAnalise = useCallback(async (analiseId: number) => {
-        const executeDelete = async () => {
-            try {
-                const token = await getToken();
-                if (!token) {
-                    throw new Error('Token não encontrado');
-                }
-
-                // Backend espera o ID como query parameter: ?id=xxx
-                const response = await fetch(`${API_BASE_URL}/api/analises/delete?id=${analiseId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Erro ao deletar: ${response.status}`);
-                }
-
-                // Atualiza a lista removendo a análise deletada
-                setAnalises(prev => prev.filter(analise => analise.id !== analiseId));
-
-                if (Platform.OS === 'web') {
-                    window.alert('Análise deletada com sucesso!');
-                } else {
-                    Alert.alert('Sucesso', 'Análise deletada com sucesso!');
-                }
-            } catch (error: any) {
-                console.error('Erro ao deletar análise:', error);
-                const errorMessage = handleApiError(error, 'deletar análise');
-                if (Platform.OS === 'web') {
-                    window.alert(errorMessage);
-                } else {
-                    Alert.alert('Erro', errorMessage);
-                }
-            }
-        };
-
-        // Confirmação antes de deletar
-        if (Platform.OS === 'web') {
-            const confirmed = window.confirm('Tem certeza que deseja deletar esta análise? Esta ação não pode ser desfeita.');
-            if (confirmed) {
-                executeDelete();
-            }
-        } else {
-            Alert.alert(
-                'Confirmar Exclusão',
-                'Tem certeza que deseja deletar esta análise? Esta ação não pode ser desfeita.',
-                [
-                    { text: 'Cancelar', style: 'cancel' },
-                    { text: 'Deletar', onPress: executeDelete, style: 'destructive' },
-                ]
-            );
-        }
-    }, [getToken, handleApiError]);
-
-    // --- Funções de Interação ---
-    const handleSelectAtleta = useCallback((atleta: Atleta) => {
-        if (selectedAtleta?.id === atleta.id) {
-            // Se clicar no mesmo atleta, deseleciona
-            setSelectedAtleta(null);
-            setAnalises([]);
-            return;
-        }
-        
-        setSelectedAtleta(atleta);
-        fetchAnalisesByAtleta(atleta.email);
-    }, [selectedAtleta, fetchAnalisesByAtleta]);
-
-    const handleSearchChange = useCallback((text: string) => {
-        setSearchText(text);
-        // Se houver um atleta selecionado e ele não aparecer na busca, deseleciona
-        if (selectedAtleta && !selectedAtleta.nomeCompleto.toLowerCase().includes(text.toLowerCase())) {
-            setSelectedAtleta(null);
-            setAnalises([]);
-        }
-    }, [selectedAtleta]);
-
-    // --- Componentes de Renderização ---
+    // Render Item do FlatList de Atletas
     const renderAtletaItem = useCallback(({ item }: { item: Atleta }) => {
         const isSelected = selectedAtleta?.id === item.id;
         
         return (
-            <TouchableOpacity 
-                style={[styles.atletaCard, isSelected && styles.atletaCardSelected]} 
-                onPress={() => handleSelectAtleta(item)}
-                activeOpacity={0.7}
-                {...(Platform.OS === 'web' && {
-                    cursor: 'pointer',
-                    activeOpacity: 0.8,
-                })}
-                accessibilityLabel={`Selecionar atleta ${item.nomeCompleto}`}
-            >
-                <View style={styles.atletaInfo}>
-                    <Text style={styles.atletaName}>{item.nomeCompleto}</Text>
-                    <Text style={styles.atletaEmail}>{item.email}</Text>
-                </View>
-                <FontAwesomeIcon 
-                    icon={faChevronRight} 
-                    size={16} 
-                    color={isSelected ? "#1c348e" : "#004A8F"} 
-                />
-            </TouchableOpacity>
+            <AtletaCard 
+                item={item} 
+                isSelected={isSelected} 
+                onSelect={handleSelectAtleta} 
+            />
         );
     }, [selectedAtleta, handleSelectAtleta]);
 
+    // Render Item do FlatList de Análises
     const renderAnaliseItem = useCallback(({ item }: { item: AnaliseIa }) => {
-        const dataFormatada = new Date(item.dataAnalise).toLocaleDateString('pt-BR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-        const paragrafos = item.respostaIA
-            .split('\n')
-            .filter(p => p.trim()) // Remove parágrafos vazios
-            .map(p => p.trim());
-
         return (
-            <View style={styles.analiseCard}>
-                <View style={styles.analiseCardHeader}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <FontAwesomeIcon icon={faChartLine} size={20} color="#1c348e" />
-                        <Text style={styles.analiseTitle}>Análise de Desempenho</Text>
-                    </View>
-                    <TouchableOpacity
-                        onPress={() => handleDeleteAnalise(item.id)}
-                        style={styles.deleteButton}
-                        activeOpacity={0.7}
-                        {...(Platform.OS === 'web' && { cursor: 'pointer' as any })}
-                        accessibilityLabel="Deletar análise"
-                    >
-                        <Text style={styles.deleteButtonText}>🗑️ Deletar</Text>
-                    </TouchableOpacity>
-                </View>
-                
-                <Text style={styles.analiseDate}>{dataFormatada}</Text>
-                
-                <View style={styles.analiseContent}>
-                    {paragrafos.map((paragrafo, index) => (
-                        <Text key={index} style={styles.analiseText}>
-                            {paragrafo}
-                        </Text>
-                    ))}
-                </View>
-            </View>
+            <AnaliseCard 
+                item={item} 
+                onDelete={handleDeleteAnalise} 
+            />
         );
     }, [handleDeleteAnalise]);
 
@@ -360,8 +81,13 @@ const SupervisorAnalisesScreen: React.FC = () => {
             <Text style={styles.emptyText}>
                 {searchText ? 'Nenhum atleta encontrado para a busca.' : 'Nenhum atleta cadastrado.'}
             </Text>
+            {!searchText && (
+                <TouchableOpacity style={styles.reloadButton} onPress={fetchAtletas}>
+                    <Text style={styles.reloadButtonText}>Recarregar Atletas</Text>
+                </TouchableOpacity>
+            )}
         </View>
-    ), [searchText]);
+    ), [searchText, fetchAtletas]);
 
     const renderEmptyAnalises = useCallback(() => (
         <View style={styles.emptyContainer}>
@@ -373,27 +99,29 @@ const SupervisorAnalisesScreen: React.FC = () => {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {Platform.OS === 'web' && <ToastContainer />}
+            
+            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity 
-                    onPress={() => router.back()} 
-                    style={styles.backButton}
-                    {...(Platform.OS === 'web' && {
-                        cursor: 'pointer',
-                        activeOpacity: 0.7,
-                    })}
-                    accessibilityLabel="Voltar"
-                >
-                    <FontAwesomeIcon icon={faArrowLeft} size={18} color="#fff" />
+                <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
+                    <FontAwesomeIcon icon={faBars} size={24} color={COLORS_ANALISE.white} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Análises de Desempenho (IA)</Text>
             </View>
             
-            {/* NOVO CONTAINER DE RESPONSIVIDADE WEB */}
+            {/* Sidebar */}
+             <Sidebar 
+                isOpen={sidebarOpen} 
+                onClose={closeSidebar}
+                userName={userName}
+                userRole={userRole as 'SUPERVISOR' | 'COORDENADOR' | 'TECNICO'}
+                onNavigateToSection={() => {}}
+            />
+            
             <View style={Platform.OS === 'web' ? styles.webContainer : styles.flex1}>
-            {/* FIM NOVO CONTAINER */}
             
                 {loadingAtletas ? (
-                    <ActivityIndicator size="large" color="#004A8F" style={styles.centered} />
+                    <ActivityIndicator size="large" color={COLORS_ANALISE.secondary} style={styles.centered} />
                 ) : error ? (
                     <Text style={styles.errorText}>{error}</Text>
                 ) : (
@@ -405,18 +133,11 @@ const SupervisorAnalisesScreen: React.FC = () => {
                         nestedScrollEnabled={Platform.OS === 'web'}
                         bounces={Platform.OS !== 'web'}
                     >
-                        <View style={styles.searchContainer}>
-                            <FontAwesomeIcon icon={faSearch} size={20} color="#888" style={styles.searchIcon} />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Pesquisar atleta..."
-                                placeholderTextColor="#888"
-                                value={searchText}
-                                onChangeText={handleSearchChange}
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                        </View>
+                        {/* NOVO COMPONENTE: AtletaSearchInput */}
+                        <AtletaSearchInput 
+                            searchText={searchText} 
+                            onSearchChange={handleSearchChange} 
+                        />
                         
                         <View style={styles.atletasListContainer}>
                             <Text style={styles.subTitle}>Atletas</Text>
@@ -424,7 +145,7 @@ const SupervisorAnalisesScreen: React.FC = () => {
                                 ref={flatListRef}
                                 data={filteredAtletas}
                                 keyExtractor={(item) => `atleta-${item.id}`}
-                                renderItem={renderAtletaItem}
+                                renderItem={renderAtletaItem} 
                                 ListEmptyComponent={renderEmptyAtletas}
                                 contentContainerStyle={[{ paddingBottom: 10 }, Platform.OS === 'web' && styles.webFlatList]}
                                 scrollEnabled={false}
@@ -439,12 +160,12 @@ const SupervisorAnalisesScreen: React.FC = () => {
                             <View style={styles.analisesContainer}>
                                 <Text style={styles.subTitle}>Análises de {selectedAtleta.nomeCompleto}</Text>
                                 {loadingAnalises ? (
-                                    <ActivityIndicator size="large" color="#004A8F" />
+                                    <ActivityIndicator size="large" color={COLORS_ANALISE.secondary} />
                                 ) : analises.length > 0 ? (
                                     <FlatList
                                         data={analises}
                                         keyExtractor={(item) => `analise-${item.id}`}
-                                        renderItem={renderAnaliseItem}
+                                        renderItem={renderAnaliseItem} 
                                         scrollEnabled={false}
                                         showsVerticalScrollIndicator={Platform.OS !== 'web'}
                                         keyboardShouldPersistTaps="handled"
@@ -459,40 +180,39 @@ const SupervisorAnalisesScreen: React.FC = () => {
                         )}
                     </ScrollView>
                 )}
-            </View> {/* FIM NOVO CONTAINER */}
+            </View>
         </SafeAreaView>
     );
 };
 
+// --- Estilos (Referenciando as constantes do novo arquivo de tipos) ---
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#f0f4f7',
+        backgroundColor: COLORS_ANALISE.background,
     },
     header: { 
         flexDirection: 'row', 
         alignItems: 'center', 
         padding: 15, 
-        
-        backgroundColor: '#1c348e',
+        backgroundColor: COLORS_ANALISE.primary,
         paddingTop: Platform.OS === 'android' ? 50 : 10,
         paddingLeft: Platform.OS === 'android' ? 15 : 0,
         borderBottomLeftRadius: 1,
         borderBottomRightRadius: 1,
         marginBottom: 10,
     },
+    menuButton: {
+        paddingLeft: 15,
+    },
     headerTitle: { 
-        color: '#fff', 
+        color: COLORS_ANALISE.white, 
         fontSize: 20, 
         fontWeight: 'bold', 
         marginLeft: 15, 
         textAlign: 'center',
         paddingLeft: 30,
         flex: 1
-    },
-    backButton: { 
-        padding: 8,
-        borderRadius: 20,
     },
     centered: { 
         flex: 1, 
@@ -501,14 +221,14 @@ const styles = StyleSheet.create({
     },
     errorText: { 
         textAlign: 'center', 
-        color: '#e74c3c', 
+        color: COLORS_ANALISE.error, 
         margin: 20,
         fontSize: 16,
-        backgroundColor: '#ffeaea',
+        backgroundColor: COLORS_ANALISE.errorBackground,
         padding: 15,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#e74c3c'
+        borderColor: COLORS_ANALISE.error
     },
     content: { 
         flex: 1,
@@ -518,129 +238,38 @@ const styles = StyleSheet.create({
         fontSize: 18, 
         fontWeight: 'bold', 
         marginBottom: 12,
-        color: '#2c3e50', 
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 25,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 3,
-        elevation: 3,
-    },
-    searchIcon: {
-        marginRight: 12,
-    },
-    searchInput: {
-        flex: 1,
-        height: 50,
-        fontSize: 16,
-        color: '#333',
+        color: COLORS_ANALISE.textPrimary, 
     },
     atletasListContainer: { 
         marginBottom: 15,
     },
-    atletaCard: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        borderRadius: 12,
-        marginVertical: 3,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    atletaCardSelected: {
-        backgroundColor: '#e3f2fd',
-        borderColor: '#1c348e',
-        borderWidth: 2,
-    },
-    atletaInfo: {
-        flex: 1,
-        marginRight: 10,
-    },
-    atletaName: { 
-        fontSize: 16, 
-        color: '#2c3e50', 
-        fontWeight: '600',
-        marginBottom: 2
-    },
-    atletaEmail: {
-        fontSize: 14,
-        color: '#7f8c8d',
-        fontStyle: 'italic'
-    },
     analisesContainer: { 
         marginTop: 15,
-    },
-    analiseCard: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-        elevation: 3,
-        borderLeftWidth: 4,
-        borderLeftColor: '#1c348e',
-    },
-    analiseCardHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-        paddingBottom: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ecf0f1',
-    },
-    analiseTitle: { 
-        fontSize: 18, 
-        fontWeight: 'bold', 
-        marginLeft: 12,
-        color: '#2c3e50',
-        flex: 1
-    },
-    analiseDate: {
-        fontSize: 14,
-        color: '#7f8c8d',
-        marginBottom: 12,
-        fontStyle: 'italic'
-    },
-    analiseContent: {
-        marginTop: 8,
-    },
-    analiseText: { 
-        fontSize: 15, 
-        color: '#34495e', 
-        lineHeight: 24,
-        marginBottom: 8,
-        textAlign: 'justify'
     },
     emptyContainer: {
         alignItems: 'center',
         padding: 30,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS_ANALISE.white,
         borderRadius: 12,
         marginVertical: 10,
     },
     emptyText: {
         textAlign: 'center',
         fontSize: 16,
-        color: '#7f8c8d',
+        color: COLORS_ANALISE.textSecondary,
         fontStyle: 'italic'
+    },
+    reloadButton: {
+      backgroundColor: COLORS_ANALISE.primary,
+      padding: 10,
+      borderRadius: 8,
+      marginTop: 15,
+      ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
+    },
+    reloadButtonText: {
+        color: COLORS_ANALISE.white,
+        fontWeight: 'bold',
+        fontSize: 15,
     },
     separator: {
         height: 8,
@@ -648,24 +277,9 @@ const styles = StyleSheet.create({
     flex1: {
         flex: 1,
     },
-    deleteButton: {
-        backgroundColor: '#e74c3c',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-        marginLeft: 10,
-        ...(Platform.OS === 'web' && { cursor: 'pointer' }),
-    },
-    deleteButtonText: {
-        color: '#fff',
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    // Estilos específicos para web
     webContainer: {
         ...Platform.select({
             web: {
-                // Limita a largura do conteúdo e centraliza para telas maiores
                 maxWidth: 800, 
                 width: '100%', 
                 alignSelf: 'center', 
@@ -676,7 +290,6 @@ const styles = StyleSheet.create({
     webScrollView: {
         ...Platform.select({
             web: {
-                // Permite scroll com o mouse na web
                 overflowY: 'auto',
                 maxHeight: '90vh',
             },
@@ -685,7 +298,6 @@ const styles = StyleSheet.create({
     webFlatList: {
         ...Platform.select({
             web: {
-                // Removendo maxHeight para permitir a visualização de todos os atletas
                 maxHeight: undefined, 
             },
         }),

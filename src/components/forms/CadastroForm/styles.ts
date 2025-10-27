@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     }),
   },
   
-  backButton: {
+  menuButton: {
     width: 44,
     height: 44,
     borderRadius: 22,

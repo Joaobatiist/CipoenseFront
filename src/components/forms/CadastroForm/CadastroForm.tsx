@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -17,6 +17,7 @@ import {
   View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { TextInputMask } from 'react-native-masked-text';
 import Api from '../../../Config/Api';
 import { styles } from './styles';
@@ -29,6 +30,15 @@ import {
   FormFieldProps
 } from './types';
 import { formatDate, validateAtletaData, validateFuncionarioData } from './validation';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { toast } from 'react-toastify';
+
+interface CustomJwtPayload extends JwtPayload {
+    userType?: string;
+    roles?: string[];
+    userName?: string;
+}
 
 export const FormField: React.FC<FormFieldProps> = ({
   label,
@@ -260,9 +270,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
 }) => {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-  const [loading, setLoading] = useState(false);
-  const [backButtonPressed, setBackButtonPressed] = useState(false);
-  
+  const [loading, setLoading] = useState(false);  
   // Common fields
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -285,6 +293,26 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
   // Funcionário specific fields
   const [telefone, setTelefone] = useState('');
   const [role, setRole] = useState<string | null>(null);
+   const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [userName, setUserName] = useState('Usuário');
+    const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+    const closeSidebar = () => setSidebarOpen(false); 
+    const [useRole, setUserRole] = useState<string>('');
+    useEffect(() => {
+        const loadUserData = async () => {
+            try {
+                const token = await AsyncStorage.getItem('jwtToken');
+                if (token) {
+                    const decoded = jwtDecode<CustomJwtPayload>(token);
+                    setUserName(decoded.userName || 'Usuário');
+                    setUserRole(decoded.roles?.[0] || '');
+                }
+            } catch (error) {
+                console.error('Erro ao decodificar token:', error);
+            }
+        };
+        loadUserData();
+    }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -393,7 +421,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       if (!validation.isValid) {
         const errorMessages = validation.errors.map(error => error.message).join('\n');
         if (Platform.OS === 'web') {
-          window.alert('Erro de Validação\n\n' + errorMessages);
+          toast.error('Erro de Validação\n\n' + errorMessages);
         } else {
           Alert.alert('Erro de Validação', errorMessages);
         }
@@ -407,7 +435,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       }
       
       if (Platform.OS === 'web') {
-        window.alert(`${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
+        toast.success(`${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
       } else {
         Alert.alert('Sucesso', `${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
       }
@@ -416,7 +444,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
     } catch (error) {
       console.error('Erro no cadastro:', error);
       if (Platform.OS === 'web') {
-        window.alert('Ocorreu um erro ao realizar o cadastro. Tente novamente.');
+        toast.error('Ocorreu um erro ao realizar o cadastro. Tente novamente.');
       } else {
         Alert.alert('Erro', 'Ocorreu um erro ao realizar o cadastro. Tente novamente.');
       }
@@ -430,7 +458,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
     
     if (!token) {
       if (Platform.OS === 'web') {
-        window.alert('Token não encontrado. Faça login novamente.');
+        toast.error('Token não encontrado. Faça login novamente.');
       } else {
         Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
       }
@@ -492,7 +520,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       
       if (error.response?.status === 401 || error.response?.status === 403) {
         if (Platform.OS === 'web') {
-          window.alert('Sua sessão expirou. Faça login novamente.');
+          toast.error('Sua sessão expirou. Faça login novamente.');
         } else {
           Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
         }
@@ -521,26 +549,8 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          onPressIn={() => setBackButtonPressed(true)}
-          onPressOut={() => setBackButtonPressed(false)}
-          style={[
-            styles.backButton,
-            backButtonPressed && styles.backButtonPressed,
-            Platform.OS === 'web' && { cursor: 'pointer' }
-          ]}
-          activeOpacity={Platform.select({ web: 0.6, default: 0.8 })}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          accessibilityHint="Volta para a tela anterior"
-          disabled={loading}
-        >
-          <Ionicons 
-            name="arrow-back" 
-            size={Platform.select({ ios: 24, android: 24, web: 26, default: 24 })} 
-            color={loading ? "rgba(255, 255, 255, 0.5)" : "#ffffff"} 
-          />
+        <TouchableOpacity style={styles.menuButton} onPress={toggleSidebar}>
+          <FontAwesomeIcon icon={faBars} size={24} color="#fff" />
         </TouchableOpacity>
         
         <View style={styles.headerTitleContainer}>
@@ -556,6 +566,14 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         
         <View style={styles.headerSpacer} />
       </View>
+
+      <Sidebar 
+                      isOpen={sidebarOpen} 
+                      onClose={closeSidebar}
+                      userName={userName}
+                      userRole={userRole as 'SUPERVISOR' | 'COORDENADOR' | 'TECNICO'}
+                      onNavigateToSection={() => {}}
+                  />
       
       <Pressable 
         onPress={Platform.OS !== 'web' ? Keyboard.dismiss : undefined} 

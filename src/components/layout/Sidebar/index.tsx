@@ -1,9 +1,10 @@
-import { faAddressBook, faAddressCard, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faIdCard, faRobot, faSignOutAlt, faTimes, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faAddressBook, faAddressCard, faBell, faBoxes, faCalendarAlt, faChartLine, faCheck, faFileInvoice, faFilePdf, faIdCard, faRobot, faSignOutAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React from 'react';
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { toast } from 'react-toastify';
 import { styles } from './styles';
 
 interface SidebarProps {
@@ -25,12 +26,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('jwtToken');
-      console.log('LOGOUT : Token JWT removido com sucesso!');
-      onClose();
-      router.replace('../../');
+      
+      if (Platform.OS === 'web') {
+        toast.success('Logout realizado com sucesso!', {
+          autoClose: 1500,
+        });
+        
+        // Aguarda a mensagem aparecer antes de redirecionar
+        setTimeout(() => {
+          onClose();
+          router.replace('../../');
+        }, 1500);
+      } else {
+        onClose();
+        router.replace('../../');
+      }
     } catch (error) {
       console.error('LOGOUT : Erro ao fazer logout:', error);
-      Alert.alert('Erro ao Sair', 'Não foi possível sair no momento. Tente novamente.');
+      if (Platform.OS === 'web') {
+        toast.error('Erro ao Sair. Não foi possível sair no momento. Tente novamente.');
+      } else {
+        Alert.alert('Erro ao Sair', 'Não foi possível sair no momento. Tente novamente.');
+      }
     }
   };
 
@@ -43,19 +60,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const exibirAvaliacaoGeral = () => {
-    router.navigate("../tarefas/exibirAvaliacaoGeral");
+    router.navigate("/tarefas/exibirAvaliacaoGeral");
   };
+
+  const documentos = () => {
+    router.navigate("../tarefas/documentos");
+  }
 
   const listaAtletas = () => {
     router.navigate("/tarefas/ListaAtletas");
   };
 
   const realizarRelatorio = () => {
-    router.navigate("../tarefas/realizarRelatorios");
+    router.navigate("/tarefas/realizarRelatorios");
   };
 
   const cadastrarAtleta = () => {
-    router.navigate("../cadastro/cadastroAtleta");
+    router.navigate("/cadastro/cadastroAtleta");
   };
 
   const controleEstoque = () => {
@@ -70,13 +91,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
     router.navigate('/cadastro/cadastrarFuncionario');
   };
 
+  const navegarParaAgenda = () => {
+    onClose();
+    // Navega para o dashboard com parâmetro de seção
+    router.push({
+      pathname: '/administrador/dashboard',
+      params: { scrollTo: 'agenda' }
+    });
+  };
+
+  const navegarParaComunicados = () => {
+    onClose();
+    // Navega para o dashboard com parâmetro de seção
+    router.push({
+      pathname: '/administrador/dashboard',
+      params: { scrollTo: 'comunicados' }
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
-    <View style={styles.sidebar}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
-      </TouchableOpacity>
+    <>
+      {/* Overlay transparente - fecha ao clicar fora */}
+      <Pressable 
+        style={styles.overlay}
+        onPress={onClose}
+      />
+      
+      {/* Sidebar */}
+      <View style={styles.sidebar}>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <FontAwesomeIcon icon={faTimes} size={24} color="#fff" />
+        </TouchableOpacity>
 
       <Image
         source={require("../../../../assets/images/escudo.png")}
@@ -86,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       <ScrollView style={styles.scrollContainer}>
         {/* Agenda de Treinos - Todos os tipos */}
-        <TouchableOpacity style={styles.navItem} onPress={() => onNavigateToSection('agenda')}>
+        <TouchableOpacity style={styles.navItem} onPress={navegarParaAgenda}>
           <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#fff" style={styles.navIcon} />
           <Text style={styles.navText}>Agenda de Treinos</Text>
         </TouchableOpacity>
@@ -102,9 +149,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
        
         
         {/* Comunicados - Todos os tipos */}
-        <TouchableOpacity style={styles.navItem} onPress={() => onNavigateToSection('comunicados')}>
+        <TouchableOpacity style={styles.navItem} onPress={navegarParaComunicados}>
           <FontAwesomeIcon icon={faBell} size={16} color="#fff" style={styles.navIcon} />
           <Text style={styles.navText}>Comunicados</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.navItem} onPress={documentos}>
+          <FontAwesomeIcon icon={faFilePdf} size={16} color="#fff" style={styles.navIcon} />
+          <Text style={styles.navText}>Documentos</Text>
         </TouchableOpacity>
         
         {/* Lista de Presença - Supervisor, Coordenador, Técnico */}
@@ -180,5 +232,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </>
   );
 };

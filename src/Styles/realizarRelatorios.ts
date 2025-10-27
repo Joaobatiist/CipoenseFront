@@ -53,6 +53,9 @@ export const styles = StyleSheet.create({
       borderBottomWidth: 1,
       borderBottomColor: '#e5c228',
     },
+    menuButton: {
+        paddingLeft: 15,
+    },
     titulo: {
       flex: 1,
       color: "#ffffffff",

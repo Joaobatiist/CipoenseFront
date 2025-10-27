@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Text, TextInput, View } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { TextInputMask } from 'react-native-masked-text';
+import { toast } from 'react-toastify';
 import { Button } from '../../button/index';
 import { styles } from './styles';
 
@@ -71,7 +72,7 @@ export const EventForm: React.FC<EventFormProps> = ({
     // Validação: verifica se todos os campos obrigatórios estão preenchidos
     if (!descricao.trim() || !professor.trim() || !local.trim() || !horario.trim()) {
       if (Platform.OS === 'web') {
-        window.alert('Por favor, preencha todos os campos obrigatórios:\n- Descrição\n- Professor\n- Local\n- Horário');
+        toast.error('Por favor, preencha todos os campos obrigatórios:\n- Descrição\n- Professor\n- Local\n- Horário');
       } else {
         Alert.alert(
           'Campos obrigatórios',
@@ -106,7 +107,7 @@ export const EventForm: React.FC<EventFormProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>
-        {editingEvent ? 'Editar evento' : 'Agenda'}
+        {editingEvent ? 'Editando evento' : 'Agenda'}
       </Text>
 
       <Calendar

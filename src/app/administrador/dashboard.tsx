@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, LayoutChangeEvent, Platform, ScrollView, Text, View } from 'react-native';
 import { LocaleConfig } from 'react-native-calendars';
+import { ToastContainer } from 'react-toastify';
 
 import { EventForm, EventList } from '@/components/forms';
 import { Header, Sidebar } from '@/components/layout';
@@ -27,6 +29,7 @@ interface SectionOffsets {
 const UniversalDashboard: React.FC = () => {
   const { userInfo } = useAuth();
   const { eventos, loading, addEvento, updateEvento, deleteEvento } = useEventos();
+  const params = useLocalSearchParams();
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Evento | null>(null);
@@ -103,6 +106,22 @@ const UniversalDashboard: React.FC = () => {
 
     getUserRole();
   }, []);
+
+  // Scroll automático para seção quando navegar via sidebar
+  useEffect(() => {
+    if (params.scrollTo && !loadingRole) {
+      // Aguarda um pouco para garantir que o layout foi renderizado
+      const timer = setTimeout(() => {
+        const section = params.scrollTo as keyof SectionOffsets;
+        const offset = sectionOffsetsRef.current[section];
+        if (offset !== undefined) {
+          scrollViewRef.current?.scrollTo({ y: offset, animated: true });
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [params.scrollTo, loadingRole]);
 
   const toggleSidebar = (): void => {
     setSidebarOpen(!sidebarOpen);
@@ -227,6 +246,8 @@ const UniversalDashboard: React.FC = () => {
           <ComunicadosScreen />
         </View>
       </ScrollView>
+      
+      {Platform.OS === 'web' && <ToastContainer />}
     </View>
   );
 };

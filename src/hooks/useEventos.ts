@@ -2,6 +2,7 @@ import { apiService } from '@/services';
 import { Evento } from '@/types';
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
+import { toast } from 'react-toastify';
 
 interface UseEventosReturn {
   eventos: Evento[];
@@ -29,7 +30,11 @@ export const useEventos = (): UseEventosReturn => {
       setEventos(formattedEventos);
     } catch (error) {
       console.error('Erro ao buscar eventos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar a agenda de treinos.');
+      if (Platform.OS === 'web') {
+        toast.error('Erro. Não foi possível carregar a agenda de treinos.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível carregar a agenda de treinos.');
+      }
       setEventos([]);
     } finally {
       setLoading(false);
@@ -54,10 +59,18 @@ export const useEventos = (): UseEventosReturn => {
       };
 
       setEventos(prev => [...prev, formattedEvento]);
-      Alert.alert('Sucesso', 'Treino adicionado com sucesso!');
+      if (Platform.OS === 'web') {
+        toast.success('Sucesso! Treino adicionado com sucesso!');
+      } else {
+        Alert.alert('Sucesso', 'Treino adicionado com sucesso!');
+      }
     } catch (error) {
       console.error('Erro ao adicionar evento:', error);
-      Alert.alert('Erro', 'Não foi possível adicionar o treino.');
+      if (Platform.OS === 'web') {
+        toast.error('Erro. Não foi possível adicionar o treino.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível adicionar o treino.');
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -83,36 +96,49 @@ export const useEventos = (): UseEventosReturn => {
       };
 
       setEventos(prev => prev.map(event => event.id === id ? formattedEvento : event));
-      Alert.alert('Sucesso', 'Treino atualizado com sucesso!');
+      if (Platform.OS === 'web') {
+        toast.success('Sucesso! Treino atualizado com sucesso!');
+      } else {
+        Alert.alert('Sucesso', 'Treino atualizado com sucesso!');
+      }
     } catch (error) {
       console.error('Erro ao atualizar evento:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar o treino.');
+      if (Platform.OS === 'web') {
+        toast.error('Erro. Não foi possível atualizar o treino.');
+      } else {
+        Alert.alert('Erro', 'Não foi possível atualizar o treino.');
+      }
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
   const deleteEvento = async (id: string): Promise<void> => {
     if (Platform.OS === 'web') {
-      // Confirmação para web usando window.confirm
-      const confirmed = window.confirm('Tem certeza que deseja excluir este treino?');
+      if (pendingDeleteId === id) {
       
-      if (!confirmed) {
-        return; // Usuário cancelou
-      }
-
-      // Se confirmou, executa a exclusão
-      try {
-        setLoading(true);
-        await apiService.delete(`/api/eventos/${id}`);
-        setEventos(prev => prev.filter(evento => evento.id !== id));
-        window.alert('Treino excluído com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir evento:', error);
-        window.alert('Erro: Não foi possível excluir o treino.');
-      } finally {
-        setLoading(false);
+        try {
+          setLoading(true);
+          await apiService.delete(`/api/eventos/${id}`);
+          setEventos(prev => prev.filter(evento => evento.id !== id));
+          toast.success('Treino excluído com sucesso!');
+        } catch (error) {
+          console.error('Erro ao excluir evento:', error);
+          toast.error('Erro. Não foi possível excluir o treino.');
+        } finally {
+          setLoading(false);
+          setPendingDeleteId(null);
+        }
+      } else {
+        // Primeira tentativa: solicita confirmação
+        setPendingDeleteId(id);
+        toast.warning('⚠️ Tem certeza? Clique em "Excluir" novamente para confirmar', {
+          autoClose: 2000,
+          onClose: () => setPendingDeleteId(null)
+        });
       }
     } else {
       // Alert.alert para mobile (iOS/Android)

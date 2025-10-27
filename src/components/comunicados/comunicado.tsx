@@ -13,7 +13,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { styles } from "../../Styles/Tecnico";
+import { toast } from 'react-toastify';
+import { styles } from "../../Styles/comunicado";
 import { Button } from "../button/index";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -59,7 +60,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [hiddenComunicados, setHiddenComunicados] = useState<string[]>([]);
     const [submittingForm, setSubmittingForm] = useState(false);
-
+      const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
     // --- Computed Values ---
     const visibleComunicados = useMemo(() => 
         comunicadosEnviados.filter(item => !hiddenComunicados.includes(String(item.id))),
@@ -182,7 +183,11 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'carregar usuários');
-            Alert.alert("Erro", errorMessage);
+            if (Platform.OS === 'web') {
+                toast.error(`Erro. ${errorMessage}`);
+            } else {
+                Alert.alert("Erro", errorMessage);
+            }
             setUsuarios([]);
         }
     }, [getToken, handleApiError]);
@@ -208,7 +213,11 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'carregar comunicados');
-            Alert.alert("Erro", errorMessage);
+            if (Platform.OS === 'web') {
+                toast.error(`Erro. ${errorMessage}`);
+            } else {
+                Alert.alert("Erro", errorMessage);
+            }
             setComunicadosEnviados([]);
         }
     }, [getToken, handleApiError]);
@@ -294,7 +303,11 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             novoComunicado.mensagem.trim() === '' ||
             novoComunicado.destinatarios.length === 0
         ) {
-            Alert.alert('Atenção', 'Preencha todos os campos obrigatórios e selecione pelo menos um destinatário.');
+            if (Platform.OS === 'web') {
+                toast.warning('Atenção. Preencha todos os campos obrigatórios e selecione pelo menos um destinatário.');
+            } else {
+                Alert.alert('Atenção', 'Preencha todos os campos obrigatórios e selecione pelo menos um destinatário.');
+            }
             return;
         }
 
@@ -333,11 +346,19 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             setComunicadosEnviados(prev => [...prev, comunicadoSalvo]);
 
             resetForm();
-            Alert.alert('Sucesso', 'Comunicado enviado com sucesso!');
+            if (Platform.OS === 'web') {
+                toast.success('Sucesso! Comunicado enviado com sucesso!');
+            } else {
+                Alert.alert('Sucesso', 'Comunicado enviado com sucesso!');
+            }
             
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'enviar comunicado');
-            Alert.alert("Erro", errorMessage);
+            if (Platform.OS === 'web') {
+                toast.error(`Erro. ${errorMessage}`);
+            } else {
+                Alert.alert("Erro", errorMessage);
+            }
         } finally {
             setSubmittingForm(false);
         }
@@ -347,12 +368,20 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
 
     const saveEditedComunicado = useCallback(async () => {
         if (editingComunicadoId === null) {
-            Alert.alert('Erro', 'Nenhum comunicado selecionado para edição.');
+            if (Platform.OS === 'web') {
+                toast.error('Erro. Nenhum comunicado selecionado para edição.');
+            } else {
+                Alert.alert('Erro', 'Nenhum comunicado selecionado para edição.');
+            }
             return;
         }
 
         if (editedComunicado.assunto.trim() === '' || editedComunicado.mensagem.trim() === '') {
-            Alert.alert('Erro', 'Assunto e mensagem do comunicado não podem estar vazios.');
+            if (Platform.OS === 'web') {
+                toast.error('Erro. Assunto e mensagem do comunicado não podem estar vazios.');
+            } else {
+                Alert.alert('Erro', 'Assunto e mensagem do comunicado não podem estar vazios.');
+            }
             return;
         }
 
@@ -395,11 +424,19 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             );
 
             resetForm();
-            Alert.alert('Sucesso', 'Comunicado atualizado com sucesso!');
+            if (Platform.OS === 'web') {
+                toast.success('Sucesso! Comunicado atualizado com sucesso!');
+            } else {
+                Alert.alert('Sucesso', 'Comunicado atualizado com sucesso!');
+            }
             
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'atualizar comunicado');
-            Alert.alert("Erro", errorMessage);
+            if (Platform.OS === 'web') {
+                toast.error(`Erro. ${errorMessage}`);
+            } else {
+                Alert.alert("Erro", errorMessage);
+            }
         } finally {
             setSubmittingForm(false);
         }
@@ -426,7 +463,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             );
             
             if (Platform.OS === 'web') {
-                window.alert('Comunicado excluído com sucesso!');
+                toast.success('Comunicado excluído com sucesso!');
             } else {
                 Alert.alert('Sucesso', 'Comunicado excluído com sucesso!');
             }
@@ -434,7 +471,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'excluir comunicado');
             if (Platform.OS === 'web') {
-                window.alert(`Erro: ${errorMessage}`);
+                toast.error(`Erro: ${errorMessage}`);
             } else {
                 Alert.alert("Erro", errorMessage);
             }
@@ -443,14 +480,18 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
 
     const deleteComunicado = useCallback(async (idComunicado: string) => {
         if (Platform.OS === 'web') {
-            // Confirmação para web usando window.confirm
-            const confirmed = window.confirm(
-                "Tem certeza que deseja excluir este comunicado? Esta ação é irreversível."
-            );
-            
-            if (!confirmed) {
-                return; // Usuário cancelou
-            }
+            if (pendingDeleteId === idComunicado) {
+            // Segunda tentativa: confirma e executa exclusão
+            await executeDelete(idComunicado);
+            setPendingDeleteId(null);
+        } else {
+            // Primeira tentativa: solicita confirmação
+            setPendingDeleteId(idComunicado.toString());
+            toast.warning('⚠️ Tem certeza? Clique em "Excluir" novamente para confirmar', {
+                autoClose: 2000,
+                onClose: () => setPendingDeleteId(null)
+            });
+        }
         } else {
             // Alert.alert para mobile (iOS/Android)
             Alert.alert(
@@ -465,16 +506,16 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
                     },
                 ]
             );
-            return; // No mobile, a exclusão será feita pelo callback do Alert
         }
-
-        // Se chegou aqui, é web e usuário confirmou
-        await executeDelete(idComunicado);
-    }, [executeDelete]); 
+    }, [pendingDeleteId, executeDelete]);
 
     const hideComunicado = useCallback((comunicadoId: string) => {
         setHiddenComunicados(prev => [...prev, String(comunicadoId)]);
-        Alert.alert('Comunicado Oculto', 'Este comunicado não será mais exibido na sua lista.');
+        if (Platform.OS === 'web') {
+            toast.info('Comunicado Oculto. Este comunicado não será mais exibido na sua lista.');
+        } else {
+            Alert.alert('Comunicado Oculto', 'Este comunicado não será mais exibido na sua lista.');
+        }
     }, []);
 
     return (
@@ -491,7 +532,7 @@ const ComunicadosScreen: React.FC<ComunicadosScreenProps> = ({ userRole }) => {
             )}
 
             {userRole !== 'ATLETA' && (mostrarFormulario || editingComunicadoId !== null) && (
-                <View style={styles.formContainer}>
+                <View style={styles.formContainer }>
                     <Text style={styles.formTitle}>
                         {editingComunicadoId !== null ? "Editando Comunicado" : "Adicionando Comunicado"}
                     </Text>

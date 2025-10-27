@@ -4,7 +4,7 @@ const { width } = Dimensions.get('window');
 // Considera "tela grande" (Large Screen) como Tablet ou Desktop
 const IS_LARGE_SCREEN = width >= 768;
 const MAX_WIDTH = 1250; // Largura máxima para Cards internos em telas grandes
-
+const isLargeScreen = width >= 600; 
 export const styles = StyleSheet.create({
     // --- Layout Base ---
     safeArea: {
@@ -87,30 +87,36 @@ export const styles = StyleSheet.create({
     section: {
         // Estilos de card do original
         backgroundColor: '#fff',
-        borderRadius: 5,
+        borderRadius: 17,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
-        elevation: 1,
+        elevation: 2,
         
         // Responsividade para centralizar e limitar a largura na Web
         padding: IS_LARGE_SCREEN ? 30 : 20,
         marginVertical: IS_LARGE_SCREEN ? 20 : 10,
-        maxWidth: MAX_WIDTH + 35, // Largura máxima do container principal
+        maxWidth: MAX_WIDTH + 0, // Largura máxima do container principal
         alignSelf: 'center', // Centraliza o container
         width: '100%',
+         ...Platform.select({
+                web: isLargeScreen && {
+                    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
+                },
+            }),
     },
     sectionTitle: {
-        fontSize: IS_LARGE_SCREEN ? 24 : 18,
+        fontSize: IS_LARGE_SCREEN ? 21 : 18,
         fontWeight: 'bold',
         marginBottom: IS_LARGE_SCREEN ? 20 : 10,
         textAlign: "center",
-        color: '#333',
+        color: '#000000ff',
     },
     subTitle: {
         fontSize: IS_LARGE_SCREEN ? 20 : 16,
         fontWeight: 'bold',
+        textAlign: "center",
         marginTop: IS_LARGE_SCREEN ? 30 : 20,
         marginBottom: 10,
         color: '#333',
@@ -128,8 +134,8 @@ export const styles = StyleSheet.create({
         padding: IS_LARGE_SCREEN ? 20 : 15,
         borderRadius: 8,
         marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#ddd',
+        borderWidth: 2,
+        borderColor: '#7a7a7aff',
         width: '100%',
         // Removida a sombra/elevação para evitar aninhamento visual
     },

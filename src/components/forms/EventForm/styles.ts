@@ -19,11 +19,11 @@ export const styles = StyleSheet.create({
     maxWidth: isLargeScreen ? MAX_WIDTH : '100%',
     alignSelf: 'center',
     width: '100%',
-
+    
     // Sombra sutil para Web/Desktop
     ...Platform.select({
         web: isLargeScreen && {
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
         },
     }),
   },
@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
     fontSize: isLargeScreen ? 22 : 18,
     fontWeight: 'bold',
     marginBottom: isLargeScreen ? 25 : 15,
-    color: '#1c348e',
+    color: '#000000ff',
     textAlign: "center"
   },
   

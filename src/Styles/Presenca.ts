@@ -228,7 +228,7 @@ export const styles = StyleSheet.create({
     diaCardTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#1c348e',
+        color: '#000000ff',
     },
     diaCardSummary: {
         fontSize: 14,

@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
     marginRight: SPACING.md,
   },
   title: {
+    textAlign: 'center',
     fontSize: TYPOGRAPHY.sizes.lg,
     fontWeight: TYPOGRAPHY.weights.bold,
     color: '#fff',

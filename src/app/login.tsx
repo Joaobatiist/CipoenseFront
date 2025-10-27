@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import { isAxiosError } from 'axios';
 import { router } from 'expo-router';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useState } from 'react';
@@ -18,7 +18,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { toast } from 'react-toastify';
 import Api from '../Config/Api';
+import { ToastContainer } from '../components/Toast';
 
 interface CustomJwtPayload extends JwtPayload {
   roles?: string[];
@@ -31,15 +33,23 @@ const LoginScreen = () => {
   const [emailAluno, setEmailAluno] = useState('');
   const [senhaAluno, setSenhaAluno] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [senhaError, setSenhaError] = useState(false);
 
-  const handleCadastro = () => router.navigate('./Cadastro/CadastroAlun');
   const handleVoltar = () => router.back();
 
   const handleLogin = async () => {
+    // Reset errors
+    setEmailError(false);
+    setSenhaError(false);
     
+    // Validação de campos
     if (!emailAluno || !senhaAluno) {
+      if (!emailAluno) setEmailError(true);
+      if (!senhaAluno) setSenhaError(true);
+      
       if (Platform.OS === 'web') {
-        window.alert('Por favor, preencha todos os campos.');
+        toast.error('Por favor, preencha todos os campos.');
       } else {
         Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       }
@@ -60,51 +70,70 @@ const LoginScreen = () => {
         const decodedToken = jwtDecode<CustomJwtPayload>(jwt);
         const userRole = decodedToken.roles?.[0];
 
+        // Mostra toast de sucesso e navega automaticamente
         if (Platform.OS === 'web') {
-          window.alert('Login realizado com sucesso!');
+          toast.success('Login realizado com sucesso!', {
+            autoClose: 1500, // Fecha em 1.5 segundos
+          });
+          
+          // Navega após um pequeno delay para mostrar o toast
+          setTimeout(() => {
+            if (userRole === 'ATLETA') {
+              router.replace('/atletas/Atleta');
+            } else {
+              router.replace('/administrador/dashboard');
+            }
+          }, 1000); // 1 segundo de delay
         } else {
-          Alert.alert('Sucesso', 'Login realizado com sucesso!');
-        }
-
-        if (userRole === 'ATLETA') {
-          router.replace('/atletas/Atleta');
-        } else {
-          router.replace('/administrador/dashboard');
+          Alert.alert('Sucesso', 'Login realizado com sucesso!', [
+            {
+              text: 'OK',
+              onPress: () => {
+                if (userRole === 'ATLETA') {
+                  router.replace('/atletas/Atleta');
+                } else {
+                  router.replace('/administrador/dashboard');
+                }
+              }
+            }
+          ]);
         }
       } else {
         if (Platform.OS === 'web') {
-          window.alert('Token JWT não recebido na resposta.');
+          toast.error('Token JWT não recebido na resposta.');
         } else {
           Alert.alert('Erro', 'Token JWT não recebido na resposta.');
         }
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         if (error.response) {
           if (error.response.status === 401) {
+            setEmailError(true);
+            setSenhaError(true);
             if (Platform.OS === 'web') {
-              window.alert('Email ou senha incorretos.');
+              toast.error('Email ou senha incorretos.');
             } else {
               Alert.alert('Erro', 'Email ou senha incorretos.');
             }
           } else {
             const errorMsg = `Falha no login: ${error.response.data.message || 'Erro desconhecido.'}`;
             if (Platform.OS === 'web') {
-              window.alert(errorMsg);
+              toast.error(errorMsg);
             } else {
               Alert.alert('Erro', errorMsg);
             }
           }
         } else if (error.request) {
           if (Platform.OS === 'web') {
-            window.alert('Não foi possível conectar ao servidor.');
+            toast.error('Não foi possível conectar ao servidor.');
           } else {
             Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
           }
         }
       } else {
         if (Platform.OS === 'web') {
-          window.alert('Ocorreu um erro inesperado.');
+          toast.error('Ocorreu um erro inesperado.');
         } else {
           Alert.alert('Erro', 'Ocorreu um erro inesperado.');
         }
@@ -115,38 +144,57 @@ const LoginScreen = () => {
   };
 
   const content = (
-    <ScrollView
-      contentContainerStyle={styles.mainContainer}
-      keyboardShouldPersistTaps="always"
-      onTouchStart={Keyboard.dismiss}
-    >
-      <View style={styles.cardContainer}> 
-        <Image
-          source={require('../../assets/images/escudo.png')}
-          style={styles.logo}
-        />
+    <>
+      {Platform.OS === 'web' && <ToastContainer />}
+      <ScrollView
+        contentContainerStyle={styles.mainContainer}
+        keyboardShouldPersistTaps="always"
+        onTouchStart={Keyboard.dismiss}
+        style={Platform.OS === 'web' ? styles.webScrollView : undefined}
+        showsVerticalScrollIndicator={true}
+        nestedScrollEnabled={true}
+      >
+        <View style={styles.cardContainer}> 
+          <Image
+            source={require('../../assets/images/escudo.png')}
+            style={styles.logo}
+          />
 
-        <Text style={styles.title}>Seja Bem vindo!</Text>
+          <Text style={styles.title}>Seja Bem vindo!</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={emailAluno}
-          onChangeText={setEmailAluno}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          returnKeyType="next"
-        />
+          <TextInput
+            style={[
+              styles.input,
+              emailError && styles.inputError
+            ]}
+            placeholder="Email"
+            placeholderTextColor={emailError ? '#e74c3c' : '#999'}
+            value={emailAluno}
+            onChangeText={(text) => {
+              setEmailAluno(text);
+              setEmailError(false); // Remove erro ao digitar
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            returnKeyType="next"
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Senha"
-          secureTextEntry
-          value={senhaAluno}
-          onChangeText={setSenhaAluno}
-          returnKeyType="done"
-          onSubmitEditing={handleLogin}
-        />
+          <TextInput
+            style={[
+              styles.input,
+              senhaError && styles.inputError
+            ]}
+            placeholder="Senha"
+            placeholderTextColor={senhaError ? '#e74c3c' : '#999'}
+            secureTextEntry
+            value={senhaAluno}
+            onChangeText={(text) => {
+              setSenhaAluno(text);
+              setSenhaError(false); // Remove erro ao digitar
+            }}
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+          />
 
         <Pressable
           style={({ pressed }) => [
@@ -171,6 +219,7 @@ const LoginScreen = () => {
         </View>
       </View>
     </ScrollView>
+    </>
   );
 
   return Platform.OS !== 'web' ? (
@@ -240,6 +289,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     fontSize: 16,
   },
+  inputError: {
+    borderColor: '#e74c3c',
+    borderWidth: 2,
+    backgroundColor: '#ffeaea',
+  },
   button: {
     backgroundColor: '#1c348e',
     width: '100%',
@@ -267,6 +321,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
+  },
+   webScrollView: {
+    ...Platform.select({
+      web: {
+        height: '100vh',
+        overflowY: 'auto' as any,
+      },
+    }),
+  } as any,
+  container: {
+    paddingBottom: 22,
+    alignItems: 'center',
   },
 });
 

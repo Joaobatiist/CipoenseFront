@@ -68,7 +68,7 @@ class ApiService {
   }
 
   // HTTP Methods
-  public get<T = any>(url: string): Promise<AxiosResponse<T>> {
+  public get<T = any>(url: string, p0: { params: { data: string; }; }): Promise<AxiosResponse<T>> {
     return this.instance.get<T>(url);
   }
 

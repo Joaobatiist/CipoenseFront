@@ -62,4 +62,5 @@ export interface CadastroFormProps {
   initialData?: Partial<CadastroAtletaData | CadastroFuncionarioData>;
   onSubmit?: (data: CadastroAtletaData | CadastroFuncionarioData) => Promise<void>;
   userRole?: 'SUPERVISOR' | 'COORDENADOR' | 'TECNICO';
+  hideHeader?: boolean;
 }

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Platform, ScrollView } from 'react-native';
 import { toast } from 'react-toastify';
 import {
@@ -8,7 +8,7 @@ import {
     API_BASE_URL,
     Atleta,
     CustomJwtPayload,
-} from '../types/analiseTypes'; 
+} from '../types/analiseTypes';
 
 export const useSupervisorAnalises = () => {
     // Refs
@@ -191,7 +191,7 @@ export const useSupervisorAnalises = () => {
                 
                 if (!response.ok) {
                     let errorBody = responseText;
-                    try { errorBody = JSON.parse(responseText)?.message || responseText; } catch (e) {}
+                    try { errorBody = JSON.parse(responseText)?.message || responseText; } catch {}
                     throw new Error(`Erro ao deletar: ${response.status} - ${errorBody}`);
                 }
 
@@ -237,6 +237,46 @@ export const useSupervisorAnalises = () => {
             );
         }
     }, [getToken, pendingDeleteId, handleApiError]);
+
+
+    // Handler: Atualizar/Editar Análise
+    const handleEditAnalise = useCallback(async (analise: AnaliseIa) => {
+        try {
+            const token = await getToken();
+            if (!token) throw new Error('Token não encontrado');
+
+            const response = await fetch(`${API_BASE_URL}/api/analises/update`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(analise),
+            });
+
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                let errorBody = responseText;
+                try { errorBody = JSON.parse(responseText)?.message || responseText; } catch {}
+                throw new Error(`Erro ao atualizar: ${response.status} - ${errorBody}`);
+            }
+
+            // atualiza localmente
+            setAnalises(prev => prev.map(a => (a.id === analise.id ? analise : a)));
+
+            if (Platform.OS === 'web') {
+                toast.success('Análise atualizada com sucesso!');
+            } else {
+                Alert.alert('Sucesso', 'Análise atualizada com sucesso!');
+            }
+        } catch (error: any) {
+            console.error('Erro ao atualizar análise:', error);
+            const errorMessage = handleApiError(error, 'atualizar análise');
+            if (Platform.OS === 'web') {
+                toast.error(errorMessage);
+            } else {
+                Alert.alert('Erro', errorMessage);
+            }
+        }
+    }, [getToken, handleApiError]);
 
 
     // Efeito para carregar atletas no mont e refocar
@@ -291,6 +331,7 @@ export const useSupervisorAnalises = () => {
         handleSearchChange,
         handleSelectAtleta,
         handleDeleteAnalise,
+    handleEditAnalise,
         fetchAtletas, // Exposto para o botão "Recarregar Atletas"
     };
 };

@@ -63,7 +63,7 @@ export const EventList: React.FC<EventListProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Treinos Marcados</Text>
+      <Text style={styles.sectionTitle}>Eventos Marcados</Text>
       
       <FlatList
         data={eventos}

@@ -1,7 +1,7 @@
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import React from 'react';
-import {  StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 interface AtletaSearchInputProps {
     searchText: string;
@@ -29,6 +29,9 @@ const AtletaSearchInput: React.FC<AtletaSearchInputProps> = ({ searchText, onSea
 const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
+        width: '100%',            // fill available width but be limited by parent or maxWidth below
+        maxWidth: 700,           // adjust this to control the visible width across platforms
+        alignSelf: 'center',     // center inside parent container
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 25,
@@ -45,6 +48,7 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
+        alignItems: 'center',
         height: 50,
         fontSize: 16,
         color: '#333',

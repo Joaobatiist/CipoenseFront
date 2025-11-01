@@ -5,12 +5,13 @@ import { ToastContainer } from '@/components/Toast';
 import { Ionicons } from '@expo/vector-icons';
 import { faBars, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { useNavigation } from '@react-navigation/native';
+// navigation not used here
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Modal,
     Platform,
@@ -23,21 +24,21 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { toast } from 'react-toastify';
 
 // Lógica e Estado (Separação de Responsabilidades)
 // Assumindo que este caminho está correto para o seu projeto:
-import { useRelatoriosList } from '../../hooks/useRelatoriosList'; 
+import { useRelatoriosList } from '../../hooks/useRelatoriosList';
 // Tipos e Constantes (Separação de Responsabilidades)
-import { 
-    AvaliacaoGeral, 
-    RelatorioDesempenho, 
-    RelatorioTaticoPsicologico, 
-    COLORS, 
-    // Atleta // Não utilizado diretamente na UI
-} from '../../types/RelatorioTypes'; 
+import {
+    AvaliacaoGeral,
+    COLORS,
+    RelatorioDesempenho,
+    RelatorioTaticoPsicologico,
+} from '../../types/RelatorioTypes';
 // Estilos (Separação de Responsabilidades)
 // Ajuste de importação conforme seu código:
-import { styles } from '../../Styles/exibirAvaliaçãoGeral'; 
+import { styles } from '../../Styles/exibirAvaliaçãoGeral';
 
 // --- Componente Auxiliar de Seção de Relatório (UI Helper) ---
 interface ReportSectionProps {
@@ -72,8 +73,6 @@ const ReportSection: React.FC<ReportSectionProps> = ({ title, data, labels }) =>
 
 // --- Componente Principal (UI Pura) ---
 const RelatoriosScreen: React.FC = () => {
-    const navigation = useNavigation();
-
     // 1. UTILIZAÇÃO DO HOOK: Importa todo o estado e lógica de filtro/API
     const {
         filteredEvaluations,
@@ -88,7 +87,7 @@ const RelatoriosScreen: React.FC = () => {
         detailsError,
         userName,
         userRole,
-        pendingDeleteId,
+        // pendingDeleteId not needed in this component
         loadEvaluationsAndAthletes,
         setSearchText,
         // handleAtletaFilterChange, // Removido por não ser usado no snippet
@@ -171,23 +170,116 @@ const RelatoriosScreen: React.FC = () => {
                 <Text style={styles.cardText}>Avaliador: {item.userName}</Text>
                 {item.subDivisao && <Text style={styles.cardText}>Subdivisão: {item.subDivisao}</Text>}
             </TouchableOpacity>
-            <TouchableOpacity 
-                style={[ 
-                    styles.deleteButton, 
-                    Platform.OS === 'web' && { cursor: 'pointer' as any },
-                ]} 
-                onPress={() => handleDeleteEvaluation(item.id)} 
-                activeOpacity={0.7}
-                accessibilityLabel={`Excluir avaliação de ${item.nomeAtleta}`}
-            >
-                <Ionicons 
-                    name="trash-outline" 
-                    size={28} 
-                    color={ COLORS.danger} 
-                />
-            </TouchableOpacity>
-        </View>
-    );
+                    <View style={{flexDirection: 'column', alignItems: 'center'}}>
+                        <TouchableOpacity
+                            style={{ padding: 6, marginBottom: 6 }}
+                            onPress={() => exportEvaluationCSV(item)}
+                            activeOpacity={0.7}
+                            accessibilityLabel={`Exportar avaliação de ${item.nomeAtleta} como CSV`}
+                        >
+                            <Ionicons name="download-outline" size={22} color={COLORS.primary} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[ 
+                                styles.deleteButton, 
+                                Platform.OS === 'web' && { cursor: 'pointer' as any },
+                            ]} 
+                            onPress={() => handleDeleteEvaluation(item.id)} 
+                            activeOpacity={0.7}
+                            accessibilityLabel={`Excluir avaliação de ${item.nomeAtleta}`}
+                        >
+                            <Ionicons 
+                                name="trash-outline" 
+                                size={28} 
+                                color={ COLORS.danger} 
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+            );
+
+            // --- Export Helpers ---
+    const downloadBlob = (blob: Blob, filename: string) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const evaluationToCsv = (ev: AvaliacaoGeral) => {
+        const rows: string[] = [];
+        const push = (k: string, v: any) => rows.push(`"${k.replace(/"/g,'""')}","${String(v ?? '').replace(/"/g,'""')}"`);
+
+        push('id', ev.id);
+        push('Atleta', ev.nomeAtleta);
+        push('Avaliador', ev.userName);
+        push('DataAvaliacao', ev.dataAvaliacao);
+        push('PeriodoTreino', ev.periodoTreino);
+        push('SubDivisao', ev.subDivisao);
+        push('Posicao', ev.posicao || '');
+
+        // Relatorio Desempenho
+        if (ev.relatorioDesempenho) {
+            Object.keys(ev.relatorioDesempenho).forEach(k => {
+                if (k === 'id') return;
+                push(`desempenho.${k}`, (ev.relatorioDesempenho as any)[k]);
+            });
+        }
+
+        // Relatorio Tatico/Psicologico
+        if (ev.relatorioTaticoPsicologico) {
+            Object.keys(ev.relatorioTaticoPsicologico).forEach(k => {
+                if (k === 'id') return;
+                push(`tatico.${k}`, (ev.relatorioTaticoPsicologico as any)[k]);
+            });
+        }
+
+        push('FeedbackTreinador', ev.feedbackTreinador || '');
+        push('FeedbackAvaliador', ev.feedbackAvaliador || '');
+        push('PontosFortes', ev.pontosFortes || '');
+        push('PontosFracos', ev.pontosFracos || '');
+        push('AreasAprimoramento', ev.areasAprimoramento || '');
+        push('MetasObjetivos', ev.metasObjetivos || '');
+
+        return rows.join('\n');
+    };
+
+    const exportEvaluationCSV = (ev: AvaliacaoGeral) => {
+        try {
+            const csv = evaluationToCsv(ev);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            downloadBlob(blob, `avaliacao_${ev.id}.csv`);
+            if (Platform.OS === 'web') toast.success('CSV gerado.');
+        } catch (err: any) {
+            console.error('Erro exportando CSV', err);
+            if (Platform.OS === 'web') toast.error('Erro ao gerar CSV'); else Alert.alert('Erro', 'Não foi possível gerar CSV.');
+        }
+    };
+
+    const exportAllFilteredCSV = () => {
+        try {
+            const parts: string[] = [];
+            filteredEvaluations.forEach(ev => {
+                parts.push(`--- Avaliacao ID: ${ev.id} ---`);
+                parts.push(evaluationToCsv(ev));
+                parts.push('');
+            });
+            const blob = new Blob([parts.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            downloadBlob(blob, `avaliacoes_export_${new Date().toISOString().slice(0,10)}.csv`);
+            if (Platform.OS === 'web') toast.success('CSV com todas avaliações gerado.');
+        } catch (err: any) {
+            console.error('Erro exportando CSV todas', err);
+            if (Platform.OS === 'web') toast.error('Erro ao gerar CSV'); else Alert.alert('Erro', 'Não foi possível gerar CSV.');
+        }
+    };
+
+    // PDF export via print dialog was removed in favor of CSV/XLSX table exports
 
     // --- Renderização de Status (UI) ---
     if (loading) {
@@ -247,6 +339,16 @@ const RelatoriosScreen: React.FC = () => {
                         autoCorrect={false}
                     />
                 </View>
+
+                    {/* Botões de exportação */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 12 }}>
+                        <TouchableOpacity
+                            style={[styles.retryButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+                            onPress={exportAllFilteredCSV}
+                        >
+                            <Text style={styles.retryButtonText}>Exportar todas (CSV)</Text>
+                        </TouchableOpacity>
+                    </View>
 
                 {/* Lista de Avaliações */}
                 {filteredEvaluations.length === 0 ? (

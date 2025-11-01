@@ -7,8 +7,10 @@ import { toast } from 'react-toastify';
 
 interface Item {
     id: string;
+    justificativa: string;
     nome: string;
     quantidade: number;
+    data: string;
     iconName?: string;
 }
 
@@ -23,6 +25,8 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 export const useControleEstoque = () => {
     const [items, setItems] = useState<Item[]>([]);
     const [itemName, setItemName] = useState('');
+    const [data, setData] = useState('');
+    const [justificativa, setJustificativa] = useState('');
     const [quantidade, setQuantidade] = useState('');
     const [editarItem, setEditarItem] = useState<Item | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -162,7 +166,7 @@ export const useControleEstoque = () => {
     };
 
     const handleAddItem = async () => {
-        if (!itemName || !quantidade) {
+        if (!itemName || !quantidade || !justificativa || !data) {
             const msg = 'Por favor, preencha o nome do item e a quantidade.';
             Platform.OS === 'web' ? toast.error(msg) : Alert.alert('Por favor', msg);
             return;
@@ -176,7 +180,7 @@ export const useControleEstoque = () => {
 
         const tempId = Date.now().toString();
         const newQuantidade = parseInt(quantidade, 10);
-        const newItemLocal: Item = { id: tempId, nome: itemName, quantidade: newQuantidade };
+        const newItemLocal: Item = { id: tempId, nome: itemName, quantidade: newQuantidade, justificativa: justificativa, data: data };
 
         // 1. Atualização Otimista (Local)
         setItems((prevItems) => [...prevItems, newItemLocal]);
@@ -360,10 +364,14 @@ export const useControleEstoque = () => {
         userRole,
         pendingDeleteId,
         flatListRef,
+        justificativa,
+        data,
         
         // Setters
         setItemName,
+        setJustificativa,
         setQuantidade,
+        setData,
         
         // Funções
         toggleSidebar,

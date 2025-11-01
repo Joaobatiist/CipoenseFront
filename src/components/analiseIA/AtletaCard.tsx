@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+
 interface Atleta {
     id: number;
     nomeCompleto: string;
@@ -16,6 +17,7 @@ interface AtletaCardProps {
 }
 
 const AtletaCard: React.FC<AtletaCardProps> = ({ item, isSelected, onSelect }) => {
+    
     return (
         <TouchableOpacity
             style={[styles.atletaCard, isSelected && styles.atletaCardSelected]}
@@ -44,6 +46,9 @@ const styles = StyleSheet.create({
     atletaCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+         width: '100%',            // fill available width but be limited by parent or maxWidth below
+        maxWidth: 700,           // adjust this to control the visible width across platforms
+        alignSelf: 'center',
         alignItems: 'center',
         backgroundColor: '#fff',
         paddingVertical: 15,

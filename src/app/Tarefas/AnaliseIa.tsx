@@ -2,27 +2,29 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { ToastContainer } from '@/components/Toast';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     Platform,
     SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
-    ScrollView
+    View
 } from 'react-native';
 
 
-import AtletaCard from '@/components/analiseIA/AtletaCard'; 
-import AtletaSearchInput from '@/components/analiseIA/AtletaSearchInput'; 
-import AnaliseCard from '@/components/analiseIA/AnaliseCard'; 
+import AnaliseCard from '@/components/analiseIA/AnaliseCard';
+import AtletaCard from '@/components/analiseIA/AtletaCard';
+import AtletaSearchInput from '@/components/analiseIA/AtletaSearchInput';
+import AtletaInteractiveChart from '@/components/charts/AtletaInteractiveChart';
 
 
-import { useSupervisorAnalises } from '../../hooks/useSupervisorAnalises'; 
-import { Atleta, AnaliseIa, COLORS_ANALISE } from '../../types/analiseTypes'; 
+import { useResponsive } from '@/hooks/useResponsive';
+import { useSupervisorAnalises } from '../../hooks/useSupervisorAnalises';
+import { AnaliseIa, Atleta, COLORS_ANALISE } from '../../types/analiseTypes';
 
 const SupervisorAnalisesScreen: React.FC = () => {
     
@@ -47,8 +49,19 @@ const SupervisorAnalisesScreen: React.FC = () => {
         handleSearchChange,
         handleSelectAtleta,
         handleDeleteAnalise,
+        handleEditAnalise,
         fetchAtletas,
     } = useSupervisorAnalises();
+
+    const [selectedAnaliseId, setSelectedAnaliseId] = useState<number | null>(null);
+    const { height, width } = useResponsive();
+    const MOBILE_BREAKPOINT = 600; // px - when <= this, stack chart above analyses
+    const isMobileLayout = Platform.OS !== 'web' || (width && width <= MOBILE_BREAKPOINT);
+    const atletasListMaxHeight = Platform.OS === 'web' ? Math.min(640, Math.max(220, height * 0.28)) : 300;
+    const isLargeDesktop = Platform.OS === 'web' && width && width >= 1200;
+    const analisesListMaxHeight = Platform.OS === 'web'
+        ? (isLargeDesktop ? Math.min(1150, Math.max(340, height * 0.72)) : Math.min(900, Math.max(300, height * 0.92)))
+        : 420;
 
 
 
@@ -69,12 +82,15 @@ const SupervisorAnalisesScreen: React.FC = () => {
     // Render Item do FlatList de Análises
     const renderAnaliseItem = useCallback(({ item }: { item: AnaliseIa }) => {
         return (
-            <AnaliseCard 
-                item={item} 
-                onDelete={handleDeleteAnalise} 
-            />
+            <TouchableOpacity onPress={() => setSelectedAnaliseId(item.id)} activeOpacity={0.8}>
+                <AnaliseCard 
+                    item={item} 
+                    onDelete={handleDeleteAnalise}
+                    onEdit={handleEditAnalise}
+                />
+            </TouchableOpacity>
         );
-    }, [handleDeleteAnalise]);
+    }, [handleDeleteAnalise, handleEditAnalise, setSelectedAnaliseId]);
 
     const renderEmptyAtletas = useCallback(() => (
         <View style={styles.emptyContainer}>
@@ -96,6 +112,7 @@ const SupervisorAnalisesScreen: React.FC = () => {
             </Text>
         </View>
     ), [selectedAtleta]);
+    
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -147,9 +164,10 @@ const SupervisorAnalisesScreen: React.FC = () => {
                                 keyExtractor={(item) => `atleta-${item.id}`}
                                 renderItem={renderAtletaItem} 
                                 ListEmptyComponent={renderEmptyAtletas}
-                                contentContainerStyle={[{ paddingBottom: 10 }, Platform.OS === 'web' && styles.webFlatList]}
-                                scrollEnabled={false}
-                                showsVerticalScrollIndicator={Platform.OS !== 'web'}
+                                contentContainerStyle={{ paddingBottom: 10 }}
+                                style={[styles.flatList, { maxHeight: atletasListMaxHeight }]}
+                                scrollEnabled={true}
+                                showsVerticalScrollIndicator={true}
                                 keyboardShouldPersistTaps="handled"
                                 nestedScrollEnabled={Platform.OS === 'web'}
                                 bounces={Platform.OS !== 'web'}
@@ -157,25 +175,85 @@ const SupervisorAnalisesScreen: React.FC = () => {
                         </View>
 
                         {selectedAtleta && (
-                            <View style={styles.analisesContainer}>
-                                <Text style={styles.subTitle}>Análises de {selectedAtleta.nomeCompleto}</Text>
-                                {loadingAnalises ? (
-                                    <ActivityIndicator size="large" color={COLORS_ANALISE.secondary} />
-                                ) : analises.length > 0 ? (
-                                    <FlatList
-                                        data={analises}
-                                        keyExtractor={(item) => `analise-${item.id}`}
-                                        renderItem={renderAnaliseItem} 
-                                        scrollEnabled={false}
-                                        showsVerticalScrollIndicator={Platform.OS !== 'web'}
-                                        keyboardShouldPersistTaps="handled"
-                                        nestedScrollEnabled={Platform.OS === 'web'}
-                                        bounces={Platform.OS !== 'web'}
-                                        ItemSeparatorComponent={() => <View style={styles.separator} />}
+                            // Wrapper que em Web permite que apenas a área de análises+gráfico cresça
+                            <View style={Platform.OS === 'web' ? styles.analisesWideWrapper : undefined}>
+                                <Text style={styles.subTitle}>Análise de {selectedAtleta.nomeCompleto}</Text>
+                                <View style={[styles.analisesContainer, isMobileLayout ? styles.analisesStacked : styles.analisesRow]}>
+                                    {isMobileLayout ? (
+                                        <>
+                                            {/* On mobile: render chart first (above the analyses list) */}
+                                            <View style={[styles.chartColumn, styles.chartColumnStacked]}>
+                                                <AtletaInteractiveChart
+                                                    atletaId={selectedAtleta.id}
+                                                    highlightedEvaluationId={selectedAnaliseId}
+                                                    onPointPress={(evaluation) => {
+                                                        setSelectedAnaliseId(evaluation.id);
+                                                    }}
+                                                />
+                                            </View>
+
+                                            <View style={styles.listColumn}>
+                                    
+                                    {loadingAnalises ? (
+                                        <ActivityIndicator size="large" color={COLORS_ANALISE.secondary} />
+                                    ) : analises.length > 0 ? (
+                                        <FlatList
+                                            data={analises}
+                                            keyExtractor={(item) => `analise-${item.id}`}
+                                            renderItem={renderAnaliseItem} 
+                                            style={[styles.flatList, { maxHeight: analisesListMaxHeight }]}
+                                            contentContainerStyle={{ paddingBottom: 12 }}
+                                            scrollEnabled={true}
+                                            showsVerticalScrollIndicator={true}
+                                            keyboardShouldPersistTaps="handled"
+                                            nestedScrollEnabled={Platform.OS === 'web'}
+                                            bounces={Platform.OS !== 'web'}
+                                            ItemSeparatorComponent={() => <View style={styles.separator} />}
+                                        />
+                                    ) : (
+                                        renderEmptyAnalises()
+                                    )}
+                                </View>
+                                        </>
+                                    ) : (
+                                    <>
+                                    <View style={styles.listColumn}>
+                                    
+                                    {loadingAnalises ? (
+                                        <ActivityIndicator size="large" color={COLORS_ANALISE.secondary} />
+                                    ) : analises.length > 0 ? (
+                                        <FlatList
+                                            data={analises}
+                                            keyExtractor={(item) => `analise-${item.id}`}
+                                            renderItem={renderAnaliseItem} 
+                                            style={[styles.flatList, { maxHeight: analisesListMaxHeight }]}
+                                            contentContainerStyle={{ paddingBottom: 12 }}
+                                            scrollEnabled={true}
+                                            showsVerticalScrollIndicator={true}
+                                            keyboardShouldPersistTaps="handled"
+                                            nestedScrollEnabled={Platform.OS === 'web'}
+                                            bounces={Platform.OS !== 'web'}
+                                            ItemSeparatorComponent={() => <View style={styles.separator} />}
+                                        />
+                                    ) : (
+                                        renderEmptyAnalises()
+                                    )}
+                                </View>
+
+                                {/* Right column: interactive chart for the selected athlete */}
+                                    <View style={styles.chartColumn}>
+                                    <AtletaInteractiveChart
+                                        atletaId={selectedAtleta.id}
+                                        highlightedEvaluationId={selectedAnaliseId}
+                                        onPointPress={(evaluation) => {
+                                            // when the chart point is pressed, mark that analysis selected
+                                            setSelectedAnaliseId(evaluation.id);
+                                        }}
                                     />
-                                ) : (
-                                    renderEmptyAnalises()
-                                )}
+                                    </View>
+                                </>
+                                    )}
+                                </View>
                             </View>
                         )}
                     </ScrollView>
@@ -232,15 +310,18 @@ const styles = StyleSheet.create({
     },
     content: { 
         flex: 1,
-        paddingHorizontal: 15,
+        paddingHorizontal: 24,
+        ...Platform.select({ web: { paddingHorizontal: 0 } }),
     },
     subTitle: { 
         fontSize: 18, 
         fontWeight: 'bold', 
+        textAlign: 'center',
         marginBottom: 12,
         color: COLORS_ANALISE.textPrimary, 
     },
     atletasListContainer: { 
+        textAlign: 'center',
         marginBottom: 15,
     },
     analisesContainer: { 
@@ -280,10 +361,11 @@ const styles = StyleSheet.create({
     webContainer: {
         ...Platform.select({
             web: {
-                maxWidth: 800, 
+                
                 width: '100%', 
                 alignSelf: 'center', 
                 flex: 1,
+                
             },
         }),
     },
@@ -298,10 +380,51 @@ const styles = StyleSheet.create({
     webFlatList: {
         ...Platform.select({
             web: {
-                maxHeight: undefined, 
+            maxHeight: undefined,
             },
         }),
     } as any,
+    // Reusable style for FlatList areas so we can apply maxHeight dynamically
+    flatList: {
+        width: '100%',
+    } as any,
+    analisesWideWrapper: {
+        ...Platform.select({
+            web: {
+                maxWidth: 1000,
+                width: '100%',
+                alignSelf: 'center',
+            },
+        }),
+    } as any,
+    analisesRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        gap: 20 as any,
+    },
+    listColumn: {
+        flex: 1,
+        ...Platform.select({
+            web: {
+                minWidth: 300,
+                
+            },
+        }),
+    },
+    chartColumn: {
+      marginTop: 0,
+        
+    },
+    analisesStacked: {
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 12 as any,
+    },
+    chartColumnStacked: {
+        marginTop: 10,
+        marginBottom: 16,
+    },
 });
 
 export default SupervisorAnalisesScreen;

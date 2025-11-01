@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const { width } = Dimensions.get('window');
 // Considera "tela grande" (Large Screen) como Tablet ou Desktop
@@ -115,4 +115,36 @@ cancelButton: {
   justifyContent: 'center',
   minWidth: isLargeScreen ? 180 : '100%',
 },
+
+  // Caixa de evento selecionado
+  eventBox: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#fffbe6',
+    borderWidth: 1,
+    borderColor: '#ffe58f',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  eventMeta: {
+    fontSize: 14,
+    color: '#555',
+  },
+  eventClose: {
+    marginLeft: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#1c348e',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

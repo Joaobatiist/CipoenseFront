@@ -1,3 +1,4 @@
+import { FormField } from '@/components/forms/CadastroForm';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ToastContainer } from '@/components/Toast';
 import { useControleEstoque, Item } from '@/hooks/useControleEstoque'; // Importa o novo hook e o tipo Item
@@ -32,14 +33,16 @@ const Estoque: React.FC = () => {
         userName,
         userRole,
         flatListRef,
+        justificativa,
+        data,
         setItemName,
+        setJustificativa,
         setQuantidade,
+        setData,
         toggleSidebar,
         closeSidebar,
         handleAddItem,
         handleUpdateItem,
-        handleDeleteItem,
-        handleEditClick,
         handleCancelEdit,
     } = useControleEstoque();
 
@@ -58,18 +61,7 @@ const Estoque: React.FC = () => {
             </View>
 
             <View style={styles.itemActionButtons}>
-                <TouchableOpacity 
-                    style={[styles.editButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]} 
-                    onPress={() => handleEditClick(item)}
-                >
-                    <Text style={styles.actionButtonText}>✏️</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    style={[styles.deleteButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]} 
-                    onPress={() => handleDeleteItem(item.id)}
-                >
-                    <Text style={styles.actionButtonText}>🗑️</Text>
-                </TouchableOpacity>
+                
             </View>
         </View>
     );
@@ -98,20 +90,37 @@ const Estoque: React.FC = () => {
             <View style={styles.mainContent}> 
                 <View style={styles.formContainer}>
                     <Text style={styles.formTitle}>{editarItem ? 'Editar Item' : 'Adicionar Novo Item'}</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nome do Item"
-                        value={itemName}
-                        onChangeText={setItemName}
-                        autoFocus={Platform.OS === 'web'}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Quantidade"
-                        keyboardType="numeric"
-                        value={quantidade}
-                        onChangeText={(text) => setQuantidade(text.replace(/[^0-9]/g, ''))} // Garante apenas números
-                    />
+                   <FormField
+                               label="Nome do item"
+                               value={itemName}
+                               onChangeText={setItemName}
+                               placeholder="Nome do Item"
+                               required
+                             />
+                    
+                     <FormField
+                               label="Justificativa"
+                               value={justificativa}
+                               onChangeText={setJustificativa}
+                               placeholder="Justificativa"
+                               required
+                             />
+                         <FormField
+                               label="Data"
+                               value={data}
+                               onChangeText={setData}
+                               placeholder="DD/MM/AAAA"
+                               mask="date"
+                               required
+                             />
+                             <FormField
+                               label="Quantidade"
+                               value={quantidade}
+                               onChangeText={(text) => setQuantidade(text.replace(/[^0-9]/g, ''))}
+                               placeholder="Numeric"
+                               required
+                             />
+                    
                     <View style={styles.formButtons}>
                         <TouchableOpacity
                             style={[styles.actionButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]}

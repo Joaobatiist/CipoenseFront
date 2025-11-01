@@ -56,39 +56,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const analiseIa = () => {
-    router.navigate("/tarefas/AnaliseIa");
+    router.navigate("/Tarefas/AnaliseIa");
   };
 
   const exibirAvaliacaoGeral = () => {
-    router.navigate("/tarefas/exibirAvaliacaoGeral");
+    router.navigate("/Tarefas/exibirAvaliacaoGeral");
   };
 
   const documentos = () => {
-    router.navigate("../tarefas/documentos");
+    router.navigate("../Tarefas/documentos");
   }
 
   const listaAtletas = () => {
-    router.navigate("/tarefas/ListaAtletas");
+    router.navigate("/Tarefas/ListaAtletas");
   };
 
   const realizarRelatorio = () => {
-    router.navigate("/tarefas/realizarRelatorios");
+    router.navigate("/Tarefas/realizarRelatorios");
   };
 
   const cadastrarAtleta = () => {
-    router.navigate("/cadastro/cadastroAtleta");
+    router.navigate("/Cadastro/cadastroAtleta");
   };
 
   const controleEstoque = () => {
-    router.navigate('/tarefas/ControleEstoque');
+    router.navigate('/Tarefas/ControleEstoque');
   };
 
   const listaDeFuncionarios = () => {
-    router.navigate('/tarefas/listarFuncionarios');
+    router.navigate('/Tarefas/listarFuncionarios');
   };
 
   const cadastrarFuncionario = () => {
-    router.navigate('/cadastro/cadastrarFuncionario');
+    router.navigate('/Cadastro/cadastrarFuncionario');
   };
 
   const navegarParaAgenda = () => {

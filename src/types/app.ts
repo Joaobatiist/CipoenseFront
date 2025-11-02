@@ -5,6 +5,8 @@ export interface Evento {
   professor: string;
   local: string;
   horario: string;
+  subDivisao: string;
+  atletas: string[];
 }
 
 export interface ComunicadoResponse {

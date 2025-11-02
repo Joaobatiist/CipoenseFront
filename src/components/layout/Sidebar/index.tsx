@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const listaPresenca = () => {
-    router.navigate("../tarefas/listaPresenca");
+    router.navigate("../Tarefas/listaPresenca");
   };
 
   const analiseIa = () => {

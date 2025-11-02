@@ -1,4 +1,4 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
 
 const { width } = Dimensions.get('window');
 const isLargeScreen = width >= 768; 
@@ -6,9 +6,9 @@ const MAX_WIDTH = 1250; // Alinhado com o formulário
 
 export const styles = StyleSheet.create({
   container: {
-    marginTop: isLargeScreen ? 20 : 20,
+    marginTop: isLargeScreen ? 16 : 12,
     maxWidth: isLargeScreen ? MAX_WIDTH : '100%',
-    padding: isLargeScreen ? 20 : 15,
+    padding: isLargeScreen ? 16 : 12,
     alignSelf: 'center',
     width: '100%',
     paddingHorizontal: isLargeScreen ? 10 : 10,
@@ -30,8 +30,8 @@ export const styles = StyleSheet.create({
   eventCard: {
     backgroundColor: '#fff',
     borderRadius: 10,
-    padding: isLargeScreen ? 20 : 15,
-    marginBottom: isLargeScreen ? 15 : 10,
+    padding: isLargeScreen ? 12 : 10,
+    marginBottom: isLargeScreen ? 10 : 8,
     borderLeftWidth: 5,
     borderLeftColor: '#e5c228',
     
@@ -48,25 +48,25 @@ export const styles = StyleSheet.create({
     }),
   },
   eventDate: {
-    fontSize: isLargeScreen ? 17 : 16,
+    fontSize: isLargeScreen ? 16 : 15,
     fontWeight: 'bold',
     marginBottom: 5,
     color: '#1c348e',
   },
   eventDescription: {
-    fontSize: isLargeScreen ? 16 : 15,
-    marginBottom: 8,
+    fontSize: isLargeScreen ? 15 : 14,
+    marginBottom: 6,
     color: '#333',
   },
   eventDetail: {
-    fontSize: isLargeScreen ? 14 : 13,
+    fontSize: isLargeScreen ? 13 : 12,
     color: '#666',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   eventActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 15,
+    marginTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#f0f0f0',
     paddingTop: 10,
@@ -76,8 +76,8 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#007bff',
-    paddingVertical: isLargeScreen ? 10 : 8,
-    paddingHorizontal: isLargeScreen ? 15 : 12,
+    paddingVertical: isLargeScreen ? 8 : 6,
+    paddingHorizontal: isLargeScreen ? 12 : 10,
     borderRadius: 5,
     // Removido marginRight para usar gap no eventActions
   },
@@ -85,8 +85,8 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#dc3545',
-    paddingVertical: isLargeScreen ? 10 : 8,
-    paddingHorizontal: isLargeScreen ? 15 : 12,
+    paddingVertical: isLargeScreen ? 8 : 6,
+    paddingHorizontal: isLargeScreen ? 12 : 10,
     borderRadius: 5,
     // Removido marginRight para usar gap no eventActions
   },
@@ -99,10 +99,7 @@ export const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: isLargeScreen ? 80 : 30,
-    
-    
-  
+    paddingVertical: isLargeScreen ? 50 : 20,
   },
   emptyMessage: {
     fontSize: isLargeScreen ? 18 : 16,

@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import React, { useCallback } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Modal,
     Platform,
@@ -25,11 +26,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { toast } from 'react-toastify';
 
 // Importa o hook e os tipos/constantes refatorados
-import { useDocumentos } from '../../hooks/useDocumentos';
-import { COLORS_DOCUMENTOS, DocumentoPdf, HEADER_HEIGHT } from '../../types/documentosTypes';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment'; // Necessário para formatação da data
+import { useDocumentos } from '../../hooks/useDocumentos';
+import { COLORS_DOCUMENTOS, Documento, HEADER_HEIGHT } from '../../types/documentosTypes';
 
 const DocumentosScreen: React.FC = () => {
     // 1. Uso do Custom Hook para obter toda a funcionalidade
@@ -53,20 +56,132 @@ const DocumentosScreen: React.FC = () => {
         handlePickDocument,
         handleSaveDocumento,
         handleDeleteDocumento,
+        pendingDeleteId,
     } = useDocumentos();
 
-    // Função de Renderização do Item da Lista
-    const renderDocumentoItem = useCallback(({ item }: { item: DocumentoPdf }) => {
-        // Função para abrir o URL no navegador/visor de PDF
-        const handleDownload = () => {
+    // Função para download de PDF com base64
+    const handleDownloadPdf = useCallback(async (base64Content: string, contentType: string, fileName: string = 'documento.pdf') => {
+        if (!base64Content || !contentType) {
+            const message = 'Conteúdo do PDF ou tipo não disponível para download.';
+            if (Platform.OS === 'web') toast.error(`Erro. ${message}`);
+            else Alert.alert('Erro', message);
+            return;
+        }
+
+        try {
             if (Platform.OS === 'web') {
-                window.open(item.urlDocumento, '_blank');
+                const pureBase64 = base64Content.replace(/^data:.*;base64,/, '');
+                const byteCharacters = atob(pureBase64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: contentType });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                toast.success('Download iniciado!');
             } else {
-                // Em mobile, pode-se usar Linking ou um módulo específico de download/visualização
-                // Por simplicidade, usamos Linking (necessário importar do react-native)
-                // Se for um link direto, o próprio RN pode lidar
-                // Linking.openURL(item.urlDocumento);
-                alert(`Simulando download/visualização de: ${item.urlDocumento}`);
+                Alert.alert('Aviso', 'Funcionalidade de download disponível apenas na versão web no momento.');
+            }
+        } catch (error) {
+            console.error('Erro ao baixar/compartilhar PDF:', error);
+            if (Platform.OS === 'web') toast.error('Erro. Não foi possível baixar o documento. Tente novamente.');
+            else Alert.alert('Erro', 'Não foi possível baixar o documento. Tente novamente.');
+        }
+    }, []);
+
+    // Função de Renderização do Item da Lista
+    const renderDocumentoItem = useCallback(({ item }: { item: Documento }) => {
+        // Função para baixar o PDF do backend (byte array)
+        const handleDownload = async () => {
+            try {
+                if (Platform.OS === 'web') {
+                    // Obter token para autenticação
+                    const token = await AsyncStorage.getItem('jwtToken');
+                    
+                    console.log('Tentando baixar documento:', {
+                        documentoId: item.id,
+                        nomeArquivo: item.nomeArquivo,
+                        descricao: item.descricao,
+                        dataUpload: item.dataUpload,
+                        hasToken: !!token
+                    });
+                    
+                    // URL para buscar o documento pelo ID usando endpoint específico para download
+                    const downloadUrl = `${process.env.EXPO_PUBLIC_API_BASE_URL}/api/documento/download/${item.id}`;
+                    
+                    // Fazer requisição para obter o documento em bytes
+                    const headers: HeadersInit = {};
+                    
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
+                    
+                    const response = await fetch(downloadUrl, {
+                        method: 'GET',
+                        headers: headers,
+                    });
+                    
+                    console.log('Resposta da requisição:', {
+                        url: downloadUrl,
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType: response.headers.get('content-type'),
+                        authHeader: headers['Authorization'] ? 'Presente' : 'Ausente'
+                    });
+                    
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            throw new Error(`Documento não encontrado. Verifique se o arquivo ainda existe no servidor.`);
+                        } else if (response.status === 401 || response.status === 403) {
+                            throw new Error(`Sem permissão para acessar o documento. Faça login novamente.`);
+                        } else {
+                            throw new Error(`Erro ao buscar documento: ${response.status} - ${response.statusText}`);
+                        }
+                    }
+                    
+                    // Converter para blob e depois para base64
+                    const blob = await response.blob();
+                    console.log('Blob criado:', { size: blob.size, type: blob.type });
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = () => {
+                        const base64Content = reader.result as string;
+                        const contentType = blob.type || 'application/pdf';
+                        const fileName = item.nomeArquivo || 'documento.pdf';
+                        
+                        console.log('Iniciando download com:', { fileName, contentType });
+                        
+                        // Usar a função handleDownloadPdf
+                        handleDownloadPdf(base64Content, contentType, fileName);
+                    };
+                    
+                    reader.onerror = () => {
+                        console.error('Erro no FileReader');
+                        toast.error('Erro ao processar o arquivo para download.');
+                    };
+                    
+                    reader.readAsDataURL(blob);
+                } else {
+                    Alert.alert('Aviso', 'Funcionalidade de download disponível apenas na versão web no momento.');
+                }
+            } catch (error: any) {
+                console.error('Erro ao baixar documento:', error);
+                const errorMessage = error?.message || 'Erro desconhecido ao baixar documento';
+                
+                if (Platform.OS === 'web') {
+                    toast.error(errorMessage);
+                } else {
+                    Alert.alert('Erro', errorMessage);
+                }
             }
         };
 
@@ -103,15 +218,30 @@ const DocumentosScreen: React.FC = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => handleDeleteDocumento(item.id)}
-                        style={styles.actionButton}
-                        accessibilityLabel="Excluir documento"
+                        style={[
+                            styles.actionButton,
+                            pendingDeleteId === item.id && styles.deleteButtonPending
+                        ]}
+                        accessibilityLabel={
+                            pendingDeleteId === item.id 
+                                ? "Clique novamente para confirmar exclusão"
+                                : "Excluir documento"
+                        }
                     >
-                        <FontAwesomeIcon icon={faTrashAlt} size={20} color={COLORS_DOCUMENTOS.danger} />
+                        <FontAwesomeIcon 
+                            icon={faTrashAlt} 
+                            size={20} 
+                            color={
+                                pendingDeleteId === item.id 
+                                    ? '#fff' 
+                                    : COLORS_DOCUMENTOS.danger
+                            } 
+                        />
                     </TouchableOpacity>
                 </View>
             </View>
         );
-    }, [handleOpenModal, handleDeleteDocumento]);
+    }, [handleOpenModal, handleDeleteDocumento, pendingDeleteId]);
 
     // Renderização de Lista Vazia
     const renderEmptyList = useCallback(() => (
@@ -362,6 +492,11 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         padding: 8,
+    },
+    deleteButtonPending: {
+        backgroundColor: COLORS_DOCUMENTOS.danger,
+        borderRadius: 4,
+        transform: [{ scale: 1.1 }],
     },
     downloadButton: {
         marginTop: 5,

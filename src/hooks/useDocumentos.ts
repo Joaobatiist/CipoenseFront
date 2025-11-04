@@ -10,20 +10,20 @@ import { toast } from 'react-toastify';
 import {
     API_BASE_URL,
     CustomJwtPayload,
+    Documento,
     DocumentoForm,
-    DocumentoPdf,
-} from '../types/documentosTypes'; 
+} from '../types/documentosTypes';
 
 export const useDocumentos = () => {
     // Estado
-    const [documentos, setDocumentos] = useState<DocumentoPdf[]>([]);
+    const [documentos, setDocumentos] = useState<Documento[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
     // Usado para edição: se null, é uma criação
-    const [selectedDocumento, setSelectedDocumento] = useState<DocumentoPdf | null>(null);
+    const [selectedDocumento, setSelectedDocumento] = useState<Documento | null>(null);
     const [form, setForm] = useState<DocumentoForm>({ 
         descricao: '', 
         nomeArquivo: '',
@@ -34,7 +34,11 @@ export const useDocumentos = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userName, setUserName] = useState('Usuário');
     const [userRole, setUserRole] = useState<string>('');
+    
+    // Estado para exclusão dupla confirmação
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
+    
     // --- Helpers ---
     const getToken = useCallback(async (): Promise<string | null> => {
         try {
@@ -87,13 +91,13 @@ export const useDocumentos = () => {
             const token = await getToken();
             if (!token) throw new Error('Token não encontrado.');
 
-            const response = await fetch(`${API_BASE_URL}/api/documentos`, {
+            const response = await fetch(`${API_BASE_URL}/api/buscar`, {
                 headers: { 'Authorization': `Bearer ${token}` },
             });
 
             if (!response.ok) throw new Error(`Erro ${response.status}: Falha ao buscar documentos.`);
 
-            const data: DocumentoPdf[] = await response.json();
+            const data: Documento[] = await response.json();
             setDocumentos(Array.isArray(data) ? data : []);
         } catch (error: any) {
             const errorMessage = handleApiError(error, 'carregar documentos');
@@ -120,7 +124,7 @@ export const useDocumentos = () => {
 
 
     // Ação: Abrir o Modal para Criação/Edição
-    const handleOpenModal = useCallback((documento: DocumentoPdf | null = null) => {
+    const handleOpenModal = useCallback((documento: Documento | null = null) => {
         setSelectedDocumento(documento);
         if (documento) {
             // Edição
@@ -196,15 +200,14 @@ export const useDocumentos = () => {
             formData.append('descricao', form.descricao);
             
             let method = 'POST';
-            let url = `${API_BASE_URL}/api/documentos`;
+            let url = `${API_BASE_URL}/api/cadastrar`;
 
             if (!isCreation) {
                 // Modo Edição (PUT)
                 method = 'PUT';
-                url = `${API_BASE_URL}/api/documentos/${selectedDocumento!.id}`;
-                // O backend pode usar o ID na URL, mas é bom enviar também no corpo
-                // Se o backend exige o ID no corpo, descomente a linha abaixo
-                // formData.append('id', selectedDocumento!.id.toString()); 
+                url = `${API_BASE_URL}/api/atualizar`;
+                // Adicionar o ID para atualização
+                formData.append('id', selectedDocumento!.id.toString()); 
             }
 
             // 2. Anexar o arquivo (se houver um selecionado)
@@ -252,7 +255,9 @@ export const useDocumentos = () => {
                 throw new Error(errorMsg);
             }
 
+            console.log('Atualização bem-sucedida, recarregando lista...');
             await fetchDocumentos(); // Recarrega a lista
+            console.log('Lista recarregada após atualização');
             
             const successMsg = isCreation 
                 ? 'Documento criado com sucesso!' 
@@ -274,16 +279,44 @@ export const useDocumentos = () => {
 
 
     // Ação: Deletar Documento
-    const handleDeleteDocumento = useCallback((documentoId: number) => {
+    const handleDeleteDocumento = useCallback((documentoId: string) => {
+        const documentoIdStr = documentoId;
+        
+        // Primeiro clique: "arma" a exclusão
+        if (pendingDeleteId !== documentoIdStr) {
+            setPendingDeleteId(documentoIdStr);
+            
+            if (Platform.OS === 'web') {
+                toast.warning('⚠️ Clique novamente na lixeira para confirmar a exclusão', {
+                    autoClose: 3000,
+                    onClose: () => setPendingDeleteId(null)
+                });
+            } else {
+                Alert.alert('Atenção', 'Clique novamente na lixeira para confirmar a exclusão');
+            }
+            
+            // Remove o estado pendente após 5 segundos se não confirmado
+            setTimeout(() => {
+                setPendingDeleteId(prev => prev === documentoIdStr ? null : prev);
+            }, 5000);
+            
+            return;
+        }
+        
+        // Segundo clique: executa a exclusão
         const executeDelete = async () => {
             try {
                 const token = await getToken();
                 if (!token) throw new Error('Token não encontrado.');
 
-                const response = await fetch(`${API_BASE_URL}/api/documentos/${documentoId}`, {
+                
+                
+                const response = await fetch(`${API_BASE_URL}/api/apagar/${documentoId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
+
+                
 
                 if (!response.ok) {
                     const responseText = await response.text();
@@ -301,21 +334,20 @@ export const useDocumentos = () => {
                 else Alert.alert('Sucesso', successMsg);
 
             } catch (error: any) {
+                console.error('Erro ao deletar documento:', error);
+                console.error('Detalhes do erro:', error.message);
                 const errorMessage = handleApiError(error, 'deletar documento');
                 if (Platform.OS === 'web') toast.error(errorMessage);
                 else Alert.alert('Erro', errorMessage);
+            } finally {
+                // Limpa o estado pendente após execução
+                setPendingDeleteId(null);
             }
         };
 
-        Alert.alert(
-            'Confirmar Exclusão',
-            'Tem certeza que deseja deletar este documento? Esta ação é irreversível.',
-            [
-                { text: 'Cancelar', style: 'cancel' },
-                { text: 'Deletar', onPress: executeDelete, style: 'destructive' },
-            ]
-        );
-    }, [getToken, handleApiError]);
+        // Executa a exclusão (segundo clique confirmado)
+        executeDelete();
+    }, [getToken, handleApiError, pendingDeleteId]);
 
 
     return {
@@ -330,6 +362,7 @@ export const useDocumentos = () => {
         sidebarOpen,
         userName,
         userRole,
+        pendingDeleteId,
 
         // Setters
         setModalVisible,

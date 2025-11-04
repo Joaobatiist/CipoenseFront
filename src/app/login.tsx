@@ -79,7 +79,7 @@ const LoginScreen = () => {
           // Navega após um pequeno delay para mostrar o toast
           setTimeout(() => {
             if (userRole === 'ATLETA') {
-              router.replace('/atletas/Atleta');
+              router.replace('/Atletas/Atleta');
             } else {
               router.replace('/administrador/dashboard');
             }
@@ -90,7 +90,7 @@ const LoginScreen = () => {
               text: 'OK',
               onPress: () => {
                 if (userRole === 'ATLETA') {
-                  router.replace('/atletas/Atleta');
+                  router.replace('/Atletas/Atleta');
                 } else {
                   router.replace('/administrador/dashboard');
                 }

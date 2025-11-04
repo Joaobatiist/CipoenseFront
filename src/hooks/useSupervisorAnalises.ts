@@ -245,7 +245,7 @@ export const useSupervisorAnalises = () => {
             const token = await getToken();
             if (!token) throw new Error('Token não encontrado');
 
-            const response = await fetch(`${API_BASE_URL}/api/analises/update`, {
+            const response = await fetch(`${API_BASE_URL}/api/analises/Atualizar/${analise.id}`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify(analise),

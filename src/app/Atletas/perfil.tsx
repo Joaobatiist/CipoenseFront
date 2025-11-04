@@ -1,3 +1,4 @@
+import { ToastContainer } from '@/components/Toast';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { toast } from 'react-toastify';
 import { styles } from "../../Styles/Perfil";
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL 
@@ -61,7 +63,7 @@ const PerfilAtleta = () => {
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
         if (Platform.OS === 'web') {
-          window.alert('Não foi possível carregar os dados do perfil');
+          toast.error('Não foi possível carregar os dados do perfil');
         } else {
           Alert.alert('Erro', 'Não foi possível carregar os dados do perfil');
         }
@@ -154,12 +156,15 @@ const PerfilAtleta = () => {
         });
         setImagemPreview(undefined);
       }
-
-      window.alert('Foto atualizada com sucesso!');
+      if (Platform.OS === 'web') {
+        toast.success('Foto atualizada com sucesso!');
+      } else {
+        Alert.alert('Sucesso', 'Foto atualizada com sucesso!');
+      }
     } catch (error: any) {
       console.error('Erro no upload (web):', error);
       console.error('Detalhes do erro:', error.response?.data);
-      window.alert(`Falha ao atualizar a foto: ${error.response?.data?.message || error.message}`);
+      toast.error(`Falha ao atualizar a foto: ${error.response?.data?.message || error.message}`);
     } finally {
       setUploading(false);
     }
@@ -246,9 +251,7 @@ const PerfilAtleta = () => {
         type,
       } as any);
 
-      console.log('Iniciando upload da foto...');
-      console.log('URI:', uri);
-      console.log('Endpoint:', `${API_URL}/api/atleta/profile/photo`);
+     
 
       const response = await axios.post<string>(`${API_URL}/api/atleta/profile/photo`, formData, {
         headers: {
@@ -290,57 +293,7 @@ const PerfilAtleta = () => {
     }
   };
 
-  const excluirFoto = async () => {
-    const executarExclusao = async () => {
-      try {
-        setUploading(true);
-        const token = await AsyncStorage.getItem('jwtToken');
 
-        await axios.delete(`${API_URL}/api/atleta/profile/photo`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (atleta) {
-          setAtleta({
-            ...atleta,
-            foto: null,
-          });
-        }
-        setImagemPreview(undefined);
-
-        if (Platform.OS === 'web') {
-          window.alert('Foto removida com sucesso!');
-        } else {
-          Alert.alert('Sucesso', 'Foto removida com sucesso!');
-        }
-      } catch (error) {
-        console.error('Erro ao remover foto:', error);
-        if (Platform.OS === 'web') {
-          window.alert('Falha ao remover a foto');
-        } else {
-          Alert.alert('Erro', 'Falha ao remover a foto');
-        }
-      } finally {
-        setUploading(false);
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Tem certeza que deseja remover sua foto de perfil?');
-      if (confirmed) {
-        executarExclusao();
-      }
-    } else {
-      Alert.alert(
-        'Remover Foto',
-        'Tem certeza que deseja remover sua foto de perfil?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Remover', onPress: executarExclusao, style: 'destructive' },
-        ]
-      );
-    }
-  };
 
 
 
@@ -374,20 +327,22 @@ const PerfilAtleta = () => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{
-        alignItems: 'center',
-        paddingBottom: 50,
-        width: '100%',
-      }}
-      showsVerticalScrollIndicator={Platform.OS === 'web'}
-      nestedScrollEnabled={Platform.OS === 'web'}
-      bounces={Platform.OS !== 'web'}
-      {...(Platform.OS === 'web' && {
-        style: [styles.container, { overflowY: 'auto' as any, maxHeight: '100vh' as any }]
-      })}
-    >
+    <>
+      {Platform.OS === 'web' && <ToastContainer />}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{
+          alignItems: 'center',
+          paddingBottom: 50,
+          width: '100%',
+        }}
+        showsVerticalScrollIndicator={Platform.OS === 'web'}
+        nestedScrollEnabled={Platform.OS === 'web'}
+        bounces={Platform.OS !== 'web'}
+        {...(Platform.OS === 'web' && {
+          style: [styles.container, { overflowY: 'auto' as any, maxHeight: '100vh' as any }]
+        })}
+      >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
           <FontAwesomeIcon icon={faArrowLeft} size={20} color="#ffffffff" />
@@ -431,16 +386,7 @@ const PerfilAtleta = () => {
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity
-              onPress={excluirFoto}
-              disabled={uploading}
-              style={styles.deletePhotoButton}
-              accessibilityLabel="Excluir foto"
-            >
-              <Text style={styles.deletePhotoButtonText}>
-                🗑️ Excluir Foto
-              </Text>
-            </TouchableOpacity>
+           
           </View>
         )}
 
@@ -472,6 +418,7 @@ const PerfilAtleta = () => {
         </View>
       </View>
     </ScrollView>
+    </>
   );
 };
 

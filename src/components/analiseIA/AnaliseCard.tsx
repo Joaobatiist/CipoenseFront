@@ -31,10 +31,10 @@ const AnaliseCard: React.FC<AnaliseCardProps> = ({ item, onDelete, onEdit }) => 
         .filter(p => p && p !== '.' && p !== '');
 
     const [isEditing, setIsEditing] = useState(false);
-    const [promptText, setPromptText] = useState(item.prompt || '');
+    const [respostaText, setRespostaText] = useState(item.respostaIA || '');
 
     const openEditor = () => {
-        setPromptText(item.prompt || '');
+        setRespostaText(item.respostaIA || '');
         setIsEditing(true);
     };
 
@@ -42,7 +42,7 @@ const AnaliseCard: React.FC<AnaliseCardProps> = ({ item, onDelete, onEdit }) => 
 
     const saveEdit = () => {
         if (onEdit) {
-            const updated: AnaliseIa = { ...item, prompt: promptText };
+            const updated: AnaliseIa = { ...item, respostaIA: respostaText };
             onEdit(updated);
         }
         setIsEditing(false);
@@ -92,11 +92,11 @@ const AnaliseCard: React.FC<AnaliseCardProps> = ({ item, onDelete, onEdit }) => 
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Editar Prompt</Text>
+                        <Text style={styles.modalTitle}>Editar Resposta da IA</Text>
                         <TextInput
                             style={styles.modalInput}
-                            value={promptText}
-                            onChangeText={setPromptText}
+                            value={respostaText}
+                            onChangeText={setRespostaText}
                             multiline
                             numberOfLines={6}
                         />

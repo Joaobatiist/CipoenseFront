@@ -1,5 +1,7 @@
 import { apiService } from '@/services';
 import { Evento } from '@/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jwtDecode } from 'jwt-decode';
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { toast } from 'react-toastify';
@@ -12,6 +14,38 @@ interface UseEventosReturn {
   deleteEvento: (id: string) => Promise<void>;
   refreshEventos: () => Promise<void>;
 }
+
+const getAuthHeaders = async () => {
+  try {
+    const token = await AsyncStorage.getItem('jwtToken');
+    
+    if (!token) {
+      throw new Error('Token não encontrado');
+    }
+
+    // Verificar se o token ainda é válido
+    try {
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      
+      if (decoded.exp && decoded.exp < currentTime) {
+        await AsyncStorage.removeItem('jwtToken');
+        throw new Error('Token expirado');
+      }
+    } catch (decodeError) {
+      await AsyncStorage.removeItem('jwtToken');
+      throw new Error('Token inválido');
+    }
+
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  } catch (error) {
+    console.error('Erro ao obter headers de autenticação:', error);
+    throw error;
+  }
+};
 
 export const useEventos = (): UseEventosReturn => {
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -44,34 +78,31 @@ export const useEventos = (): UseEventosReturn => {
   const addEvento = async (eventoData: Omit<Evento, 'id'>): Promise<void> => {
     try {
       setLoading(true);
-      const formattedDate = new Date(eventoData.data + 'T00:00:00').toISOString().split('T')[0];
       
-      const novoEvento = {
-        ...eventoData,
-        data: formattedDate,
-      };
-
-      const response = await apiService.post<Evento>('/api/eventos', novoEvento);
+      const headers = await getAuthHeaders();
       
-      const formattedEvento: Evento = {
-        ...response.data,
-        data: new Date(response.data.data + 'T00:00:00').toLocaleDateString('pt-BR'),
-      };
-
-      setEventos(prev => [...prev, formattedEvento]);
-      if (Platform.OS === 'web') {
-        toast.success('Sucesso! Treino adicionado com sucesso!');
-      } else {
-        Alert.alert('Sucesso', 'Treino adicionado com sucesso!');
+      const response = await apiService.post<Evento>('/api/eventos', eventoData, { headers });
+      
+      if (response.status === 201 || response.status === 200) {
+        await fetchEventos(); // Recarregar lista
+        // Não retorna nada para manter assinatura Promise<void>
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Erro ao adicionar evento:', error);
-      if (Platform.OS === 'web') {
-        toast.error('Erro. Não foi possível adicionar o treino.');
+      
+      if (error.response?.status === 403) {
+        // Token inválido - redirecionar para login
+        await AsyncStorage.removeItem('jwtToken');
+        // navigation.navigate('Login'); // Descomentar se tiver navegação
+        throw new Error('Sessão expirada. Faça login novamente.');
+      } else if (error.response?.status === 401) {
+        throw new Error('Não autorizado para criar eventos.');
+      } else if (error.response?.status === 400) {
+        throw new Error('Dados do evento inválidos.');
       } else {
-        Alert.alert('Erro', 'Não foi possível adicionar o treino.');
+        throw new Error('Erro interno do servidor.');
       }
-      throw error;
     } finally {
       setLoading(false);
     }

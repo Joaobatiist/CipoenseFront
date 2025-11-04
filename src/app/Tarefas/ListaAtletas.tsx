@@ -1,6 +1,7 @@
 // ListaAtletasScreen.tsx
 
 import { ToastContainer } from '@/components/Toast';
+import { MaterialIcons } from '@expo/vector-icons';
 import { faBars, faSearch, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import React from 'react';
@@ -8,6 +9,7 @@ import {
   ActivityIndicator,
   Button,
   FlatList,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -20,12 +22,11 @@ import {
   View,
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { MaterialIcons } from '@expo/vector-icons';
 
 // Importa o hook e os tipos refatorados
+import { Sidebar } from '@/components/layout/Sidebar'; // Assumindo o caminho
 import { useListaAtletas } from '../../hooks/useListaAtletas';
 import { AtletaProfileDto, COLORS, HEADER_HEIGHT } from '../../types/atletasTypes';
-import { Sidebar } from '@/components/layout/Sidebar'; // Assumindo o caminho
 
 
 export default function ListaAtletasScreen() {
@@ -72,6 +73,16 @@ export default function ListaAtletasScreen() {
     // Helpers
     formatarData,
   } = useListaAtletas();
+
+  // Estado local para modal da foto
+  const [photoModalVisible, setPhotoModalVisible] = React.useState(false);
+  const [selectedPhoto, setSelectedPhoto] = React.useState<{uri: string, athleteName: string} | null>(null);
+
+  // Função para abrir modal da foto
+  const handlePhotoPress = (photoUri: string, athleteName: string) => {
+    setSelectedPhoto({ uri: photoUri, athleteName });
+    setPhotoModalVisible(true);
+  };
 
 
   // --- Renderização do Item da Lista ---
@@ -142,17 +153,32 @@ export default function ListaAtletasScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
-          onPress={() => handleDeleteAtleta(item.id)}
-          style={[styles.deleteButton, pendingDeleteId === item.id && { backgroundColor: 'rgba(220, 53, 69, 0.1)' }]}
-          activeOpacity={0.7}
-          accessibilityLabel={`Excluir atleta ${item.nome}`}
-        >
-          <FontAwesomeIcon icon={faTrashAlt} size={20} color={COLORS.danger} />
-          {pendingDeleteId === item.id && Platform.OS === 'web' && (
-            <Text style={{ color: COLORS.danger, fontSize: 10, marginTop: 4 }}>Confirmar</Text>
+        <View style={styles.cardActions}>
+          {item.foto && (
+            <TouchableOpacity
+              onPress={() => handlePhotoPress(item.foto!, item.nome)}
+              activeOpacity={0.8}
+              accessibilityLabel={`Ver foto de ${item.nome} em tamanho maior`}
+            >
+              <Image 
+                source={{ uri: item.foto }}
+                style={styles.atletaPhoto}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDeleteAtleta(item.id)}
+            style={[styles.deleteButton, pendingDeleteId === item.id && { backgroundColor: 'rgba(220, 53, 69, 0.1)' }]}
+            activeOpacity={0.7}
+            accessibilityLabel={`Excluir atleta ${item.nome}`}
+          >
+            <FontAwesomeIcon icon={faTrashAlt} size={20} color={COLORS.danger} />
+            {pendingDeleteId === item.id && Platform.OS === 'web' && (
+              <Text style={{ color: COLORS.danger, fontSize: 10, marginTop: 4 }}>Confirmar</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -247,6 +273,24 @@ export default function ListaAtletasScreen() {
                 nestedScrollEnabled={Platform.OS === 'web'}
                 bounces={Platform.OS !== 'web'}
               >
+                {/* Foto do Atleta no Modal */}
+                {selectedAtleta.foto && (
+                  <View style={styles.modalPhotoContainer}>
+                    <TouchableOpacity
+                      onPress={() => handlePhotoPress(selectedAtleta.foto!, selectedAtleta.nome)}
+                      activeOpacity={0.8}
+                      accessibilityLabel={`Ver foto de ${selectedAtleta.nome} em tamanho maior`}
+                    >
+                      <Image 
+                        source={{ uri: selectedAtleta.foto }}
+                        style={styles.modalAtletaPhoto}
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.photoLabel}>Foto do Atleta (toque para ampliar)</Text>
+                  </View>
+                )}
+                
                 <Text style={styles.inputLabel}>Nome:</Text>
                 <TextInput
                   style={styles.input}
@@ -418,6 +462,45 @@ export default function ListaAtletasScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Modal de Visualização da Foto */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={photoModalVisible}
+        onRequestClose={() => setPhotoModalVisible(false)}
+      >
+        <View style={styles.photoModalCenteredView}>
+          <TouchableOpacity 
+            style={styles.photoModalBackground}
+            activeOpacity={1}
+            onPress={() => setPhotoModalVisible(false)}
+          >
+            <View style={styles.photoModalContent}>
+              {selectedPhoto && (
+                <>
+                  <TouchableOpacity
+                    style={styles.photoModalCloseButton}
+                    onPress={() => setPhotoModalVisible(false)}
+                  >
+                    <Text style={styles.photoModalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.photoModalTitle}>
+                    {selectedPhoto.athleteName}
+                  </Text>
+                  
+                  <Image
+                    source={{ uri: selectedPhoto.uri }}
+                    style={styles.photoModalImage}
+                    resizeMode="contain"
+                  />
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
       </Modal>
     </View>
@@ -595,6 +678,18 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: 2,
   },
+  cardActions: {
+    alignItems: 'center',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  atletaPhoto: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
   deleteButton: {
     padding: 8,
     alignItems: 'center',
@@ -660,6 +755,26 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 5,
     ...Platform.select({ web: { maxHeight: 400, overflowY: 'auto' as any } }),
+  },
+  modalPhotoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+  },
+  modalAtletaPhoto: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: COLORS.primary,
+    marginBottom: 8,
+  },
+  photoLabel: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   inputLabel: {
     alignSelf: 'flex-start',
@@ -754,4 +869,59 @@ const styles = StyleSheet.create({
       },
     }),
   } as any,
+  // Estilos do Modal da Foto
+  photoModalCenteredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  },
+  photoModalBackground: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  photoModalContent: {
+    alignItems: 'center',
+    maxWidth: Platform.OS === 'web' ? '90%' : '95%',
+    maxHeight: Platform.OS === 'web' ? '90%' : '95%',
+  },
+  photoModalCloseButton: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  photoModalCloseText: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  photoModalTitle: {
+    color: COLORS.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  photoModalImage: {
+    width: Platform.OS === 'web' ? 400 : 300,
+    height: Platform.OS === 'web' ? 400 : 300,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
 });

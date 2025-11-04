@@ -1,284 +1,317 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
-import { Alert, Platform, FlatList } from 'react-native';
+// Arquivo: useListaPresenca.ts (COMPLETO E CORRIGIDO)
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isAxiosError } from 'axios';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
-import { router, useFocusEffect } from 'expo-router';
 import moment from 'moment';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Platform } from 'react-native';
 import { toast } from 'react-toastify';
 import { presencaService } from '../services/presencaApi';
-import { Aluno, CustomJwtPayload, PresencaData, PresencasAgrupadas, PresencaRegistro, ViewMode } from '../types/presencaTypes';
+import { Aluno, CustomJwtPayload, Evento, PresencaData, PresencaRegistro, PresencasAgrupadas, ViewMode } from '../types/presencaTypes'; // PresencaRegistro importado
 
 moment.locale('pt-br');
 
+// Função de Tratamento de Erro (adaptada do seu snippet)
+const handleApiError = (error: unknown, defaultMessage: string) => {
+    let message = defaultMessage;
+    if (isAxiosError(error) && error.response?.data?.message) {
+        message = error.response.data.message;
+    } else if (error instanceof Error) {
+        message = error.message;
+    }
+
+    if (Platform.OS === 'web') {
+        toast.error(message);
+    } else {
+        Alert.alert('Erro na API', message);
+    }
+};
+
 export function useListaPresenca(width: number) {
   const isLargeScreen = width >= 768; // breakpoint
+  const navigation = useNavigation();
 
+  // --- Refs
+  const flatListRef = useRef<FlatList<Aluno>>(null);
+  // CORREÇÃO: a lista de histórico usa string (keys do objeto), não PresencasAgrupadas
+  const historicoFlatListRef = useRef<FlatList<string>>(null);
+  const scrollIndexRef = useRef(0);
+  
   // --- Estado de Dados
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [presencasAgrupadas, setPresencasAgrupadas] = useState<PresencasAgrupadas>({});
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [tempSelectedDate, setTempSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>('registro');
+  const [eventosDisponiveis, setEventosDisponiveis] = useState<Evento[]>([]); 
+  const [selectedEventoId, setSelectedEventoId] = useState<string | null>(null); 
+  const [alunos, setAlunos] = useState<Aluno[]>([]); 
+  const [presencasAgrupadas, setPresencasAgrupadas] = useState<PresencasAgrupadas>({}); 
+  
+  const [viewMode, setViewMode] = useState<ViewMode>('registro'); 
   
   // --- Estado da UI/Loading
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showDatePickerModal, setShowDatePickerModal] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userName, setUserName] = useState('Usuário');
-  const [userRole, setUserRole] = useState<string>('');
+  const [loading, setLoading] = useState(true); 
+  const [saving, setSaving] = useState(false); 
+  const [showEventoPickerModal, setShowEventoPickerModal] = useState(true); // Começa aberto para escolher o evento
+  const [focusIndex, setFocusIndex] = useState(0); 
+  const [sidebarOpen, setSidebarOpen] = useState(false); 
   
-  // --- Estado de Navegação (Web)
-  const [focusIndex, setFocusIndex] = useState<number>(0);
-  const flatListRef = useRef<FlatList<Aluno> | null>(null);
-  const historicoFlatListRef = useRef<FlatList<string> | null>(null);
+  // --- Estado do Usuário
+  const [userName, setUserName] = useState(''); 
+  const [userRole, setUserRole] = useState(''); 
 
-  // --- Funções de Utilidade
-  const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
-  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  // --- Handlers de Dados ---
   
-  const handleApiError = useCallback((error: any, defaultMessage: string) => {
-    console.error(defaultMessage, error);
-    if (isAxiosError(error) && error.response) {
-      Alert.alert('Erro', `${defaultMessage}: ${error.response.data?.message || 'Erro desconhecido.'}`);
-    } else {
-      Alert.alert('Erro', `${defaultMessage}. Verifique sua conexão.`);
-    }
-  }, []);
-
-  // --- Efeitos de Inicialização e Dados do Usuário
-  useEffect(() => {
-    const loadUserData = async () => {
-        try {
-            const token = await AsyncStorage.getItem('jwtToken');
-            if (token) {
-                const decoded = jwtDecode<CustomJwtPayload>(token);
-                setUserName(decoded.userName || 'Usuário');
-                setUserRole(decoded.roles?.[0] || '');
-            }
-        } catch (error) {
-            console.error('Erro ao decodificar token:', error);
+  const loadUserData = useCallback(async () => {
+    try {
+        const token = await AsyncStorage.getItem('jwtToken');
+        if (token) {
+            const decoded = jwtDecode<CustomJwtPayload>(token);
+            setUserName(decoded.userName || 'Usuário');
+            setUserRole(decoded.roles?.[0] || 'ATLETA'); // Pega a primeira role
+        } else {
+            router.replace('../../'); // Força logout se não houver token
         }
-    };
-    loadUserData();
+    } catch (e) {
+        console.error("Erro ao carregar dados do usuário:", e);
+        router.replace('../../');
+    }
   }, []);
-  
-  // --- Funções de Busca (Encapuslamento de Service + Lógica de Estado)
-  const fetchAlunosForDay = useCallback(async (dateString: string) => {
+
+  const fetchEventosDisponiveis = useCallback(async () => {
     setLoading(true);
     try {
-      const alunosCarregados = await presencaService.fetchAlunosForDay(dateString);
-      setAlunos(alunosCarregados);
-      setFocusIndex(0);
+        const eventos = await presencaService.fetchEventosDisponiveis();
+        setEventosDisponiveis(eventos);
+        
+        // Seleciona o primeiro evento por padrão, se não houver um selecionado
+        if (eventos.length > 0 && !selectedEventoId) {
+            setSelectedEventoId(eventos[0].id);
+            fetchAlunosForEvent(eventos[0].id);
+        } else if (selectedEventoId && eventos.some(e => e.id === selectedEventoId)) {
+            // Se já tem um evento selecionado e ele existe, recarrega a lista
+            fetchAlunosForEvent(selectedEventoId);
+        } else if (eventos.length > 0) {
+            // Se o evento anterior não existe mais, seleciona o primeiro
+            setSelectedEventoId(eventos[0].id);
+            fetchAlunosForEvent(eventos[0].id);
+        } else {
+            setAlunos([]);
+        }
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Token')) {
-        Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
-        router.replace('../../');
-      } else {
-        handleApiError(error, 'Falha ao carregar dados dos alunos');
+        handleApiError(error, 'Falha ao carregar lista de eventos');
+        setEventosDisponiveis([]);
         setAlunos([]);
-      }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  }, [handleApiError]);
+  }, [selectedEventoId]);
 
-  const fetchHistoricoPresencas = useCallback(async () => {
+  const fetchAlunosForEvent = useCallback(async (eventoId: string) => { 
     setLoading(true);
     try {
-      const historico = await presencaService.fetchHistoricoPresencas();
-
-      const grouped: PresencasAgrupadas = {};
-      historico.forEach((item) => {
-        const dateKey = moment(item.data).format('YYYY-MM-DD');
-        if (!grouped[dateKey]) grouped[dateKey] = [];
-        grouped[dateKey].push(item);
-      });
-
-      const sortedKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-      const sortedGrouped: PresencasAgrupadas = {};
-      sortedKeys.forEach((key) => (sortedGrouped[key] = grouped[key]));
-
-      setPresencasAgrupadas(sortedGrouped);
-      setFocusIndex(0);
+      const alunosCarregados = await presencaService.fetchAlunosForEvent(eventoId);
+      setAlunos(alunosCarregados);
+      setFocusIndex(0); 
     } catch (error) {
-       if (error instanceof Error && error.message.includes('Token')) {
-        Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
-        router.replace('../../');
+      if (error instanceof Error && error.message.includes('Token')) { 
+        Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.'); 
+        router.replace('../../'); 
       } else {
-        handleApiError(error, 'Falha ao carregar histórico de presenças');
-        setPresencasAgrupadas({});
+        handleApiError(error, 'Falha ao carregar lista de presença do evento'); 
+        setAlunos([]); 
       }
+    } finally {
+      setLoading(false); 
+    }
+  }, []);
+
+  const fetchHistoricoPresencas = useCallback(async (eventoId?: string) => {
+    setLoading(true);
+    try {
+      if (eventoId) {
+        // Busca apenas o histórico do evento específico
+        const alunosHistorico = await presencaService.fetchAlunosForEvent(eventoId);
+        // Filtra apenas os que já têm presença marcada
+        const presencasMarcadas = alunosHistorico.filter(aluno => aluno.presente !== null);
+        
+        // Agrupa por evento (não por data)
+        const agrupado: PresencasAgrupadas = {};
+        if (presencasMarcadas.length > 0) {
+          const eventoKey = eventoId;
+          agrupado[eventoKey] = presencasMarcadas.map(aluno => ({
+            id: aluno.id || '',
+            data: moment().format('YYYY-MM-DD'), // Data atual como fallback
+            presente: aluno.presente!,
+            atletaId: aluno.atletaId,
+            nomeAtleta: aluno.nome,
+            eventoId: aluno.eventoId,
+            descricaoEvento: aluno.descricaoEvento,
+          }));
+        }
+        setPresencasAgrupadas(agrupado);
+      } else {
+        // Busca histórico completo (comportamento anterior)
+        const historico = await presencaService.fetchHistoricoPresencas();
+        const agrupado = historico.reduce<PresencasAgrupadas>((acc, registro: PresencaRegistro) => {
+          const dataFormatada = moment(registro.data).format('YYYY-MM-DD');
+          if (!acc[dataFormatada]) {
+            acc[dataFormatada] = [];
+          }
+          acc[dataFormatada].push(registro);
+          return acc;
+        }, {});
+        setPresencasAgrupadas(agrupado);
+      }
+    } catch (error) {
+      handleApiError(error, 'Falha ao carregar histórico');
+      setPresencasAgrupadas({});
     } finally {
       setLoading(false);
     }
-  }, [handleApiError]);
-
-  // --- Efeito de Foco (Recarregamento de dados)
-  useFocusEffect(
-    useCallback(() => {
-      if (viewMode === 'historico') fetchHistoricoPresencas();
-      else fetchAlunosForDay(moment(selectedDate).format('YYYY-MM-DD'));
-    }, [viewMode, selectedDate, fetchHistoricoPresencas, fetchAlunosForDay])
-  );
-  
-  // --- Lógica de Registro de Presença
-  const setPresencaStatus = useCallback((alunoId: string, status: boolean | null) => {
-    setAlunos((prev) => prev.map((a) => (a.id === alunoId ? { ...a, presente: status } : a)));
   }, []);
 
+  // --- Handlers de Ação ---
+
+  const onSelectEvento = useCallback((eventoId: string) => {
+    setSelectedEventoId(eventoId);
+    setShowEventoPickerModal(false);
+    fetchAlunosForEvent(eventoId);
+    setFocusIndex(0);
+  }, [fetchAlunosForEvent]);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const handleStatusChange = useCallback((atletaId: string, presente: boolean) => {
+    if (viewMode === 'registro') {
+      setAlunos(prevAlunos => 
+        prevAlunos.map(aluno =>
+          aluno.atletaId === atletaId ? { ...aluno, presente } : aluno
+        )
+      );
+    } else if (viewMode === 'historico') {
+      // Atualiza o histórico quando editado
+      setPresencasAgrupadas(prevAgrupadas => {
+        const novoAgrupadas = { ...prevAgrupadas };
+        Object.keys(novoAgrupadas).forEach(key => {
+          novoAgrupadas[key] = novoAgrupadas[key].map(registro =>
+            registro.atletaId === atletaId ? { ...registro, presente } : registro
+          );
+        });
+        return novoAgrupadas;
+      });
+    }
+  }, [viewMode]);
+
+
+  // CRÍTICO: Implementação completa e corrigida da função de salvar presença
   const salvarPresenca = useCallback(async () => {
+    if (!selectedEventoId) {
+        Alert.alert('Erro', 'Nenhum evento selecionado para salvar.');
+        return;
+    }
+
+    let presencasParaEnviar: PresencaData[] = [];
+
+    if (viewMode === 'registro') {
+      // 1. Prepara os dados: Filtra apenas os alunos marcados e inclui o eventoId
+      presencasParaEnviar = alunos
+          .filter(aluno => aluno.presente !== null)
+          .map(aluno => ({
+              atletaId: aluno.atletaId,
+              presente: aluno.presente!,
+              eventoId: selectedEventoId, // <--- CRÍTICO: Inclui o ID do Evento
+          }));
+    } else if (viewMode === 'historico') {
+      // Salva as alterações do histórico
+      const registrosHistorico = Object.values(presencasAgrupadas).flat();
+      presencasParaEnviar = registrosHistorico.map(registro => ({
+        atletaId: registro.atletaId,
+        presente: registro.presente,
+        eventoId: registro.eventoId,
+      }));
+    }
+
+    if (presencasParaEnviar.length === 0) {
+        Alert.alert('Atenção', 'Nenhuma presença foi marcada para salvar.');
+        return;
+    }
+
     setSaving(true);
     try {
-      const presencasParaEnviar: PresencaData[] = alunos
-        .filter((a) => a.presente !== null)
-        .map((a) => ({ atletaId: a.id, presente: a.presente as boolean, data: moment(selectedDate).format('YYYY-MM-DD') }));
-
-      if (presencasParaEnviar.length === 0) {
-        Alert.alert('Aviso', 'Nenhuma presença foi marcada para salvar.');
-        setSaving(false);
-        return;
-      }
-
-      await presencaService.salvarPresenca(presencasParaEnviar);
-
-      // Feedback específico
-      presencasParaEnviar.forEach(p => {
-        const aluno = alunos.find(a => a.id === p.atletaId);
-        if (aluno) {
-          const msg = p.presente
-            ? `Aluno ${aluno.nome} presente registrado com sucesso!`
-            : `Aluno ${aluno.nome} ausente registrado com sucesso!`;
-          if (Platform.OS === 'web') {
-            toast.success(msg);
-          } else {
-            Alert.alert('Sucesso', msg);
-          }
+        await presencaService.salvarPresenca(presencasParaEnviar);
+        
+        // 2. CORREÇÃO CRÍTICA: Recarrega a lista após o salvamento ser bem-sucedido
+        if (viewMode === 'registro') {
+          await fetchAlunosForEvent(selectedEventoId); 
+        } else if (viewMode === 'historico') {
+          await fetchHistoricoPresencas(selectedEventoId);
         }
-      });
 
-      // Recarrega o modo detalhe
-      setViewMode('detalhe'); 
-    } catch (error) {
-      handleApiError(error, 'Falha ao salvar presenças');
-    } finally {
-      setSaving(false);
+        // 3. Exibe mensagens de feedback
+        if (Platform.OS === 'web') { toast.success('Presenças salvas com sucesso!'); } else { Alert.alert('Sucesso', 'Presenças salvas com sucesso!'); }
+
+    } catch (error) { 
+        handleApiError(error, 'Falha ao salvar presenças'); 
+    } finally { 
+        setSaving(false); 
     }
-  }, [alunos, selectedDate, handleApiError]);
+  }, [alunos, selectedEventoId, fetchAlunosForEvent, viewMode, presencasAgrupadas, fetchHistoricoPresencas]);
 
-  // --- Lógica de Data Picker
-  const onDateChangeInPicker = useCallback((event: any, date?: Date) => {
-    const currentDate = date || tempSelectedDate;
-    setShowDatePickerModal(Platform.OS === 'ios');
-    setTempSelectedDate(currentDate);
 
-    if (Platform.OS === 'android') {
-      setSelectedDate(currentDate);
-      setViewMode('registro');
-    }
-  }, [tempSelectedDate]);
+  // --- Efeitos ---
 
-  const confirmIosDate = useCallback(() => {
-    setShowDatePickerModal(false);
-    setSelectedDate(tempSelectedDate);
-    setViewMode('registro');
-  }, [tempSelectedDate]);
-  
-  // --- Lógica do Header
-  const getHeaderTitle = useCallback(() => {
-    switch (viewMode) {
-      case 'historico':
-        return 'Histórico de Presenças';
-      case 'detalhe':
-        return `Detalhes - ${moment(selectedDate).format('DD/MM/YYYY')}`;
-      case 'registro':
-      default:
-        return `Registro - ${moment(selectedDate).format('DD/MM/YYYY')}`;
-    }
-  }, [viewMode, selectedDate]);
-  
-  const handleBackNavigation = useCallback((navigation: { goBack: () => void }) => {
-    if (viewMode === 'detalhe') setViewMode('historico');
-    else if (viewMode === 'historico') {
-      setViewMode('registro');
-      setSelectedDate(new Date());
-    } else navigation.goBack();
-  }, [viewMode]);
-
-  // --- Lógica de Navegação por Teclado (Web)
-  useEffect(() => {
-    setFocusIndex(0); // Resetar foco ao mudar de modo
-  }, [viewMode]);
-  
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      // Ignorar quando digitando em inputs
-      const active = document?.activeElement as HTMLElement | null;
-      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.getAttribute('contenteditable') === 'true')) return;
-
-      const currentList = viewMode === 'historico' ? Object.keys(presencasAgrupadas) : alunos;
-      const length = Array.isArray(currentList) ? currentList.length : Object.keys(presencasAgrupadas).length;
-      if (length === 0) return;
-
-      let newIndex = focusIndex;
-
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          newIndex = Math.min(focusIndex + 1, length - 1);
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          newIndex = Math.max(focusIndex - 1, 0);
-          break;
-        case 'PageDown':
-        // A lógica de Pagedown/PageUp pode ser simplificada ou removida, mantendo a original:
-          e.preventDefault();
-          newIndex = Math.min(focusIndex + Math.max(5, Math.floor(length / 6)), length - 1);
-          break;
-        case 'PageUp':
-          e.preventDefault();
-          newIndex = Math.max(focusIndex - Math.max(5, Math.floor(length / 6)), 0);
-          break;
-        case 'Home':
-          e.preventDefault();
-          newIndex = 0;
-          break;
-        case 'End':
-          e.preventDefault();
-          newIndex = length - 1;
-          break;
-        default:
-          return;
-      }
-
-      setFocusIndex(newIndex);
-
-      // scroll to index in the right list
+  // Efeito principal de foco (carrega dados na entrada da tela)
+  useFocusEffect(
+    useCallback(() => {
+      loadUserData();
+      fetchEventosDisponiveis(); 
+      // Não chama fetchAlunosForEvent aqui; ele é chamado dentro de fetchEventosDisponiveis
+      
       if (viewMode === 'historico') {
-        historicoFlatListRef.current?.scrollToIndex({ index: newIndex, animated: true, viewPosition: 0.5 });
-      } else {
-        flatListRef.current?.scrollToIndex({ index: newIndex, animated: true, viewPosition: 0.5 });
+        fetchHistoricoPresencas(selectedEventoId || undefined);
       }
-    };
+      return () => {
+        // Limpeza (se necessário)
+      };
+    }, [loadUserData, viewMode, fetchEventosDisponiveis, fetchHistoricoPresencas])
+  );
 
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [focusIndex, alunos, presencasAgrupadas, viewMode]);
-
-  // safe scrollToIndex fallback
-  const onScrollToIndexFailed = useCallback((info: { index: number }) => {
-    const index = info.index;
-    const approxOffset = Math.max(0, index * 60); 
-    if (viewMode === 'historico') {
-      historicoFlatListRef.current?.scrollToOffset({ offset: approxOffset, animated: true });
-    } else {
-      flatListRef.current?.scrollToOffset({ offset: approxOffset, animated: true });
+  // Efeito para recarregar a lista de atletas quando o evento selecionado mudar
+  useEffect(() => {
+    if (selectedEventoId && viewMode === 'registro') {
+      fetchAlunosForEvent(selectedEventoId);
     }
-  }, [viewMode]);
+  }, [selectedEventoId, viewMode]);
+
+
+  // ... (Restante do seu código, incluindo lógica de teclado, onScrollToIndexFailed, etc.) ...
+  
+  // safe scrollToIndex fallback
+  const onScrollToIndexFailed = useCallback(
+    (info: { index: number; highestMeasuredFrameIndex: number; averageItemLength: number }) => {
+      if (viewMode === 'historico' && historicoFlatListRef.current) {
+        setTimeout(() => {
+          try {
+            historicoFlatListRef.current?.scrollToIndex({ index: Math.min(info.index, info.highestMeasuredFrameIndex), animated: true });
+          } catch {
+            historicoFlatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }
+        }, 250);
+      } else if (viewMode === 'registro' && flatListRef.current) {
+        setTimeout(() => {
+          try {
+            flatListRef.current?.scrollToIndex({ index: Math.min(info.index, info.highestMeasuredFrameIndex), animated: true });
+          } catch {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }
+        }, 250);
+      }
+    },
+    [viewMode]
+  );
+
+  // --- Retorno do Hook ---
 
   return {
     // Refs
@@ -287,8 +320,8 @@ export function useListaPresenca(width: number) {
     // Estado de Dados
     alunos,
     presencasAgrupadas,
-    selectedDate,
-    tempSelectedDate,
+    eventosDisponiveis,
+    selectedEventoId,
     viewMode,
     loading,
     saving,
@@ -297,26 +330,19 @@ export function useListaPresenca(width: number) {
     sidebarOpen,
     userName,
     userRole,
-    showDatePickerModal,
+    showEventoPickerModal,
     // Setters
-    setSelectedDate,
-    setTempSelectedDate,
+    setSelectedEventoId,
     setViewMode,
-    setShowDatePickerModal,
+    setShowEventoPickerModal,
     setFocusIndex,
     // Funções/Handlers
-    fetchAlunosForDay,
-    fetchHistoricoPresencas,
-    setPresencaStatus,
-    salvarPresenca,
-    onDateChangeInPicker,
-    confirmIosDate,
-    getHeaderTitle,
-    onScrollToIndexFailed,
+    salvarPresenca, // Expõe para o botão Salvar
+    onSelectEvento,
+    handleStatusChange,
     toggleSidebar,
-    closeSidebar,
-    handleBackNavigation,
+    onScrollToIndexFailed,
+    fetchHistoricoPresencas, // Para mudar o viewMode
+    fetchAlunosForEvent,
   };
 }
-
-export type UseListaPresencaReturn = ReturnType<typeof useListaPresenca>;

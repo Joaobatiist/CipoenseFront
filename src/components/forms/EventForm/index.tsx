@@ -269,7 +269,7 @@ export const EventForm: React.FC<EventFormProps> = ({
         onChangeText={setProfessor}
         placeholder="Nome do Professor"
         style={styles.input}
-        editable={false}
+        
       />
       
       <TextInput

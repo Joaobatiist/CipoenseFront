@@ -34,8 +34,8 @@ export interface CustomJwtPayload extends JwtPayload {
 }
 
 // Interface para o documento retornado pela API
-export interface DocumentoPdf {
-    id: number;
+export interface Documento {
+    id: string; // UUID do backend
     descricao: string;
     urlDocumento: string; // URL para download/visualização
     nomeArquivo: string;

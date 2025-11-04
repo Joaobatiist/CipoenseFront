@@ -72,7 +72,7 @@ class ApiService {
     return this.instance.get<T>(url, { params: p0?.params });
   }
 
-  public post<T = any>(url: string, data?: any): Promise<AxiosResponse<T>> {
+  public post<T = any>(url: string, data?: any, p0?: { headers: { Authorization: string; 'Content-Type': string; }; }): Promise<AxiosResponse<T>> {
     return this.instance.post<T>(url, data);
   }
 

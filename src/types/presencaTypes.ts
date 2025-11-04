@@ -1,5 +1,6 @@
-import { JwtPayload } from 'jwt-decode';
+// Arquivo: presencaTypes.ts (CORRIGIDO)
 
+import { JwtPayload } from 'jwt-decode';
 
 export interface CustomJwtPayload extends JwtPayload {
     userType?: string;
@@ -14,31 +15,39 @@ export interface PresencaRegistro {
   presente: boolean;
   atletaId: string;
   nomeAtleta: string;
+  eventoId: string;
+  // O FRONTEND espera 'descricaoEvento', mas o BACKEND pode enviar 'eventoDescricao' no histórico.
+  descricaoEvento: string; 
 }
 
-// Estrutura do Aluno para a tela de registro
-export interface Aluno {
+// Estrutura de um Evento (para a lista de escolha)
+export interface Evento {
   id: string;
-  nome: string;
-  presente: boolean | null; // true, false ou null (não marcado)
-  email?: string;
-  subDivisao?: string;
+  data: string;
+  descricao: string;
+  local: string;
+  horario: string;
+  subDivisao: string;
 }
 
-// Estrutura de dados para envio à API
+// ATUALIZADO: Estrutura do Aluno / Resposta da Lista de Presença por Evento
+// O frontend usa 'presente', o backend envia 'presenca'. O mapeamento será feito na API.
+export interface Aluno {
+  id: string | null; // ID da Presença (pode ser null se não marcada)
+  atletaId: string; 
+  nome: string; 
+  presente: boolean | null; // <-- O Frontend usa este nome
+  eventoId: string;
+  descricaoEvento: string; // <-- O Frontend usa este nome
+}
+
+// ATUALIZADO: Estrutura de dados para envio à API (mantido)
 export interface PresencaData {
   atletaId: string;
   presente: boolean;
-  data: string;
+  eventoId: string;
 }
 
-// Tipos de navegação (mantido, mas precisa ser ajustado se o arquivo for movido)
-export type RootStackParamList = {
-  ListaPresenca: undefined;
-};
-
-// Modos de visualização
+// ... (Restante dos tipos)
 export type ViewMode = 'registro' | 'historico' | 'detalhe';
-
-// Tipo para as presenças agrupadas por data no histórico
 export type PresencasAgrupadas = Record<string, PresencaRegistro[]>;

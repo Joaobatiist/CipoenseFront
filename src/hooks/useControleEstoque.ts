@@ -184,7 +184,8 @@ export const useControleEstoque = () => {
 
         // 1. Atualização Otimista (Local)
         setItems((prevItems) => [...prevItems, newItemLocal]);
-        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+        // Rola para o TOPO onde aparece o item mais recente (após ordenação)
+        setTimeout(() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true }), 100);
         setItemName('');
         setQuantidade('');
         setJustificativa('');

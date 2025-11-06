@@ -320,7 +320,7 @@ export const EventForm: React.FC<EventFormProps> = ({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ fontWeight: '700', fontSize: 16 }}>Selecionar Atletas</Text>
               <TouchableOpacity onPress={() => setAtletasModalVisible(false)} style={{ padding: 8 }}>
-                <Text style={{ color: '#1c348e' }}>Fechar</Text>
+                <Text style={{ color: '#1c348e', fontWeight: '600' }}>Fechar</Text>
               </TouchableOpacity>
             </View>
 
@@ -330,55 +330,90 @@ export const EventForm: React.FC<EventFormProps> = ({
               <TouchableOpacity onPress={() => { if (tempSelectedSubdivisao === '') { setTempSelectedSubdivisao(''); setTempSelectedAtletas([]); } else { setTempSelectedSubdivisao(''); } }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: !tempSelectedSubdivisao ? '#1c348e' : '#f0f0f0', marginRight: 8 }}>
                 <Text style={{ color: !tempSelectedSubdivisao ? '#fff' : '#333' }}>Todas</Text>
               </TouchableOpacity>
-              {SUBDIVISOES.map(s => (
-                <TouchableOpacity key={s.value} onPress={() => {
-                  // select subdivisao in temp
-                  if (tempSelectedSubdivisao === s.value) {
-                    setTempSelectedSubdivisao('');
-                    setTempSelectedAtletas([]);
-                  } else {
-                    setTempSelectedSubdivisao(s.value);
-                    // filter tempSelectedAtletas to those in the chosen subdivisao
-                    setTempSelectedAtletas(prev => prev.filter(id => {
-                      const found = atletas.find(a => String(a.id) === String(id));
-                      return found?.subDivisao === s.value;
-                    }));
-                  }
-                }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: tempSelectedSubdivisao === s.value ? '#1c348e' : '#f0f0f0', marginRight: 8, marginBottom: 6 }}>
-                  <Text style={{ color: tempSelectedSubdivisao === s.value ? '#fff' : '#333' }}>{s.label}</Text>
-                </TouchableOpacity>
-              ))}
+              {SUBDIVISOES.map(s => {
+                const atletasDaSubdivisao = atletas.filter(a => a.subDivisao === s.value);
+                const totalAtletas = atletasDaSubdivisao.length;
+                const selecionados = atletasDaSubdivisao.filter(a => tempSelectedAtletas.includes(String(a.id))).length;
+                
+                return (
+                  <TouchableOpacity key={s.value} onPress={() => {
+                    // select subdivisao in temp
+                    if (tempSelectedSubdivisao === s.value) {
+                      // Desmarca a subdivisão e limpa atletas
+                      setTempSelectedSubdivisao('');
+                      setTempSelectedAtletas([]);
+                    } else {
+                      // Marca a subdivisão e SELECIONA AUTOMATICAMENTE todos os atletas dessa subdivisão
+                      setTempSelectedSubdivisao(s.value);
+                      const atletasDaSubdivisao = atletas
+                        .filter(a => a.subDivisao === s.value)
+                        .map(a => String(a.id));
+                      setTempSelectedAtletas(atletasDaSubdivisao);
+                    }
+                  }} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, backgroundColor: tempSelectedSubdivisao === s.value ? '#1c348e' : '#f0f0f0', marginRight: 8, marginBottom: 6 }}>
+                    <Text style={{ color: tempSelectedSubdivisao === s.value ? '#fff' : '#333' }}>
+                      {s.label} {totalAtletas > 0 && `(${selecionados}/${totalAtletas})`}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <ScrollView style={{ marginBottom: 8 }}>
-              {(tempSelectedSubdivisao ? atletas.filter(a => a.subDivisao === tempSelectedSubdivisao) : Object.keys(atletasPorSubdivisao).flatMap(sub => atletasPorSubdivisao[sub])).map((at: any) => (
-                <TouchableOpacity key={at.id} onPress={() => {
-                  // toggle in temp selections
-                  const id = String(at.id);
-                  const atletaObj = atletas.find(a => String(a.id) === id);
-                  if (!atletaObj) return;
-                  if (!tempSelectedAtletas.includes(id)) {
-                    // if temp subdivision exists and different, switch to this athlete's subdivision
-                    if (tempSelectedSubdivisao && tempSelectedSubdivisao !== atletaObj.subDivisao) {
-                      setTempSelectedSubdivisao(atletaObj.subDivisao);
-                      setTempSelectedAtletas([id]);
-                    } else {
-                      if (!tempSelectedSubdivisao) setTempSelectedSubdivisao(atletaObj.subDivisao || '');
-                      setTempSelectedAtletas(prev => [...prev, id]);
-                    }
-                  } else {
-                    const next = tempSelectedAtletas.filter(x => x !== id);
-                    setTempSelectedAtletas(next);
-                    if (next.length === 0) setTempSelectedSubdivisao('');
-                  }
-                }} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-                  
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '600' }}>{at.nome}</Text>
-                    <Text style={{ color: '#666', fontSize: 12 }}>{at.subDivisao}</Text>
+              {(tempSelectedSubdivisao ? atletas.filter(a => a.subDivisao === tempSelectedSubdivisao) : Object.keys(atletasPorSubdivisao).flatMap(sub => atletasPorSubdivisao[sub])).map((at: any) => {
+                const id = String(at.id);
+                const isSelected = tempSelectedAtletas.includes(id);
+                // Bloqueia desmarcação se a subdivisão estiver selecionada
+                const isLocked = tempSelectedSubdivisao && at.subDivisao === tempSelectedSubdivisao;
+                
+                return (
+                  <View 
+                    key={at.id} 
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      paddingVertical: 10, 
+                      borderBottomWidth: 1, 
+                      borderBottomColor: '#eee',
+                      opacity: isLocked ? 0.7 : 1
+                    }}
+                  >
+                    
+                    {/* Checkbox visual - não clicável quando bloqueado */}
+                    <View style={{ 
+                      width: 24, 
+                      height: 24, 
+                      borderRadius: 4, 
+                      borderWidth: 2, 
+                      borderColor: isSelected ? '#1c348e' : '#ccc',
+                      backgroundColor: isSelected ? '#1c348e' : 'transparent',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginRight: 12
+                    }}>
+                      {isSelected && (
+                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>✓</Text>
+                      )}
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: '600', color: isLocked ? '#666' : '#000' }}>{at.nome}</Text>
+                      <Text style={{ color: '#666', fontSize: 12 }}>{at.subDivisao}</Text>
+                    </View>
+
+                    {isLocked && (
+                      <View style={{ 
+                        backgroundColor: '#1c348e', 
+                        paddingHorizontal: 8, 
+                        paddingVertical: 4, 
+                        borderRadius: 4 
+                      }}>
+                        <Text style={{ color: '#fff', fontSize: 10 }}>Bloqueado</Text>
+                      </View>
+                    )}
                   </View>
-                </TouchableOpacity>
-              ))}
+                );
+              })}
             </ScrollView>
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>

@@ -47,9 +47,9 @@ export type AtletaProfileDto = {
     rg: string | null;
     
     // --- Contatos (Mapeados para as duas Entidades Responsável) ---
+    nomeResponsavel: string | null; // Responsável Principa
     contatoResponsavel: string | null; // Responsável Principal
-    contatoResponsavelSecundario: string | null; // Responsável Secundário
-    
+    contatoExtra: string | null; // Responsável Principal
     isAptoParaJogar: boolean;
 
     // --- Atributos de Saúde/Isenção ---

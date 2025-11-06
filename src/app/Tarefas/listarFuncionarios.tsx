@@ -351,6 +351,7 @@ const ListaFuncionarios = () => {
                   placeholder="SUPERVISOR, COORDENADOR ou TECNICO"
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="default"
+                  editable={false}
                 />
                 
 

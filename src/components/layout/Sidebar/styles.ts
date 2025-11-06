@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   overlay: {
@@ -9,27 +9,45 @@ export const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     zIndex: 999,
+    // Para web, usa position fixed para cobrir toda a tela independente do scroll
+    ...(Platform.OS === 'web' && {
+      position: 'fixed' as any,
+    }),
   },
   sidebar: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 260,
+    width: 290,
     height: '100%',
     backgroundColor: '#1c348e',
-    paddingTop: 60,
+    paddingTop: 50,
     paddingHorizontal: 20,
     zIndex: 1000,
+    // Garante que o sidebar tenha scroll próprio quando necessário
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    // Para web, usa position fixed para não descer com o scroll da página
+    ...(Platform.OS === 'web' && {
+      position: 'fixed' as any,
+      // Isolamento adicional para evitar interferência de scroll
+      contain: 'layout style paint' as any,
+      willChange: 'transform' as any,
+      // Previne scroll chaining
+      overscrollBehavior: 'contain' as any,
+    }),
   },
   closeButton: {
     position: 'absolute',
-    top: 45,
+    top: 25,
     left: 20,
     padding: 5,
   },
   logo: {
+    top: -10,
     width: "80%",
-    height: 90,
+    height: 100,
     borderRadius: 55,
     marginLeft: 20,
   },
@@ -46,6 +64,20 @@ export const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
+    maxHeight: '80%', // Limita altura para forçar scroll quando necessário
+    // Configurações específicas para web para scroll independente
+    ...(Platform.OS === 'web' && {
+      overflowY: 'auto' as any,
+      overflowX: 'hidden' as any,
+      // CSS containment para isolamento de scroll
+      contain: 'layout style paint size' as any,
+      // Força um novo contexto de empilhamento
+      isolation: 'isolate' as any,
+      // Impede bubbling de eventos de scroll
+      touchAction: 'pan-y' as any,
+      // Garante que o scroll seja contido
+      overscrollBehavior: 'contain' as any,
+    }),
   },
   navItem: {
     flexDirection: 'row',

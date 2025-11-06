@@ -4,7 +4,7 @@ import { ToastContainer } from '@/components/Toast';
 import { Item, useControleEstoque } from '@/hooks/useControleEstoque';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
     FlatList,
     Platform,
@@ -65,6 +65,23 @@ const Estoque: React.FC = () => {
             };
         }
     }, []);
+
+    // Ordena os itens do mais recente para o mais antigo
+    const itemsSortedByDate = useMemo(() => {
+        return [...items].sort((a, b) => {
+            // Converte as datas do formato DD/MM/YYYY para objeto Date
+            const parseDate = (dateStr: string): Date => {
+                const [day, month, year] = dateStr.split('/').map(Number);
+                return new Date(year, month - 1, day);
+            };
+
+            const dateA = parseDate(a.data);
+            const dateB = parseDate(b.data);
+
+            // Ordena do mais recente (maior) para o mais antigo (menor)
+            return dateB.getTime() - dateA.getTime();
+        });
+    }, [items]);
 
     const renderItem = ({ item }: { item: Item }) => (
         // ... (renderItem permanece o mesmo)
@@ -150,7 +167,7 @@ const Estoque: React.FC = () => {
             ) : (
                 <FlatList
                     ref={flatListRef}
-                    data={items}
+                    data={itemsSortedByDate}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContent}

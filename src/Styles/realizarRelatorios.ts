@@ -1,9 +1,9 @@
-import { StyleSheet, Dimensions, Platform, StatusBar } from "react-native";
+import { Dimensions, Platform, StatusBar, StyleSheet } from "react-native";
 
 // --- DEFINIÇÕES DE RESPONSIVIDADE ---
 const { width } = Dimensions.get('window');
 // Ponto de quebra para tela grande (Desktop/Tablet)
-const IS_LARGE_SCREEN = width >= 768;
+const IS_LARGE_SCREEN = width >= 1250;
 // Largura máxima para o conteúdo principal na Web
 const MAX_WIDTH = 900; 
 // ------------------------------------
@@ -32,13 +32,14 @@ export const styles = StyleSheet.create({
       alignItems: 'center', // Centraliza o mainContentContainer
     },
   
-    // CORREÇÃO: Aplica flex: 1 e overflowY para scroll do mouse no Web
+    // CORREÇÃO: Garante que o scroll sempre funcione
     webScrollView: {
       ...Platform.select({
         web: {
-          maxHeight: 700, // Use a numeric value for maxHeight
-          overflow: 'visible', // Use only 'visible' or 'hidden'
-        },
+          maxHeight: '100vh', // Usa 85% da altura da viewport (sempre funciona)
+          overflow: 'hidden', // Oculta overflow para ativar scroll interno
+          overflowY: 'auto', // Scroll vertical automático
+        } as any,
       }),
     },
     

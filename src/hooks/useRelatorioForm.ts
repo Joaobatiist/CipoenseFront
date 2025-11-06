@@ -1,9 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StackActions, useNavigation } from '@react-navigation/native';
 import { jwtDecode } from 'jwt-decode';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView } from 'react-native';
 import { toast } from 'react-toastify';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
   createAvaliacaoGeral,
@@ -340,15 +340,15 @@ export const useAthleteEvaluationForm = () => {
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-
+    // Validação inicial ANTES de iniciar loading
     if (!isTokenLoaded || !authToken || selectedAtletaId === null || !selectedSubdivisao || !selectedPosicao) {
       const msg = 'Erro: Verifique a autenticação e preencha Atleta, Subdivisão e Posição.';
       if (Platform.OS === 'web') toast.error(msg);
       else Alert.alert('Erro', msg);
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const formData: AvaliacaoGeralForm = {
       atletaId: selectedAtletaId,
@@ -392,14 +392,32 @@ export const useAthleteEvaluationForm = () => {
     };
 
     try {
-      await createAvaliacaoGeral(formData);
+      // Envia a requisição em background (fire-and-forget)
+      // A API vai salvar no banco e processar a IA de forma assíncrona
+      createAvaliacaoGeral(formData)
+        .then(() => {
+          console.log('✅ Avaliação e análise da IA processadas com sucesso');
+        })
+        .catch((error) => {
+          console.error('⚠️ Erro no processamento da IA (dados podem ter sido salvos):', error);
+          // Não exibe erro ao usuário pois ele já foi liberado
+          // O servidor deve garantir que os dados sejam salvos mesmo se a IA falhar
+        });
+
+      // Libera o usuário IMEDIATAMENTE
+      setIsLoading(false);
+
       if (Platform.OS === 'web') {
-        toast.success('Sucesso! Avaliação cadastrada.', { autoClose: 2000 });
-        setTimeout(resetFormState, 2000);
+        toast.success('✅ Avaliação enviada com sucesso! A análise da IA está sendo processada em background.', { 
+          autoClose: 3000,
+          position: 'top-center'
+        });
+        // Pequeno delay para o usuário ver a mensagem antes de resetar
+        setTimeout(resetFormState, 800);
       } else {
         Alert.alert(
-          'Sucesso!',
-          'Avaliação cadastrada com sucesso. Deseja cadastrar uma nova?',
+          '✅ Enviado com Sucesso!',
+          'Avaliação salva! A análise da IA será processada em background.\n\nDeseja cadastrar uma nova avaliação?',
           [
             { text: 'Não', onPress: () => navigation.goBack(), style: 'cancel' },
             { text: 'Sim', onPress: resetFormState },
@@ -408,8 +426,11 @@ export const useAthleteEvaluationForm = () => {
         );
       }
     } catch (error: any) {
-      console.error('Erro ao enviar avaliação:', error);
-      const errorMessage = error.message || "Ocorreu um erro desconhecido ao salvar.";
+      // Este catch só pega erros síncronos de preparação
+      console.error('❌ Erro ao preparar avaliação:', error);
+      setIsLoading(false);
+      
+      const errorMessage = error.message || "Erro ao preparar a avaliação.";
       if (Platform.OS === 'web') toast.error(`Erro: ${errorMessage}`);
       else Alert.alert('Erro', errorMessage);
 
@@ -417,8 +438,6 @@ export const useAthleteEvaluationForm = () => {
         await AsyncStorage.removeItem('jwtToken');
         navigation.dispatch(StackActions.replace('Login'));
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 

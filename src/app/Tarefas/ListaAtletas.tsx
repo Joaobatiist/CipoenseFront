@@ -25,9 +25,9 @@ import DropDownPicker from 'react-native-dropdown-picker';
 
 // Importa o hook e os tipos refatorados
 import { Sidebar } from '@/components/layout/Sidebar'; // Assumindo o caminho
+import { TextInputMask } from 'react-native-masked-text';
 import { useListaAtletas } from '../../hooks/useListaAtletas';
 import { AtletaProfileDto, COLORS, HEADER_HEIGHT } from '../../types/atletasTypes';
-import { TextInputMask } from 'react-native-masked-text';
 
 
 export default function ListaAtletasScreen() {
@@ -79,24 +79,18 @@ export default function ListaAtletasScreen() {
   const [photoModalVisible, setPhotoModalVisible] = React.useState(false);
   const [selectedPhoto, setSelectedPhoto] = React.useState<{uri: string, athleteName: string} | null>(null);
 
-  // Configurar scroll na web
+  // Configurar scroll na web (simplificado)
   React.useEffect(() => {
     if (Platform.OS === 'web') {
-      // Garantir que o body permite scroll
-      const body = document.body;
-      const html = document.documentElement;
-      
-      body.style.overflow = 'auto';
-      body.style.height = '100%';
-      html.style.overflow = 'auto';
-      html.style.height = '100%';
+      // Configuração básica para web sem interferir no sidebar
+      document.body.style.overflow = 'auto';
+      document.body.style.overflowY = 'auto';
+      document.body.style.overflowX = 'hidden';
       
       return () => {
-        // Cleanup se necessário
-        body.style.overflow = '';
-        body.style.height = '';
-        html.style.overflow = '';
-        html.style.height = '';
+        document.body.style.overflow = '';
+        document.body.style.overflowY = '';
+        document.body.style.overflowX = '';
       };
     }
   }, []);
@@ -149,7 +143,7 @@ export default function ListaAtletasScreen() {
             {`Posição: ${item.posicao}`}
           </Text>
           <Text style={styles.atletaDetail}>
-            {`Data Nasc.: ${formatarData(item.dataNascimento)}`}
+            {`Data de Nascimento: ${formatarData(item.dataNascimento)}`}
           </Text>
           {item.contatoResponsavel && item.contatoResponsavel !== 'Não informado' && (
             <Text style={styles.atletaDetail}>
@@ -266,17 +260,22 @@ export default function ListaAtletasScreen() {
             renderItem={renderAtletaItem}
             contentContainerStyle={[
               styles.listContent,
-              Platform.OS === 'web' && { minHeight: '100%' }
+              Platform.OS === 'web' && { paddingBottom: 50 }
             ]}
             onRefresh={handleRefresh}
             refreshing={refreshing}
             showsVerticalScrollIndicator={Platform.OS === 'web'}
-            scrollEnabled={Platform.OS !== 'web'}
+            scrollEnabled={true}
             keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled={false}
+            nestedScrollEnabled={Platform.OS === 'web'}
             bounces={Platform.OS !== 'web'}
-            initialNumToRender={20}
-            style={Platform.OS === 'web' ? { flex: 1 } : undefined}
+            initialNumToRender={15}
+            // Propriedades específicas para melhorar scroll na web
+            {...(Platform.OS === 'web' && {
+              scrollEventThrottle: 16,
+              onScrollBeginDrag: () => {},
+              onScrollEndDrag: () => {},
+            })}
           />
         )}
       </View>
@@ -398,7 +397,14 @@ export default function ListaAtletasScreen() {
                     value={editForm.isAptoParaJogar ?? false}
                   />
                 </View>
-
+               <Text style={styles.inputLabel}>Nome Responsável:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.nomeResponsavel ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, nomeResponsavel: text })}
+                  placeholder="Nome do responsável"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
                  <Text style={styles.inputLabel}>Contato Responsável:</Text>
                 <TextInputMask
                   style={styles.input}
@@ -411,35 +417,44 @@ export default function ListaAtletasScreen() {
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="phone-pad" type={'cel-phone'}               
                    />
-
-
-                <Text style={styles.inputLabel}>Contato Responsável Secundário:</Text>
+               <Text style={styles.inputLabel}>Contato Secundário:</Text>
                 <TextInputMask
                   style={styles.input}
-                  value={editForm.contatoResponsavelSecundario ?? ''}
-                  onChangeText={(text) => setEditForm({ ...editForm, contatoResponsavelSecundario: text })}
-                   options={{
+                  value={editForm.contatoExtra ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, contatoExtra: text })}
+                  options={{
                   format: '(99) 99999-9999',
                 }}
                   placeholder="(XX) XXXXX-XXXX"
                   placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="numeric" type={'cel-phone'}    
-                />
+                  keyboardType="phone-pad" type={'cel-phone'}               
+                   />
 
                 <Text style={styles.inputLabel}>RG:</Text>
                 <TextInputMask
                   style={styles.input}
                   value={editForm.rg ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, rg: text })}
-                  placeholder="XX.XXX.XXX-X"
-                  placeholderTextColor={COLORS.textSecondary}
+                  type={'custom'}
                   options={{
-                    format: '99.999.999-9',
+                    mask: '99.999.999-9',
                   }}
-                   keyboardType="numeric" type={'cpf'}
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="numeric"
                 />
                     
-                
+                 <Text style={styles.inputLabel}>Cpf:</Text>
+                <TextInputMask
+                  style={styles.input}
+                  value={editForm.cpf ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, cpf: text })}
+                  type={'cpf'}
+                  options={{
+                    mask: '999.999.999-99',
+                  }}
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="numeric"
+                />
 
                 <Text style={styles.inputLabel}>Endereço:</Text>
                 <TextInput
@@ -460,14 +475,16 @@ export default function ListaAtletasScreen() {
                 />
 
                 <Text style={styles.inputLabel}>Ano Escolar:</Text>
-                <TextInput
+                <TextInputMask
                   style={styles.input}
                   value={editForm.anoEscolar?.toString() ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, anoEscolar: text ? parseInt(text) || null : null })}
-                 
-                  placeholder="Ano escolar (Ex: 1, 2, 3...)"
+                   options={{
+                  format: '(99) 99999-9999',
+                }}
+                  placeholder="Ano escolar (ex: 2024)"
                   placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="numeric"                />
+                  keyboardType="numeric" type={'cel-phone'}                />
 
                 <Text style={styles.inputLabel}>Contato da Escola:</Text>
                 <TextInputMask

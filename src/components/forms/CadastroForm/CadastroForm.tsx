@@ -247,15 +247,15 @@ const ISENCAO_OPTIONS: DropdownItem[] = [
 
 // Role options based on user permission
 const getRoleOptions = (userRole?: string): DropdownItem[] => {
-  if (userRole === 'SUPERVISOR') {
+  if (userRole === 'COORDENADOR') {
     return [
       { id: 25, label: 'Coordenador', value: 'COORDENADOR' },
       { id: 26, label: 'Técnico', value: 'TECNICO' },
       { id: 27, label: 'Supervisor', value: 'SUPERVISOR' },
     ];
-  } else if (userRole === 'COORDENADOR') {
+  } else if (userRole === 'SUPERVISOR') {
     return [
-      { id: 25, label: 'Coordenador', value: 'COORDENADOR' },
+      { id: 25, label: 'Supervisor', value: 'SUPERVISOR' },
       { id: 26, label: 'Técnico', value: 'TECNICO' },
     ];
   }
@@ -301,11 +301,9 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
   const [emailResponsavel, setEmailResponsavel] = useState('');
   const [cpfResponsavel, setCpfResponsavel] = useState('');
+  const [contatoExtra, setContatoExtra] = useState('');
   // Segundo responsável (opcional)
-  const [nomeResponsavel2, setNomeResponsavel2] = useState('');
-  const [telefoneResponsavel2, setTelefoneResponsavel2] = useState('');
-  const [emailResponsavel2, setEmailResponsavel2] = useState('');
-  const [cpfResponsavel2, setCpfResponsavel2] = useState('');
+ 
   
   // Funcionário specific fields
   const [telefone, setTelefone] = useState('');
@@ -353,13 +351,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           setEmailResponsavel(atletaData.responsavel.email || '');
           setCpfResponsavel(atletaData.responsavel.cpf || '');
         }
-        if ((atletaData as any).responsavel2) {
-          const r2 = (atletaData as any).responsavel2;
-          setNomeResponsavel2(r2.nome || '');
-          setTelefoneResponsavel2(r2.telefone || '');
-          setEmailResponsavel2(r2.email || '');
-          setCpfResponsavel2(r2.cpf || '');
-        }
+       
         // novos campos do atleta
         setTipoSanguineo((atletaData as any).tipoSanguineo || '');
         setAlergias((atletaData as any).alergias || '');
@@ -414,9 +406,8 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
   }, []);
 
   const handleSubmit = async () => {
-    setLoading(true);
-    
     try {
+      // 1. Preparar dados baseado no tipo
       let data: CadastroAtletaData | CadastroFuncionarioData;
       let validation;
       
@@ -445,15 +436,10 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           responsavel: {
             nome: nomeResponsavel,
             telefone: telefoneResponsavel,
+            contatoExtra: contatoExtra,
             email: emailResponsavel,
             cpf: cpfResponsavel,
           },
-          responsavel2: nomeResponsavel2 ? {
-            nome: nomeResponsavel2,
-            telefone: telefoneResponsavel2,
-            email: emailResponsavel2,
-            cpf: cpfResponsavel2,
-          } : null,
         };
         validation = validateAtletaData(data);
       } else {
@@ -469,6 +455,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         validation = validateFuncionarioData(data);
       }
       
+      // 2. Validar dados ANTES de qualquer outra operação
       if (!validation.isValid) {
         const errorMessages = validation.errors.map(error => error.message).join('\n');
         if (Platform.OS === 'web') {
@@ -476,24 +463,105 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         } else {
           Alert.alert('Erro de Validação', errorMessages);
         }
+        // Retorna SEM modificar o loading ou token
         return;
       }
+
+      // 3. Agora sim, inicia o loading após validação bem-sucedida
+      setLoading(true);
       
+      // 4. Verificar token (apenas verificação, sem forçar logout)
+      const token = await AsyncStorage.getItem('jwtToken');
+      if (!token) {
+        if (Platform.OS === 'web') {
+          toast.error('Token não encontrado. Verifique sua sessão.');
+        } else {
+          Alert.alert('Erro de Autenticação', 'Token não encontrado. Verifique sua sessão.');
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 4. Preparar payload para API
+      let payload;
+      let endpoint;
+
+      if (type === 'atleta') {
+        const atletaData = data as CadastroAtletaData;
+        payload = {
+          nome: atletaData.nome,
+          senha: atletaData.senha,
+          email: atletaData.email,
+          dataNascimento: formatDate(atletaData.dataNascimento),
+          cpf: atletaData.cpf,
+          subDivisao: atletaData.subDivisao,
+          massa: atletaData.massa,
+          tipoSanguineo: atletaData.tipoSanguineo,
+          alergias: atletaData.alergias,
+          problemaDeSaude: atletaData.problemaDeSaude,
+          horarioDeAula: atletaData.horarioDeAula,
+          escola: atletaData.escola,
+          contatoEscola: atletaData.contatoEscola,
+          anoEscolar: atletaData.anoEscolar,
+          altura: atletaData.altura,
+          rg: atletaData.rg,
+          endereco: atletaData.endereco,
+          roles: 'ATLETA',
+          posicao: atletaData.posicao,
+          isencao: atletaData.isencao,
+          responsavel: {
+            nome: atletaData.responsavel.nome,
+            telefone: atletaData.responsavel.telefone,
+            contatoExtra: atletaData.responsavel.contatoExtra,
+            email: atletaData.responsavel.email,
+            cpf: atletaData.responsavel.cpf,
+          },
+        };
+        endpoint = '/api/cadastro';
+      } else {
+        const funcionarioData = data as CadastroFuncionarioData;
+        payload = {
+          nome: funcionarioData.nome,
+          senha: funcionarioData.senha,
+          email: funcionarioData.email,
+          dataNascimento: formatDate(funcionarioData.dataNascimento),
+          cpf: funcionarioData.cpf,
+          telefone: funcionarioData.telefone,
+          role: funcionarioData.role,
+        };
+        endpoint = '/cadastro/funcionarios';
+      }
+
+      // 5. Usar onSubmit customizado ou fazer requisição padrão
       if (onSubmit) {
         await onSubmit(data);
       } else {
-        await defaultSubmitHandler(data);
+        // Fazer requisição para API
+        const response = await Api.post(endpoint, payload);
       }
       
+      // 6. Sucesso - mostrar mensagem
       if (Platform.OS === 'web') {
         toast.success(`${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
       } else {
         Alert.alert('Sucesso', `${type === 'atleta' ? 'Atleta' : 'Funcionário'} cadastrado com sucesso!`);
       }
-      router.back();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no cadastro:', error);
+      
+      // Tratar erros específicos (apenas em caso de erro real da API)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        if (Platform.OS === 'web') {
+          toast.error('Erro de autenticação. Verifique suas permissões.');
+        } else {
+          Alert.alert('Erro de Autenticação', 'Erro de autenticação. Verifique suas permissões.');
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // Erro geral
       if (Platform.OS === 'web') {
         toast.error('Ocorreu um erro ao realizar o cadastro. Tente novamente.');
       } else {
@@ -501,103 +569,6 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       }
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const defaultSubmitHandler = async (data: CadastroAtletaData | CadastroFuncionarioData) => {
-    const token = await AsyncStorage.getItem('jwtToken');
-    
-    if (!token) {
-      if (Platform.OS === 'web') {
-        toast.error('Token não encontrado. Faça login novamente.');
-      } else {
-        Alert.alert('Erro de Autenticação', 'Token não encontrado. Faça login novamente.');
-      }
-      router.replace('/login');
-      return;
-    }
-
-    let payload;
-    let endpoint;
-
-    if (type === 'atleta') {
-      const atletaData = data as CadastroAtletaData;
-      // Formato igual ao que funcionava antes
-      payload = {
-        nome: atletaData.nome,
-        senha: atletaData.senha,
-        email: atletaData.email,
-        dataNascimento: formatDate(atletaData.dataNascimento),
-        cpf: atletaData.cpf,
-        subDivisao: atletaData.subDivisao,
-        massa: atletaData.massa,
-        tipoSanguineo: atletaData.tipoSanguineo,
-        alergias: atletaData.alergias,
-        problemaDeSaude: atletaData.problemaDeSaude,
-        horarioDeAula: atletaData.horarioDeAula,
-        escola: atletaData.escola,
-        contatoEscola: atletaData.contatoEscola,
-        anoEscolar: atletaData.anoEscolar,
-        altura: atletaData.altura,
-        rg: atletaData.rg,
-        endereco: atletaData.endereco,
-        roles: 'ATLETA', // Backend espera string, não array
-        posicao: atletaData.posicao,
-        isencao: atletaData.isencao,
-        responsavel: {
-          nome: atletaData.responsavel.nome,
-          telefone: atletaData.responsavel.telefone,
-          email: atletaData.responsavel.email,
-          cpf: atletaData.responsavel.cpf,
-        }
-        ,
-        responsavel2: atletaData.responsavel2 ? {
-          nome: atletaData.responsavel2.nome,
-          telefone: atletaData.responsavel2.telefone,
-          email: atletaData.responsavel2.email,
-          cpf: atletaData.responsavel2.cpf,
-        } : undefined
-      };
-      endpoint = '/api/cadastro';
-    } else {
-      const funcionarioData = data as CadastroFuncionarioData;
-      payload = {
-        nome: funcionarioData.nome,
-        senha: funcionarioData.senha,
-        email: funcionarioData.email,
-        dataNascimento: formatDate(funcionarioData.dataNascimento),
-        cpf: funcionarioData.cpf,
-        telefone: funcionarioData.telefone,
-        role: funcionarioData.role,
-      };
-      endpoint = '/cadastro/funcionarios';
-    }
-
-
-    try {
-      // O interceptor já adiciona o token automaticamente
-      const response = await Api.post(endpoint, payload);
-      
-      
-      return response.data;
-      
-    } catch (error: any) {
-      console.error('Erro na requisição:', error);
-      console.error('Status do erro:', error.response?.status);
-      console.error('Dados do erro:', error.response?.data);
-      
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        if (Platform.OS === 'web') {
-          toast.error('Sua sessão expirou. Faça login novamente.');
-        } else {
-          Alert.alert('Sessão Expirada', 'Sua sessão expirou. Faça login novamente.');
-        }
-        await AsyncStorage.removeItem('jwtToken');
-        router.replace('/login');
-        return;
-      }
-      
-      throw error;
     }
   };
 
@@ -854,7 +825,14 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
                   mask="phone"
                   required
                 />
-                
+                <FormField
+                  label="Contato do segundo responsavel"
+                  value={contatoExtra}
+                  onChangeText={setContatoExtra}
+                  placeholder="(99) 99999-9999"
+                  mask="phone"
+                  required
+                />
                 <FormField
                   label="Email do Responsável"
                   value={emailResponsavel}
@@ -874,37 +852,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
                 />
               </View>
 
-              {/* Segundo Responsável (opcional) */}
-              <View style={styles.responsavelSection}>
-                <Text style={styles.responsavelTitle}>Dados do Segundo Responsável (opcional)</Text>
-                <FormField
-                  label="Nome do Responsável 2"
-                  value={nomeResponsavel2}
-                  onChangeText={setNomeResponsavel2}
-                  placeholder="Digite o nome do responsável"
-                />
-                <FormField
-                  label="Telefone do Responsável 2"
-                  value={telefoneResponsavel2}
-                  onChangeText={setTelefoneResponsavel2}
-                  placeholder="(99) 99999-9999"
-                  mask="phone"
-                />
-                <FormField
-                  label="Email do Responsável 2"
-                  value={emailResponsavel2}
-                  onChangeText={setEmailResponsavel2}
-                  placeholder="Digite o email do responsável"
-                  keyboardType="email-address"
-                />
-                <FormField
-                  label="CPF do Responsável 2"
-                  value={cpfResponsavel2}
-                  onChangeText={setCpfResponsavel2}
-                  placeholder="000.000.000-00"
-                  mask="cpf"
-                />
-              </View>
+             
             </>
           )}
 

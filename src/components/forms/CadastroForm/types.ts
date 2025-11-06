@@ -1,3 +1,11 @@
+import { JwtPayload } from 'jwt-decode';
+
+export interface CustomJwtPayload extends JwtPayload {
+    userType?: string;
+    roles?: string[];
+    userName?: string;
+}
+
 export interface CadastroAtletaData {
   nome: string;
   email: string;
@@ -12,6 +20,7 @@ export interface CadastroAtletaData {
   responsavel: {
     nome: string;
     telefone: string;
+    contatoExtra?: string;
     email: string;
     cpf: string;
   };
@@ -25,12 +34,6 @@ export interface CadastroAtletaData {
   altura?: string;
   rg?: string;
   endereco?: string;
-  responsavel2?: {
-    nome: string;
-    telefone: string;
-    email: string;
-    cpf: string;
-  } | null;
 }
 
 export interface CadastroFuncionarioData {

@@ -1,5 +1,6 @@
 import { JwtPayload } from 'jwt-decode';
 import { Platform, StatusBar } from 'react-native';
+import { Double } from 'react-native/Libraries/Types/CodegenTypes';
 
 // --- Constantes de Tema e Configuração ---
 export const COLORS = {
@@ -39,9 +40,9 @@ export type AtletaProfileDto = {
     subDivisao: string;
     dataNascimento: string;
     foto: string | null;
-    posicao: string;
-    altura: number | null; 
-    massa: number | null;
+    posicao: string | null;
+    altura: Double | null; 
+    massa: Double | null;
     cpf: string;
     rg: string | null;
     

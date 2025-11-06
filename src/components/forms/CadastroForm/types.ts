@@ -8,7 +8,7 @@ export interface CadastroAtletaData {
   massa: string;
   posicao: string;
   isencao: boolean;
-  roles?: string[];
+  role?: string[];
   responsavel: {
     nome: string;
     telefone: string;
@@ -40,7 +40,7 @@ export interface CadastroFuncionarioData {
   dataNascimento: string;
   cpf: string;
   telefone: string;
-  roles: string;
+  role: string;
 }
 
 export interface DropdownItem {

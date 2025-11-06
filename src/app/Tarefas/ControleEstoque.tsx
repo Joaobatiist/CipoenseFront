@@ -4,13 +4,11 @@ import { ToastContainer } from '@/components/Toast';
 import { Item, useControleEstoque } from '@/hooks/useControleEstoque';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     FlatList,
     Platform,
     SafeAreaView,
-    ScrollView // Importado para a solução web
-    ,
     StatusBar,
     StyleSheet,
     Text,
@@ -45,6 +43,28 @@ const Estoque: React.FC = () => {
         handleUpdateItem,
         handleCancelEdit,
     } = useControleEstoque();
+
+    // Configurar scroll na web
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            // Garantir que o body permite scroll
+            const body = document.body;
+            const html = document.documentElement;
+            
+            body.style.overflow = 'auto';
+            body.style.height = '100%';
+            html.style.overflow = 'auto';
+            html.style.height = '100%';
+            
+            return () => {
+                // Cleanup se necessário
+                body.style.overflow = '';
+                body.style.height = '';
+                html.style.overflow = '';
+                html.style.height = '';
+            };
+        }
+    }, []);
 
     const renderItem = ({ item }: { item: Item }) => (
         // ... (renderItem permanece o mesmo)
@@ -134,13 +154,12 @@ const Estoque: React.FC = () => {
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id.toString()}
                     contentContainerStyle={styles.listContent}
-                    style={styles.flatList} // Manter style simples
-                    showsVerticalScrollIndicator={true}
-                    showsHorizontalScrollIndicator={false}
+                    style={styles.flatList}
+                    showsVerticalScrollIndicator={Platform.OS === 'web'}
+                    scrollEnabled={Platform.OS !== 'web'}
                     keyboardShouldPersistTaps="handled"
-                    // Desativar a rolagem aninhada para garantir que o ScrollView pai cuide da rolagem na Web
-                    nestedScrollEnabled={Platform.OS !== 'web'} 
-                    bounces={false}
+                    nestedScrollEnabled={false}
+                    bounces={Platform.OS !== 'web'}
                 />
             )}
         </>
@@ -164,21 +183,9 @@ const Estoque: React.FC = () => {
                 onNavigateToSection={() => {}}
             />
 
-            {/* APLICANDO SCROLLVIEW SOMENTE NA WEB */}
-            {Platform.OS === 'web' ? (
-                <ScrollView 
-                    contentContainerStyle={styles.mainContentWebScroll} // Estilo para permitir o crescimento do conteúdo
-                    style={styles.mainContentWeb} // Estilo para ocupar o espaço de tela
-                    showsVerticalScrollIndicator={true}
-                >
-                    {FormContent}
-                </ScrollView>
-            ) : (
-                // Layout original para Mobile
-                <View style={styles.mainContent}> 
-                    {FormContent}
-                </View>
-            )}
+            <View style={styles.mainContent}>
+                {FormContent}
+            </View>
         </SafeAreaView>
     );
 };
@@ -187,30 +194,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f0f0f0',
-        ...(Platform.OS === 'web' && { paddingTop: HEADER_HEIGHT }),
     },
-    // Estilo para Mobile
     mainContent: {
         flex: 1,
         alignSelf: 'center',
         width: '100%',
         maxWidth: MAX_WIDTH_WEB,
-        paddingHorizontal: Platform.OS === 'web' ? 20 : 0,
-        // Removed overflow: hidden
+        paddingHorizontal: Platform.OS === 'web' ? 20 : 15,
+        marginTop: Platform.OS === 'web' ? HEADER_HEIGHT : 0,
     },
-    // Estilo para o ScrollView wrapper na Web
-    mainContentWeb: {
-        flex: 1,
-        alignSelf: 'center',
-        width: '100%',
-        maxWidth: MAX_WIDTH_WEB,
-    } as any, // Adicionar 'as any' para tipos específicos do RNW
-    // Estilo para o conteúdo dentro do ScrollView (permite crescimento)
-    mainContentWebScroll: {
-        paddingHorizontal: 20,
-        paddingBottom: 20, // Padding para o final do conteúdo
-        minHeight: '100%', // Garante que o conteúdo ocupe no mínimo a altura da tela
-    } as any,
 
     header: {
         backgroundColor: '#1c348e',
@@ -346,11 +338,9 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     flatList: {
-        // Removendo os estilos de scroll da web do FlatList, pois o ScrollView pai irá gerenciar
         width: '100%',
-        // Importante: No RNW, FlatList dentro de ScrollView precisa de uma altura definida para renderizar todos os itens. 
-        // Se a lista de itens for pequena, deixe o ScrollView cuidar. Se for muito grande, o FlatList pode ter problemas de virtualização.
-    } as any,
+        flex: Platform.OS === 'web' ? 1 : undefined,
+    },
 });
 
 export default Estoque;

@@ -78,6 +78,28 @@ export default function ListaAtletasScreen() {
   const [photoModalVisible, setPhotoModalVisible] = React.useState(false);
   const [selectedPhoto, setSelectedPhoto] = React.useState<{uri: string, athleteName: string} | null>(null);
 
+  // Configurar scroll na web
+  React.useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Garantir que o body permite scroll
+      const body = document.body;
+      const html = document.documentElement;
+      
+      body.style.overflow = 'auto';
+      body.style.height = '100%';
+      html.style.overflow = 'auto';
+      html.style.height = '100%';
+      
+      return () => {
+        // Cleanup se necessário
+        body.style.overflow = '';
+        body.style.height = '';
+        html.style.overflow = '';
+        html.style.height = '';
+      };
+    }
+  }, []);
+
   // Função para abrir modal da foto
   const handlePhotoPress = (photoUri: string, athleteName: string) => {
     setSelectedPhoto({ uri: photoUri, athleteName });
@@ -121,6 +143,7 @@ export default function ListaAtletasScreen() {
           <Text style={styles.atletaDetail}>
             {`Subdivisão: ${item.subDivisao}`}
           </Text>
+         
           <Text style={styles.atletaDetail}>
             {`Posição: ${item.posicao}`}
           </Text>
@@ -240,15 +263,19 @@ export default function ListaAtletasScreen() {
             data={filteredData}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderAtletaItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              Platform.OS === 'web' && { minHeight: '100%' }
+            ]}
             onRefresh={handleRefresh}
             refreshing={refreshing}
             showsVerticalScrollIndicator={Platform.OS === 'web'}
-            scrollEnabled={true}
+            scrollEnabled={Platform.OS !== 'web'}
             keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled={Platform.OS === 'web'}
+            nestedScrollEnabled={false}
             bounces={Platform.OS !== 'web'}
             initialNumToRender={20}
+            style={Platform.OS === 'web' ? { flex: 1 } : undefined}
           />
         )}
       </View>
@@ -379,6 +406,101 @@ export default function ListaAtletasScreen() {
                     value={editForm.isAptoParaJogar ?? false}
                   />
                 </View>
+
+                <Text style={styles.inputLabel}>Contato Responsável Secundário:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.contatoResponsavelSecundario ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, contatoResponsavelSecundario: text })}
+                  placeholder="(XX) XXXXX-XXXX"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>RG:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.rg ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, rg: text })}
+                  placeholder="XX.XXX.XXX-X"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Endereço:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.endereco ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, endereco: text })}
+                  placeholder="Endereço completo"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Escola:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.escola ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, escola: text })}
+                  placeholder="Nome da escola"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Ano Escolar:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.anoEscolar?.toString() ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, anoEscolar: text ? parseInt(text) || null : null })}
+                  placeholder="Ano escolar (ex: 2024)"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="numeric"
+                />
+
+                <Text style={styles.inputLabel}>Contato da Escola:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.contatoEscola ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, contatoEscola: text })}
+                  placeholder="(XX) XXXXX-XXXX"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.inputLabel}>Horário de Aula:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.horarioDeAula ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, horarioDeAula: text })}
+                  placeholder="Ex: 07:00 às 12:00"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Tipo Sanguíneo:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.tipoSanguineo ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, tipoSanguineo: text })}
+                  placeholder="Ex: A+, B-, O+, AB-"
+                  placeholderTextColor={COLORS.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Alergias:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.alergias ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, alergias: text })}
+                  placeholder="Descreva alergias conhecidas"
+                  placeholderTextColor={COLORS.textSecondary}
+                  multiline
+                />
+
+                <Text style={styles.inputLabel}>Problemas de Saúde:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editForm.problemaDeSaude ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, problemaDeSaude: text })}
+                  placeholder="Descreva problemas de saúde conhecidos"
+                  placeholderTextColor={COLORS.textSecondary}
+                  multiline
+                />
 
                 <Text style={styles.inputLabel}>Documento PDF:</Text>
                 <View style={styles.pdfSection}>
@@ -754,7 +876,13 @@ const styles = StyleSheet.create({
   modalScrollView: {
     width: '100%',
     paddingHorizontal: 5,
-    ...Platform.select({ web: { maxHeight: 400, overflowY: 'auto' as any } }),
+    ...Platform.select({ 
+      web: { 
+        maxHeight: 400, 
+        overflowY: 'auto' as any,
+        overflowX: 'hidden' as any,
+      } 
+    }),
   },
   modalPhotoContainer: {
     alignItems: 'center',

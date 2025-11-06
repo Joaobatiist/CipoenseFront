@@ -376,7 +376,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
       if (type === 'funcionario' && 'telefone' in initialData) {
         const funcionarioData = initialData as Partial<CadastroFuncionarioData>;
         setTelefone(funcionarioData.telefone || '');
-        setRole(funcionarioData.roles || null);
+        setRole(funcionarioData.role || null);
       }
     }
   }, [initialData, type]);
@@ -431,7 +431,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           massa,
           posicao: posicao!,
           isencao: isencao === 'SIM',
-          roles: ['ATLETA'],
+          role: ['ATLETA'],
           tipoSanguineo,
           alergias,
           problemaDeSaude,
@@ -464,7 +464,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           dataNascimento,
           cpf,
           telefone,
-          roles: role!,
+          role: role!,
         };
         validation = validateFuncionarioData(data);
       }
@@ -568,7 +568,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         dataNascimento: formatDate(funcionarioData.dataNascimento),
         cpf: funcionarioData.cpf,
         telefone: funcionarioData.telefone,
-        roles: funcionarioData.roles,
+        role: funcionarioData.role,
       };
       endpoint = '/cadastro/funcionarios';
     }
@@ -805,12 +805,19 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
                 placeholder="Nome da escola"
               />
 
-              <FormField
-                label="Horário de Aula"
-                value={horarioDeAula}
+              <Text style={styles.fieldLabel}>Horário de Aula</Text>
+              <TextInputMask
+                style={styles.input}
+                type={'datetime'}
+                options={{
+                  format: 'HH:MM-HH:MM',
+                }}
                 onChangeText={setHorarioDeAula}
-                placeholder="Ex: 13:00 - 17:00"
+                value={horarioDeAula}
+                placeholder="Horário (ex: 10:00)"
+                keyboardType="numeric"
               />
+                     
 
               <FormField
                 label="Contato da Escola"

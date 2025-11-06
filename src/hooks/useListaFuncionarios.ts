@@ -117,7 +117,7 @@ export const useListaFuncionarios = () => {
             dataNascimento: dataNascimentoFormatada,
             cpf: funcionario.cpf,
             telefone: funcionario.telefone,
-            roles: funcionario.roles,
+            role: funcionario.role,
         });
         setOpenRolesPicker(false);
         setModalVisible(true);
@@ -125,7 +125,7 @@ export const useListaFuncionarios = () => {
 
     // Manipulador para salvar as edições
     const handleSaveEdit = useCallback(async () => {
-        if (!selectedFuncionario || !editForm.nome || !editForm.roles) {
+        if (!selectedFuncionario || !editForm.nome || !editForm.role) {
             const errorMessage = 'Nome e tipo (roles) são obrigatórios.';
             if (Platform.OS === 'web') {
                 toast.error(errorMessage);
@@ -143,7 +143,7 @@ export const useListaFuncionarios = () => {
             const updateDTO = {
                 ...editForm,
                 id: selectedFuncionario.id,
-                roles: editForm.roles,
+                roles: editForm.role,
                 dataNascimento: editForm.dataNascimento?.split('T')[0] || editForm.dataNascimento,
             };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TextInput, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 import { styles } from './styles';
@@ -76,7 +76,14 @@ export const FormField: React.FC<FormFieldProps> = ({
         />
       );
     }
-  }
+
+    // Caso padrão - TextInput sem máscara
+    return (
+      <TextInput
+        {...commonProps}
+      />
+    );
+  };
   
   return (
     <View style={styles.fieldContainer}>

@@ -30,6 +30,7 @@ type AtletaProfileDto = {
   dataNascimento: string;
   foto: string | null;
   contatoResponsavel: string | null;
+  contatoResponsavelSecundario: string | null;
 };
 
 const PerfilAtleta = () => {
@@ -59,6 +60,7 @@ const PerfilAtleta = () => {
           dataNascimento: dados.dataNascimento || 'Não informada',
           foto: dados.foto,
           contatoResponsavel: dados.contatoResponsavel || 'Não informado',
+          contatoResponsavelSecundario: dados.contatoResponsavelSecundario || 'Não informado',
         });
       } catch (error) {
         console.error('Erro ao carregar perfil:', error);
@@ -407,13 +409,13 @@ const PerfilAtleta = () => {
 
             <Text style={styles.infoLabel}>Data de Nascimento:</Text>
             <Text style={styles.infoValue}>{formatarData(atleta.dataNascimento)}</Text>
-            <Text style={styles.infoLabel}>Subdivisão:</Text>
+            <Text style={styles.infoLabel}>Contato responsável:</Text>
             <Text style={styles.infoValue}>{atleta.contatoResponsavel}</Text>
 
             {atleta.contatoResponsavel && atleta.contatoResponsavel !== 'Não informado' && (
               <>
-                <Text style={styles.infoLabel}>Contato Responsável:</Text>
-                <Text style={styles.infoValue}>{atleta.contatoResponsavel}</Text>
+                <Text style={styles.infoLabel}>Segundo contato responsável:</Text>
+                <Text style={styles.infoValue}>{atleta.contatoResponsavelSecundario}</Text>
               </>
             )}
           </View>

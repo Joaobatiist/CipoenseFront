@@ -372,7 +372,7 @@ export const EventForm: React.FC<EventFormProps> = ({
                     if (next.length === 0) setTempSelectedSubdivisao('');
                   }
                 }} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-                  <View style={{ width: 22, height: 22, borderRadius: 4, borderWidth: 1, borderColor: '#ccc', marginRight: 12, backgroundColor: tempSelectedAtletas.includes(String(at.id)) ? '#1c348e' : '#fff' }} />
+                  
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: '600' }}>{at.nome}</Text>
                     <Text style={{ color: '#666', fontSize: 12 }}>{at.subDivisao}</Text>

@@ -27,6 +27,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { Sidebar } from '@/components/layout/Sidebar'; // Assumindo o caminho
 import { useListaAtletas } from '../../hooks/useListaAtletas';
 import { AtletaProfileDto, COLORS, HEADER_HEIGHT } from '../../types/atletasTypes';
+import { TextInputMask } from 'react-native-masked-text';
 
 
 export default function ListaAtletasScreen() {
@@ -386,16 +387,7 @@ export default function ListaAtletasScreen() {
                     scrollViewProps={{ nestedScrollEnabled: true }}
                   />
                 </View>
-                <Text style={styles.inputLabel}>Contato Responsável:</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editForm.contatoResponsavel ?? ''}
-                  onChangeText={(text) => setEditForm({ ...editForm, contatoResponsavel: text })}
-                  placeholder="(XX) XXXXX-XXXX"
-                  placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="phone-pad"
-                />
-
+               
                 <View style={styles.switchContainer}>
                   <Text style={styles.inputLabel}>Apto para Jogar:</Text>
                   <Switch
@@ -407,24 +399,47 @@ export default function ListaAtletasScreen() {
                   />
                 </View>
 
+                 <Text style={styles.inputLabel}>Contato Responsável:</Text>
+                <TextInputMask
+                  style={styles.input}
+                  value={editForm.contatoResponsavel ?? ''}
+                  onChangeText={(text) => setEditForm({ ...editForm, contatoResponsavel: text })}
+                  options={{
+                  format: '(99) 99999-9999',
+                }}
+                  placeholder="(XX) XXXXX-XXXX"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="phone-pad" type={'cel-phone'}               
+                   />
+
+
                 <Text style={styles.inputLabel}>Contato Responsável Secundário:</Text>
-                <TextInput
+                <TextInputMask
                   style={styles.input}
                   value={editForm.contatoResponsavelSecundario ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, contatoResponsavelSecundario: text })}
+                   options={{
+                  format: '(99) 99999-9999',
+                }}
                   placeholder="(XX) XXXXX-XXXX"
                   placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="phone-pad"
+                  keyboardType="numeric" type={'cel-phone'}    
                 />
 
                 <Text style={styles.inputLabel}>RG:</Text>
-                <TextInput
+                <TextInputMask
                   style={styles.input}
                   value={editForm.rg ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, rg: text })}
                   placeholder="XX.XXX.XXX-X"
                   placeholderTextColor={COLORS.textSecondary}
+                  options={{
+                    format: '99.999.999-9',
+                  }}
+                   keyboardType="numeric" type={'cpf'}
                 />
+                    
+                
 
                 <Text style={styles.inputLabel}>Endereço:</Text>
                 <TextInput
@@ -449,26 +464,35 @@ export default function ListaAtletasScreen() {
                   style={styles.input}
                   value={editForm.anoEscolar?.toString() ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, anoEscolar: text ? parseInt(text) || null : null })}
-                  placeholder="Ano escolar (ex: 2024)"
+                 
+                  placeholder="Ano escolar (Ex: 1, 2, 3...)"
                   placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="numeric"
-                />
+                  keyboardType="numeric"                />
 
                 <Text style={styles.inputLabel}>Contato da Escola:</Text>
-                <TextInput
+                <TextInputMask
                   style={styles.input}
                   value={editForm.contatoEscola ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, contatoEscola: text })}
-                  placeholder="(XX) XXXXX-XXXX"
+                  options={{
+                  format: '(99) 99999-9999',
+                }}
+                  placeholder="(XX) XXXXX-XXXX" type={"cel-phone"}
+                  
+                
                   placeholderTextColor={COLORS.textSecondary}
                   keyboardType="phone-pad"
                 />
 
                 <Text style={styles.inputLabel}>Horário de Aula:</Text>
-                <TextInput
+                <TextInputMask
                   style={styles.input}
                   value={editForm.horarioDeAula ?? ''}
                   onChangeText={(text) => setEditForm({ ...editForm, horarioDeAula: text })}
+                  type={'datetime'}
+                options={{
+                  format: 'HH:MM-HH:MM',
+                }}
                   placeholder="Ex: 07:00 às 12:00"
                   placeholderTextColor={COLORS.textSecondary}
                 />

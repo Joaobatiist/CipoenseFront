@@ -57,7 +57,7 @@ const SupervisorAnalisesScreen: React.FC = () => {
     const { height, width } = useResponsive();
     const MOBILE_BREAKPOINT = 600; // px - when <= this, stack chart above analyses
     const isMobileLayout = Platform.OS !== 'web' || (width && width <= MOBILE_BREAKPOINT);
-    const atletasListMaxHeight = Platform.OS === 'web' ? Math.min(640, Math.max(220, height * 0.28)) : 300;
+    const atletasListMaxHeight = Platform.OS === 'web' ? Math.min(1040, Math.max(620, height * 0.28)) : 300;
     const isLargeDesktop = Platform.OS === 'web' && width && width >= 1200;
     const analisesListMaxHeight = Platform.OS === 'web'
         ? (isLargeDesktop ? Math.min(1150, Math.max(340, height * 0.72)) : Math.min(900, Math.max(300, height * 0.92)))
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
     atletasListContainer: { 
         textAlign: 'center',
         marginBottom: 15,
+        maxHeight: 700,
     },
     analisesContainer: { 
         marginTop: 15,
@@ -353,7 +354,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
     },
     separator: {
-        height: 8,
+        height: 9,
     },
     flex1: {
         flex: 1,

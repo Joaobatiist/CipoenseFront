@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
     webScrollView: {
       ...Platform.select({
         web: {
-          maxHeight: 800, // Use a numeric value for maxHeight
+          maxHeight: 700, // Use a numeric value for maxHeight
           overflow: 'visible', // Use only 'visible' or 'hidden'
         },
       }),

@@ -1,29 +1,27 @@
 import { FormField } from '@/components/forms/CadastroForm';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { ToastContainer } from '@/components/Toast';
-import { useControleEstoque, Item } from '@/hooks/useControleEstoque'; // Importa o novo hook e o tipo Item
+import { Item, useControleEstoque } from '@/hooks/useControleEstoque';
 import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
-    Dimensions,
     FlatList,
     Platform,
     SafeAreaView,
     StatusBar,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
 
-// **CONSTANTE CHAVE PARA WEB RESPONSIVO**
+// ... (Constantes permanecem as mesmas)
 const MAX_WIDTH_WEB = 900; 
 const HEADER_HEIGHT = Platform.OS === 'web' ? 70 : 60 + (Platform.OS === 'android' ? StatusBar.currentHeight || 20 : 0);
 
 const Estoque: React.FC = () => {
-    // pasta HOOK 
+    // ... (Desestruturação do hook permanece a mesma)
     const {
         items,
         itemName,
@@ -46,7 +44,30 @@ const Estoque: React.FC = () => {
         handleCancelEdit,
     } = useControleEstoque();
 
+    // Configurar scroll na web
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            // Garantir que o body permite scroll
+            const body = document.body;
+            const html = document.documentElement;
+            
+            body.style.overflow = 'auto';
+            body.style.height = '100%';
+            html.style.overflow = 'auto';
+            html.style.height = '100%';
+            
+            return () => {
+                // Cleanup se necessário
+                body.style.overflow = '';
+                body.style.height = '';
+                html.style.overflow = '';
+                html.style.height = '';
+            };
+        }
+    }, []);
+
     const renderItem = ({ item }: { item: Item }) => (
+        // ... (renderItem permanece o mesmo)
         <View style={styles.itemContainer}>
             
             {!item.iconName && (
@@ -58,12 +79,90 @@ const Estoque: React.FC = () => {
             <View style={styles.itemInfoContent}>
                 <Text style={styles.itemNameText}>{item.nome}</Text>
                 <Text style={styles.itemQuantityText}>Quantidade: {item.quantidade}</Text>
+                <Text style={styles.itemQuantityText}>Justificativa: {item.justificativa}</Text>
+                <Text style={styles.itemQuantityText}>Data: {item.data}</Text>
             </View>
-
+            
             <View style={styles.itemActionButtons}>
                 
             </View>
         </View>
+    );
+
+    // Estrutura do formulário (Componente interno para evitar repetição)
+    const FormContent = (
+        <>
+            <View style={styles.formContainer}>
+                <Text style={styles.formTitle}>{editarItem ? 'Editar Item' : 'Adicionar Novo Item'}</Text>
+               
+                <FormField
+                        label="Nome do item"
+                        value={itemName}
+                        onChangeText={setItemName}
+                        placeholder="Nome do Item"
+                        required
+                />
+                 
+                <FormField
+                        label="Justificativa"
+                        value={justificativa}
+                        onChangeText={setJustificativa}
+                        placeholder="Justificativa"
+                        required
+                />
+                
+                <FormField
+                        label="Data"
+                        value={data}
+                        onChangeText={setData}
+                        placeholder="DD/MM/AAAA"
+                        mask="date" 
+                        required
+                />
+                
+                <FormField
+                        label="Quantidade"
+                        value={quantidade}
+                        onChangeText={(text) => setQuantidade(text.replace(/[^0-9]/g, ''))}
+                        placeholder="Numeric"
+                        required
+                />
+                
+                <View style={styles.formButtons}>
+                    <TouchableOpacity
+                        style={[styles.actionButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
+                        onPress={editarItem ? handleUpdateItem : handleAddItem}
+                    >
+                        <Text style={styles.buttonText}>
+                            {editarItem ? 'Salvar' : 'Adicionar Item'}
+                        </Text>
+                    </TouchableOpacity>
+                    {editarItem && (
+                        <TouchableOpacity style={[styles.cancelButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]} onPress={handleCancelEdit}>
+                            <Text style={styles.buttonText}>Cancelar</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+            
+            {items.length === 0 ? (
+                <Text style={styles.noItemsText}>Nenhum item cadastrado ainda.</Text>
+            ) : (
+                <FlatList
+                    ref={flatListRef}
+                    data={items}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id.toString()}
+                    contentContainerStyle={styles.listContent}
+                    style={styles.flatList}
+                    showsVerticalScrollIndicator={Platform.OS === 'web'}
+                    scrollEnabled={Platform.OS !== 'web'}
+                    keyboardShouldPersistTaps="handled"
+                    nestedScrollEnabled={false}
+                    bounces={Platform.OS !== 'web'}
+                />
+            )}
+        </>
     );
 
     return (
@@ -74,87 +173,18 @@ const Estoque: React.FC = () => {
                     <FontAwesomeIcon icon={faBars} size={24} color="#fff" />
                 </TouchableOpacity>
                 <Text style={styles.title}>Estoque</Text>
-                
             </View>
 
             <Sidebar 
                 isOpen={sidebarOpen} 
                 onClose={closeSidebar}
                 userName={userName}
-                // Garante que userRole é um dos tipos esperados
                 userRole={userRole as 'SUPERVISOR' | 'COORDENADOR' | 'TECNICO'} 
                 onNavigateToSection={() => {}}
             />
 
-            {/* Container Principal do Conteúdo para centralizar na Web */}
-            <View style={styles.mainContent}> 
-                <View style={styles.formContainer}>
-                    <Text style={styles.formTitle}>{editarItem ? 'Editar Item' : 'Adicionar Novo Item'}</Text>
-                   <FormField
-                               label="Nome do item"
-                               value={itemName}
-                               onChangeText={setItemName}
-                               placeholder="Nome do Item"
-                               required
-                             />
-                    
-                     <FormField
-                               label="Justificativa"
-                               value={justificativa}
-                               onChangeText={setJustificativa}
-                               placeholder="Justificativa"
-                               required
-                             />
-                         <FormField
-                               label="Data"
-                               value={data}
-                               onChangeText={setData}
-                               placeholder="DD/MM/AAAA"
-                               mask="date"
-                               required
-                             />
-                             <FormField
-                               label="Quantidade"
-                               value={quantidade}
-                               onChangeText={(text) => setQuantidade(text.replace(/[^0-9]/g, ''))}
-                               placeholder="Numeric"
-                               required
-                             />
-                    
-                    <View style={styles.formButtons}>
-                        <TouchableOpacity
-                            style={[styles.actionButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]}
-                            onPress={editarItem ? handleUpdateItem : handleAddItem}
-                        >
-                            <Text style={styles.buttonText}>
-                                {editarItem ? 'Salvar' : 'Adicionar Item'}
-                            </Text>
-                        </TouchableOpacity>
-                        {editarItem && (
-                            <TouchableOpacity style={[styles.cancelButton, Platform.OS === 'web' && { cursor: 'pointer' as any }]} onPress={handleCancelEdit}>
-                                <Text style={styles.buttonText}>Cancelar</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                </View>
-
-                {items.length === 0 ? (
-                    <Text style={styles.noItemsText}>Nenhum item cadastrado ainda.</Text>
-                ) : (
-                    <FlatList
-                        ref={flatListRef}
-                        data={items}
-                        renderItem={renderItem}
-                        keyExtractor={(item) => item.id.toString()}
-                        contentContainerStyle={styles.listContent}
-                        style={Platform.OS === 'web' ? styles.webFlatList : undefined}
-                        showsVerticalScrollIndicator={Platform.OS === 'web'}
-                        showsHorizontalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        nestedScrollEnabled={true}
-                        bounces={Platform.OS !== 'web'}
-                    />
-                )}
+            <View style={styles.mainContent}>
+                {FormContent}
             </View>
         </SafeAreaView>
     );
@@ -164,15 +194,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f0f0f0',
-        ...(Platform.OS === 'web' && { paddingTop: HEADER_HEIGHT }),
     },
     mainContent: {
         flex: 1,
         alignSelf: 'center',
         width: '100%',
         maxWidth: MAX_WIDTH_WEB,
-        paddingHorizontal: Platform.OS === 'web' ? 20 : 0,
+        paddingHorizontal: Platform.OS === 'web' ? 20 : 15,
+        marginTop: Platform.OS === 'web' ? HEADER_HEIGHT : 0,
     },
+
     header: {
         backgroundColor: '#1c348e',
         paddingVertical: 15,
@@ -218,15 +249,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: '#333',
     },
-    input: {
-        height: 45,
-        borderColor: '#1c348e',
-        borderWidth: 1,
-        borderRadius: 8,
-        paddingHorizontal: 15,
-        marginBottom: 15,
-        fontSize: 16,
-    },
     formButtons: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -260,6 +282,7 @@ const styles = StyleSheet.create({
     listContent: {
         paddingHorizontal: Platform.OS !== 'web' ? 15 : 0, 
         paddingBottom: 20,
+        flexGrow: 1, 
     },
     itemContainer: {
         flexDirection: 'row',
@@ -308,31 +331,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         marginLeft: 15,
     },
-    editButton: {
-        backgroundColor: '#e5c228',
-        padding: 8,
-        borderRadius: 5,
-        marginLeft: 5,
-    },
-    deleteButton: {
-        backgroundColor: '#1c348e',
-        padding: 8,
-        borderRadius: 5,
-        marginLeft: 5,
-    },
-    actionButtonText: {
-        color: '#fff',
-        fontSize: 18,
-    },
     noItemsText: {
         textAlign: 'center',
         fontSize: 16,
         color: '#666',
         marginTop: 20,
     },
-    webFlatList: {
-        maxHeight: Dimensions.get('window').height * 0.75, 
-        overflow: 'auto' as any,
+    flatList: {
+        width: '100%',
+        flex: Platform.OS === 'web' ? 1 : undefined,
     },
 });
 

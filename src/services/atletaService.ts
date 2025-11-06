@@ -17,7 +17,9 @@ export const atletaService = {
     fetchAtletas: async (): Promise<AtletaProfileDto[]> => {
         const headers = await getAuthHeaders();
         const response = await axios.get<AtletaProfileDto[]>(`${API_URL}/api/supervisor/atletas`, { headers });
+        console.log(response.data);
         return response.data;
+        
     },
 
     /** 2. Salva as edições do perfil de um atleta */

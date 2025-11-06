@@ -1,5 +1,6 @@
 import { JwtPayload } from 'jwt-decode';
 import { Platform, StatusBar } from 'react-native';
+import { Double } from 'react-native/Libraries/Types/CodegenTypes';
 
 // --- Constantes de Tema e Configuração ---
 export const COLORS = {
@@ -32,19 +33,40 @@ export interface CustomJwtPayload extends JwtPayload {
 }
 
 export type AtletaProfileDto = {
-  id: string;
-  matricula: string;
-  nome: string;
-  email: string;
-  subDivisao: string;
-  dataNascimento: string;
-  foto: string | null;
-  posicao: string;
-  contatoResponsavel: string | null;
-  isAptoParaJogar: boolean;
-  documentoPdfBase64: string | null;
-  documentoPdfContentType: string | null;
-  documentos?: { id: string; nome: string; url: string; tipo: string }[];
+    id: string;
+    matricula: string;
+    nome: string;
+    email: string;
+    subDivisao: string;
+    dataNascimento: string;
+    foto: string | null;
+    posicao: string | null;
+    altura: Double | null; 
+    massa: Double | null;
+    cpf: string;
+    rg: string | null;
+    
+    // --- Contatos (Mapeados para as duas Entidades Responsável) ---
+    contatoResponsavel: string | null; // Responsável Principal
+    contatoResponsavelSecundario: string | null; // Responsável Secundário
+    
+    isAptoParaJogar: boolean;
+
+    // --- Atributos de Saúde/Isenção ---
+    endereco: string | null;
+    isencao: string | null;
+    tipoSanguineo: string | null;
+    alergias: string | null;
+    problemaDeSaude: string | null;
+    
+    // --- Atributos Escolares ---
+    escola: string | null;
+    contatoEscola: string | null;
+    horarioDeAula: string | null;
+    anoEscolar: number | null; 
+    documentoPdfBase64: string | null;
+    documentoPdfContentType: string | null;
+    documentos?: { id: string; nome: string; url: string; tipo: string }[];
 };
 
 // DTO para atualização (campos parciais)

@@ -1,19 +1,19 @@
 // useListaAtletas.ts
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Platform, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { jwtDecode } from 'jwt-decode';
-import { toast } from 'react-toastify';
 import * as DocumentPicker from 'expo-document-picker';
+import { jwtDecode } from 'jwt-decode';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, FlatList, Platform } from 'react-native';
+import { toast } from 'react-toastify';
 import { atletaService } from '../services/atletaService';
-import { 
-    AtletaProfileDto, 
-    AtletaUpdateDto, 
-    CustomJwtPayload, 
-    POSICOES, 
-    SUBDIVISOES, 
+import {
+    AtletaProfileDto,
+    AtletaUpdateDto,
+    CustomJwtPayload,
+    POSICOES,
+    SUBDIVISOES,
 } from '../types/atletasTypes';
 
 
@@ -149,16 +149,35 @@ export function useListaAtletas() {
         const dataNascimentoFormatada = atleta.dataNascimento?.split('T')[0] || atleta.dataNascimento;
         
         setEditForm({
-            nome: atleta.nome,
-            email: atleta.email,
-            dataNascimento: dataNascimentoFormatada,
-            subDivisao: atleta.subDivisao,
-            contatoResponsavel: atleta.contatoResponsavel,
-            isAptoParaJogar: atleta.isAptoParaJogar,
-            posicao: atleta.posicao,
-            documentoPdfBase64: atleta.documentoPdfBase64 || null,
-            documentoPdfContentType: atleta.documentoPdfContentType || null,
-        });
+    // Campos Originais...
+    nome: atleta.nome,
+    email: atleta.email,
+    dataNascimento: dataNascimentoFormatada,
+    subDivisao: atleta.subDivisao,
+    contatoResponsavel: atleta.contatoResponsavel,
+    isAptoParaJogar: atleta.isAptoParaJogar,
+    posicao: atleta.posicao,
+    documentoPdfBase64: atleta.documentoPdfBase64 || null,
+    documentoPdfContentType: atleta.documentoPdfContentType || null,
+    contatoResponsavelSecundario: atleta.contatoResponsavelSecundario || '',
+    rg: atleta.rg || '',
+    cpf: atleta.cpf,
+    // Dados Físicos/Saúde
+    massa: atleta.massa, // MANTIDO como string, pois o DTO usa String e representa o Double
+    altura: atleta.altura, // MANTIDO como string, pois o DTO usa String e representa o Double
+    tipoSanguineo: atleta.tipoSanguineo || '',
+    alergias: atleta.alergias || '',
+    problemaDeSaude: atleta.problemaDeSaude || '',
+    isencao: atleta.isencao || '',
+    endereco: atleta.endereco || '',
+    
+    
+    // Dados Escolares
+    escola: atleta.escola || '',
+    contatoEscola: atleta.contatoEscola || '',
+    horarioDeAula: atleta.horarioDeAula || '',
+    anoEscolar: atleta.anoEscolar || null,
+});
         setModalVisible(true);
     }, []);
 

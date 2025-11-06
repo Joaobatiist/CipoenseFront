@@ -40,6 +40,6 @@ export type FuncionarioDto = {
   email: string;
   dataNascimento: string;
   telefone: string;
-  roles: string; 
+  role: string; 
   uniqueId: string;
 };

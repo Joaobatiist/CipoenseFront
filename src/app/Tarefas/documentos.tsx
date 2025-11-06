@@ -59,6 +59,28 @@ const DocumentosScreen: React.FC = () => {
         pendingDeleteId,
     } = useDocumentos();
 
+    // Configurar scroll na web
+    React.useEffect(() => {
+        if (Platform.OS === 'web') {
+            // Garantir que o body permite scroll
+            const body = document.body;
+            const html = document.documentElement;
+            
+            body.style.overflow = 'auto';
+            body.style.height = '100%';
+            html.style.overflow = 'auto';
+            html.style.height = '100%';
+            
+            return () => {
+                // Cleanup se necessário
+                body.style.overflow = '';
+                body.style.height = '';
+                html.style.overflow = '';
+                html.style.height = '';
+            };
+        }
+    }, []);
+
     // Função para download de PDF com base64
     const handleDownloadPdf = useCallback(async (base64Content: string, contentType: string, fileName: string = 'documento.pdf') => {
         if (!base64Content || !contentType) {
@@ -304,12 +326,17 @@ const DocumentosScreen: React.FC = () => {
                     keyExtractor={(item) => `doc-${item.id}`}
                     renderItem={renderDocumentoItem}
                     ListEmptyComponent={renderEmptyList}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        Platform.OS === 'web' && { minHeight: '100%' }
+                    ]}
                     onRefresh={handleRefresh}
                     refreshing={refreshing}
                     showsVerticalScrollIndicator={Platform.OS === 'web'}
-                    scrollEnabled={true}
-                    nestedScrollEnabled={Platform.OS === 'web'}
+                    scrollEnabled={Platform.OS !== 'web'}
+                    nestedScrollEnabled={false}
+                    bounces={Platform.OS !== 'web'}
+                    style={Platform.OS === 'web' ? { flex: 1 } : undefined}
                 />
             </View>
 
@@ -443,6 +470,11 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 800,
         alignSelf: 'center',
+        ...Platform.select({
+            web: {
+                paddingBottom: 20,
+            },
+        }),
     },
     loadingContainer: {
         flex: 1,
@@ -452,6 +484,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: 20,
+        flexGrow: 1,
     },
     // Card de Documento
     documentoCard: {
@@ -505,7 +538,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 5,
-        ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
     },
     downloadButtonText: {
         color: COLORS_DOCUMENTOS.white,
@@ -521,7 +553,6 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         marginVertical: 10,
-        ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
     },
     addButtonText: {
         color: '#fff',
@@ -534,7 +565,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.6)',
-        ...Platform.select({ web: { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, overflowY: 'auto' as any } }),
     },
     modalView: {
         margin: 20,
@@ -582,7 +612,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: COLORS_DOCUMENTOS.textPrimary,
         textAlignVertical: 'top',
-        ...(Platform.OS === 'web' && { outline: 'none' as any }),
     },
     filePickerButton: {
         flexDirection: 'row',
@@ -593,7 +622,6 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginBottom: 10,
         width: '100%',
-        ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
     },
     filePickerButtonText: {
         color: COLORS_DOCUMENTOS.primary,
@@ -628,7 +656,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 8,
         justifyContent: 'center',
         alignItems: 'center',
-        ...(Platform.OS === 'web' && { cursor: 'pointer' as any }),
     },
     buttonDisabled: {
         opacity: 0.6,

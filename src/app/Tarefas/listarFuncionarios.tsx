@@ -7,14 +7,13 @@ import {
   faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Modal,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -25,10 +24,70 @@ import {
 
 // Importa o hook e os tipos/constantes refatorados
 import { useListaFuncionarios } from '../../hooks/useListaFuncionarios';
-import { FuncionarioDto, COLORS, HEADER_HEIGHT, STATUS_BAR_HEIGHT } from '../../types/funcionariosTypes';
+import { COLORS, FuncionarioDto, HEADER_HEIGHT, STATUS_BAR_HEIGHT } from '../../types/funcionariosTypes';
 
 
 const ListaFuncionarios = () => {
+    // Configurar scroll para web
+    useEffect(() => {
+      if (Platform.OS === 'web') {
+        // Configuração completa para habilitar scroll do mouse
+        const setupWebScroll = () => {
+          // Configurar body para permitir scroll
+          document.body.style.overflow = 'auto';
+          document.body.style.overflowY = 'auto';
+          document.body.style.overflowX = 'hidden';
+          document.body.style.height = '100vh';
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          
+          // Configurar container principal
+          const container = document.querySelector('#root') as HTMLElement;
+          if (container) {
+            container.style.height = '100vh';
+            container.style.overflow = 'visible';
+          }
+          
+          // Forçar reflow para garantir que as mudanças sejam aplicadas
+          document.body.offsetHeight;
+          
+          // Adicionar event listeners para scroll do mouse
+          const handleWheel = (e: WheelEvent) => {
+            // Permite scroll natural com a roda do mouse
+            if (!e.defaultPrevented) {
+              window.scrollBy(0, e.deltaY);
+            }
+          };
+          
+          // Adicionar listener global para scroll
+          document.addEventListener('wheel', handleWheel, { passive: true });
+          
+          return () => {
+            document.removeEventListener('wheel', handleWheel);
+          };
+        };
+        
+        const cleanupWheel = setupWebScroll();
+        
+        // Cleanup function principal
+        return () => {
+          cleanupWheel?.();
+          document.body.style.overflow = '';
+          document.body.style.overflowY = '';
+          document.body.style.overflowX = '';
+          document.body.style.height = '';
+          document.body.style.margin = '';
+          document.body.style.padding = '';
+          
+          const container = document.querySelector('#root') as HTMLElement;
+          if (container) {
+            container.style.height = '';
+            container.style.overflow = '';
+          }
+        };
+      }
+    }, []);
+
     // 1. Uso do Custom Hook para obter toda a lógica e estado
     const {
         // Refs
@@ -93,11 +152,11 @@ const ListaFuncionarios = () => {
         }}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={`Funcionário ${item.nome}, Cargo ${item.roles}. Pressione para editar.`}
+        accessibilityLabel={`Funcionário ${item.nome}, Cargo ${item.role}. Pressione para editar.`}
       >
         <View style={styles.atletaInfo}>
           <Text style={styles.atletaName} numberOfLines={1} ellipsizeMode="tail">{item.nome}</Text>
-          <Text style={styles.atletaDetail}>Cargo: {item.roles ? item.roles : 'Não informado'}</Text>
+          <Text style={styles.atletaDetail}>Cargo: {item.role ? item.role : 'Não informado'}</Text>
           <Text style={styles.atletaDetail}>Email: {item.email}</Text>
           <Text style={styles.atletaDetail}>Tel: {item.telefone}</Text>
         </View>
@@ -110,7 +169,7 @@ const ListaFuncionarios = () => {
             <FontAwesomeIcon icon={faEdit} size={20} color={COLORS.primary} />
           </TouchableOpacity>
           <TouchableOpacity 
-            onPress={() => handleDelete(item.id, item.roles)} 
+            onPress={() => handleDelete(item.id, item.role)} 
             style={[styles.deleteButton, pendingDeleteId === item.id.toString() && { backgroundColor: 'rgba(220, 53, 69, 0.1)' }]}
             accessibilityLabel={`Excluir ${item.nome}`}
           >
@@ -194,7 +253,10 @@ const ListaFuncionarios = () => {
             data={filteredData}
             keyExtractor={(item) => item.uniqueId}
             renderItem={renderFuncionarioItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              Platform.OS === 'web' && { paddingBottom: 50 }
+            ]}
             onRefresh={handleRefresh}
             refreshing={refreshing}
             showsVerticalScrollIndicator={Platform.OS === 'web'}
@@ -203,6 +265,12 @@ const ListaFuncionarios = () => {
             nestedScrollEnabled={Platform.OS === 'web'}
             bounces={Platform.OS !== 'web'}
             initialNumToRender={15}
+            // Propriedades específicas para melhorar scroll na web
+            {...(Platform.OS === 'web' && {
+              scrollEventThrottle: 16,
+              onScrollBeginDrag: () => {},
+              onScrollEndDrag: () => {},
+            })}
           />
         )}
       </View>
@@ -276,8 +344,15 @@ const ListaFuncionarios = () => {
                 />
 
                 <Text style={styles.inputLabel}>Tipo:</Text>
-                {/* Exibindo a role atual, pois o DropDownPicker foi desativado no código original */}
-                <Text style={styles.input}>{editForm.roles}</Text> 
+                  <TextInput
+                  style={styles.input}
+                  value={editForm.role}
+                  onChangeText={(text) => setEditForm({ ...editForm, role: text })}
+                  placeholder="SUPERVISOR, COORDENADOR ou TECNICO"
+                  placeholderTextColor={COLORS.textSecondary}
+                  keyboardType="default"
+                />
+                
 
               </ScrollView>
             )}
@@ -318,7 +393,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
+  } as any,
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -366,10 +441,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 10,
     // Compensação da altura do header fixo para Web e Mobile
-    marginTop: Platform.OS === 'web' ? HEADER_HEIGHT : 0, 
+    paddingTop: Platform.OS === 'web' ? HEADER_HEIGHT + 10 : 10, 
     width: '100%',
     maxWidth: 1200, 
     alignSelf: 'center',
+    backgroundColor: COLORS.background,
+    // Garantir que o conteúdo seja scrollável na web
+    ...(Platform.OS === 'web' && {
+      minHeight: '100vh',
+      overflowY: 'auto' as any,
+      WebkitOverflowScrolling: 'touch' as any,
+    }),
   },
   loadingContainer: {
     flex: 1,
@@ -604,6 +686,6 @@ const styles = StyleSheet.create({
       },
     }),
   } as any,
-});
+} as any);
 
 export default ListaFuncionarios;

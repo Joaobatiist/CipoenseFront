@@ -1,6 +1,10 @@
+import { Sidebar } from '@/components/layout/Sidebar';
+import { rgMask } from '@/utils/mask';
+import { faBars } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { jwtDecode, JwtPayload } from 'jwt-decode';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,8 +21,8 @@ import {
   View
 } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
-import { jwtDecode, JwtPayload } from 'jwt-decode';
 import { TextInputMask } from 'react-native-masked-text';
+import { toast, ToastContainer } from 'react-toastify';
 import Api from '../../../Config/Api';
 import { styles } from './styles';
 import {
@@ -30,9 +34,6 @@ import {
   FormFieldProps
 } from './types';
 import { formatDate, validateAtletaData, validateFuncionarioData } from './validation';
-import { faBars } from '@fortawesome/free-solid-svg-icons';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { toast } from 'react-toastify';
 
 interface CustomJwtPayload extends JwtPayload {
     userType?: string;
@@ -199,6 +200,7 @@ export const DropdownField: React.FC<DropdownFieldProps> = ({
           maxHeight: 300,
         } : undefined}
       />
+       {Platform.OS === 'web' && <ToastContainer />}
     </View>
   );
 };
@@ -283,12 +285,27 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
   const [massa, setMassa] = useState('');
   const [posicao, setPosicao] = useState<string | null>(null);
   const [isencao, setIsencao] = useState<string | null>(null);
+  const [tipoSanguineo, setTipoSanguineo] = useState('');
+  const [alergias, setAlergias] = useState('');
+  const [problemaDeSaude, setProblemaDeSaude] = useState('');
+  const [horarioDeAula, setHorarioDeAula] = useState('');
+  const [escola, setEscola] = useState('');
+  const [contatoEscola, setContatoEscola] = useState('');
+  const [anoEscolar, setAnoEscolar] = useState('');
+  const [altura, setAltura] = useState('');
+  const [rg, setRg] = useState('');
+  const [endereco, setEndereco] = useState('');
   
   // Responsável fields
   const [nomeResponsavel, setNomeResponsavel] = useState('');
   const [telefoneResponsavel, setTelefoneResponsavel] = useState('');
   const [emailResponsavel, setEmailResponsavel] = useState('');
   const [cpfResponsavel, setCpfResponsavel] = useState('');
+  // Segundo responsável (opcional)
+  const [nomeResponsavel2, setNomeResponsavel2] = useState('');
+  const [telefoneResponsavel2, setTelefoneResponsavel2] = useState('');
+  const [emailResponsavel2, setEmailResponsavel2] = useState('');
+  const [cpfResponsavel2, setCpfResponsavel2] = useState('');
   
   // Funcionário specific fields
   const [telefone, setTelefone] = useState('');
@@ -336,12 +353,30 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           setEmailResponsavel(atletaData.responsavel.email || '');
           setCpfResponsavel(atletaData.responsavel.cpf || '');
         }
+        if ((atletaData as any).responsavel2) {
+          const r2 = (atletaData as any).responsavel2;
+          setNomeResponsavel2(r2.nome || '');
+          setTelefoneResponsavel2(r2.telefone || '');
+          setEmailResponsavel2(r2.email || '');
+          setCpfResponsavel2(r2.cpf || '');
+        }
+        // novos campos do atleta
+        setTipoSanguineo((atletaData as any).tipoSanguineo || '');
+        setAlergias((atletaData as any).alergias || '');
+        setProblemaDeSaude((atletaData as any).problemaDeSaude || '');
+        setHorarioDeAula((atletaData as any).horarioDeAula || '');
+        setEscola((atletaData as any).escola || '');
+        setContatoEscola((atletaData as any).contatoEscola || '');
+        setAnoEscolar((atletaData as any).anoEscolar ? String((atletaData as any).anoEscolar) : '');
+        setAltura((atletaData as any).altura ? String((atletaData as any).altura) : '');
+        setRg((atletaData as any).rg || '');
+        setEndereco((atletaData as any).endereco || '');
       }
       
       if (type === 'funcionario' && 'telefone' in initialData) {
         const funcionarioData = initialData as Partial<CadastroFuncionarioData>;
         setTelefone(funcionarioData.telefone || '');
-        setRole(funcionarioData.roles || null);
+        setRole(funcionarioData.role || null);
       }
     }
   }, [initialData, type]);
@@ -396,13 +431,29 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           massa,
           posicao: posicao!,
           isencao: isencao === 'SIM',
-          roles: ['ATLETA'],
+          role: ['ATLETA'],
+          tipoSanguineo,
+          alergias,
+          problemaDeSaude,
+          horarioDeAula,
+          escola,
+          contatoEscola,
+          anoEscolar: anoEscolar ? parseInt(anoEscolar, 10) : null,
+          altura,
+          rg,
+          endereco,
           responsavel: {
             nome: nomeResponsavel,
             telefone: telefoneResponsavel,
             email: emailResponsavel,
             cpf: cpfResponsavel,
           },
+          responsavel2: nomeResponsavel2 ? {
+            nome: nomeResponsavel2,
+            telefone: telefoneResponsavel2,
+            email: emailResponsavel2,
+            cpf: cpfResponsavel2,
+          } : null,
         };
         validation = validateAtletaData(data);
       } else {
@@ -413,7 +464,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           dataNascimento,
           cpf,
           telefone,
-          roles: role!,
+          role: role!,
         };
         validation = validateFuncionarioData(data);
       }
@@ -480,6 +531,16 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         cpf: atletaData.cpf,
         subDivisao: atletaData.subDivisao,
         massa: atletaData.massa,
+        tipoSanguineo: atletaData.tipoSanguineo,
+        alergias: atletaData.alergias,
+        problemaDeSaude: atletaData.problemaDeSaude,
+        horarioDeAula: atletaData.horarioDeAula,
+        escola: atletaData.escola,
+        contatoEscola: atletaData.contatoEscola,
+        anoEscolar: atletaData.anoEscolar,
+        altura: atletaData.altura,
+        rg: atletaData.rg,
+        endereco: atletaData.endereco,
         roles: 'ATLETA', // Backend espera string, não array
         posicao: atletaData.posicao,
         isencao: atletaData.isencao,
@@ -489,6 +550,13 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
           email: atletaData.responsavel.email,
           cpf: atletaData.responsavel.cpf,
         }
+        ,
+        responsavel2: atletaData.responsavel2 ? {
+          nome: atletaData.responsavel2.nome,
+          telefone: atletaData.responsavel2.telefone,
+          email: atletaData.responsavel2.email,
+          cpf: atletaData.responsavel2.cpf,
+        } : undefined
       };
       endpoint = '/api/cadastro';
     } else {
@@ -500,7 +568,7 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
         dataNascimento: formatDate(funcionarioData.dataNascimento),
         cpf: funcionarioData.cpf,
         telefone: funcionarioData.telefone,
-        roles: funcionarioData.roles,
+        role: funcionarioData.role,
       };
       endpoint = '/cadastro/funcionarios';
     }
@@ -681,6 +749,91 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
                 required
               />
 
+              {/* Saúde / Escola Section */}
+              <FormField
+                label="Tipo Sanguíneo"
+                value={tipoSanguineo}
+                onChangeText={setTipoSanguineo}
+                placeholder="Ex: O+, A-, etc"
+              />
+
+              <FormField
+                label="Alergias"
+                value={alergias}
+                onChangeText={setAlergias}
+                placeholder="Descreva alergias, se houver"
+              />
+
+              <FormField
+                label="Problemas de Saúde"
+                value={problemaDeSaude}
+                onChangeText={setProblemaDeSaude}
+                placeholder="Descreva problemas de saúde, se houver"
+              />
+
+              <FormField
+                label="Altura (m)"
+                value={altura}
+                onChangeText={setAltura}
+                placeholder="Ex: 1.75"
+                keyboardType="numeric"
+              />
+
+              <FormField
+                label="RG"
+                // 1. Exibe o valor mascarado no campo
+                value={rgMask(rg)}
+               // 2. Ao digitar, remove caracteres não numéricos do texto e atualiza o estado
+                onChangeText={(maskedText) => {
+               const unmasked = maskedText.replace(/\D/g, '');
+               setRg(unmasked);
+               }}
+                placeholder="00.000.000-00"
+              />
+
+              <FormField
+                label="Endereço"
+                value={endereco}
+                onChangeText={setEndereco}
+                placeholder="Endereço completo"
+              />
+
+              <FormField
+                label="Escola"
+                value={escola}
+                onChangeText={setEscola}
+                placeholder="Nome da escola"
+              />
+
+              <Text style={styles.fieldLabel}>Horário de Aula</Text>
+              <TextInputMask
+                style={styles.input}
+                type={'datetime'}
+                options={{
+                  format: 'HH:MM-HH:MM',
+                }}
+                onChangeText={setHorarioDeAula}
+                value={horarioDeAula}
+                placeholder="Horário (ex: 10:00)"
+                keyboardType="numeric"
+              />
+                     
+
+              <FormField
+                label="Contato da Escola"
+                value={contatoEscola}
+                onChangeText={setContatoEscola}
+                placeholder="Telefone ou email da escola"
+              />
+
+              <FormField
+                label="Ano Escolar"
+                value={anoEscolar}
+                onChangeText={(text) => setAnoEscolar(text.replace(/[^0-9]/g, ''))}
+                placeholder="Ex: 6"
+                keyboardType="numeric"
+              />
+
               {/* Responsável Section */}
               <View style={styles.responsavelSection}>
                 <Text style={styles.responsavelTitle}>Dados do Responsável</Text>
@@ -718,6 +871,38 @@ export const CadastroForm: React.FC<CadastroFormProps> = ({
                   placeholder="000.000.000-00"
                   mask="cpf"
                   required
+                />
+              </View>
+
+              {/* Segundo Responsável (opcional) */}
+              <View style={styles.responsavelSection}>
+                <Text style={styles.responsavelTitle}>Dados do Segundo Responsável (opcional)</Text>
+                <FormField
+                  label="Nome do Responsável 2"
+                  value={nomeResponsavel2}
+                  onChangeText={setNomeResponsavel2}
+                  placeholder="Digite o nome do responsável"
+                />
+                <FormField
+                  label="Telefone do Responsável 2"
+                  value={telefoneResponsavel2}
+                  onChangeText={setTelefoneResponsavel2}
+                  placeholder="(99) 99999-9999"
+                  mask="phone"
+                />
+                <FormField
+                  label="Email do Responsável 2"
+                  value={emailResponsavel2}
+                  onChangeText={setEmailResponsavel2}
+                  placeholder="Digite o email do responsável"
+                  keyboardType="email-address"
+                />
+                <FormField
+                  label="CPF do Responsável 2"
+                  value={cpfResponsavel2}
+                  onChangeText={setCpfResponsavel2}
+                  placeholder="000.000.000-00"
+                  mask="cpf"
                 />
               </View>
             </>

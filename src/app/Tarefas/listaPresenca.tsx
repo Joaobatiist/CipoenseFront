@@ -16,19 +16,18 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import moment from 'moment';
-import React, { JSX, useCallback } from 'react';
+import React, { JSX, useCallback, useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Modal,
   Platform,
   Pressable,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
 import { useListaPresenca } from '../../hooks/useListaPresenca';
 import { Aluno, Evento, PresencaRegistro } from '../../types/presencaTypes'; // Importação de PresencaRegistro
@@ -132,6 +131,28 @@ export default function ListaPresencaScreen(): JSX.Element {
     fetchHistoricoPresencas,
     fetchAlunosForEvent,
   } = useListaPresenca(width);
+
+  // Configurar scroll na web
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Garantir que o body permite scroll
+      const body = document.body;
+      const html = document.documentElement;
+      
+      body.style.overflow = 'auto';
+      body.style.height = '100%';
+      html.style.overflow = 'auto';
+      html.style.height = '100%';
+      
+      return () => {
+        // Cleanup se necessário
+        body.style.overflow = '';
+        body.style.height = '';
+        html.style.overflow = '';
+        html.style.height = '';
+      };
+    }
+  }, []);
 
   // CORREÇÃO: Movendo a lógica de obtenção do evento para dentro do componente
   const selectedEvento = eventosDisponiveis.find(
@@ -541,8 +562,10 @@ export default function ListaPresencaScreen(): JSX.Element {
                       keyExtractor={(item) => `${item.atletaId}-${item.eventoId}`}
                       renderItem={renderHistoricoAlunoItem}
                       contentContainerStyle={styles.listContent}
-                      scrollEnabled={false}
-                      showsVerticalScrollIndicator={false}
+                      scrollEnabled={Platform.OS !== 'web'}
+                      showsVerticalScrollIndicator={Platform.OS === 'web'}
+                      nestedScrollEnabled={false}
+                      bounces={Platform.OS !== 'web'}
                     />
                   </View>
                 );
@@ -569,8 +592,16 @@ export default function ListaPresencaScreen(): JSX.Element {
             data={alunos}
             keyExtractor={(item) => item.atletaId}
             renderItem={renderAlunoItem}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              Platform.OS === 'web' && { minHeight: '100%' }
+            ]}
             onScrollToIndexFailed={onScrollToIndexFailed}
+            showsVerticalScrollIndicator={Platform.OS === 'web'}
+            scrollEnabled={Platform.OS !== 'web'}
+            nestedScrollEnabled={false}
+            bounces={Platform.OS !== 'web'}
+            style={Platform.OS === 'web' ? { flex: 1 } : undefined}
           />
         )}
       </View>
@@ -615,26 +646,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    minHeight: Platform.select({ web: 80, default: 70 }),
-    ...Platform.select({
-      web: {
-        position: 'fixed' as any,
-        top: 0,
-        zIndex: 10,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      },
-      default: {
-        paddingTop:
-          (Platform.OS === 'android' ? (StatusBar.currentHeight || 20) : 0) +
-          16,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-    }),
-  } as any,
+    minHeight: 70,
+    paddingTop: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
@@ -680,19 +699,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 4,
     maxWidth: 800,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      },
-      default: {
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-    }),
-  } as any,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   modeToggleButton: {
     flex: 1,
     flexDirection: 'row',
@@ -721,30 +733,16 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     alignSelf: 'center',
     marginTop: 8,
-    paddingBottom: Platform.select({ web: 100, default: 8 }),
-    paddingHorizontal: Platform.select({ web: 32, default: 16 }),
-    ...Platform.select({
-      web: {
-        alignItems: 'stretch',
-        justifyContent: 'flex-start',
-      },
-      default: {},
-    }),
-  } as any,
+    paddingBottom: 8,
+    paddingHorizontal: 16,
+  },
   contentWrapperLarge: {
     paddingHorizontal: 32,
   },
   listContent: {
     paddingVertical: 8,
-    ...Platform.select({
-      web: {
-        width: '100%',
-        paddingHorizontal: 0,
-        alignItems: 'stretch',
-      },
-      default: {},
-    }),
-  } as any,
+    flexGrow: 1,
+  },
   alunoItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -756,33 +754,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#1c348e',
-    ...Platform.select({
-      web: {
-        minWidth: 600,
-        maxWidth: '90%',
-        width: '90%',
-        alignSelf: 'center',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      },
-      default: {
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-    }),
-  } as any,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
   itemFocused: {
-    borderColor: '#1c348e !important',
-    borderWidth: 0,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 0 0 2px #1c348e, 0 2px 8px rgba(28, 52, 142, 0.3)',
-      },
-      default: {},
-    }),
-  } as any,
+    borderColor: '#1c348e',
+    borderWidth: 2,
+  },
   itemPressed: {
     opacity: 0.9,
   },
@@ -870,22 +851,12 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     width: '100%',
-    ...Platform.select({
-      web: {
-        position: 'fixed' as any,
-        bottom: 0,
-        zIndex: 9,
-        boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
-      },
-      default: {
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-    }),
-  } as any,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   footerContent: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -906,19 +877,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     minWidth: 180,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 4px rgba(28, 52, 142, 0.3)',
-      },
-      default: {
-        elevation: 3,
-        shadowColor: '#1c348e',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-    }),
-  } as any,
+    elevation: 3,
+    shadowColor: '#1c348e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
   saveButtonDisabled: {
     opacity: 0.6,
   },
@@ -926,7 +890,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   diaCard: {
     flexDirection: 'row',
@@ -986,19 +949,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     marginTop: 16,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 4px rgba(229, 194, 40, 0.3)',
-      },
-      default: {
-        elevation: 3,
-        shadowColor: '#e5c228',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-    }),
-  } as any,
+    elevation: 3,
+    shadowColor: '#e5c228',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
   reloadButtonText: {
     color: '#1c348e',
     fontSize: 16,
@@ -1016,19 +972,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 24,
     maxHeight: '80%',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.15)',
-      },
-      default: {
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-    }),
-  } as any,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
   confirmButton: {
     backgroundColor: '#1c348e',
     paddingHorizontal: 24,
@@ -1091,19 +1040,12 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     marginHorizontal: 8,
     borderRadius: 16,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 12px rgba(28, 52, 142, 0.3)',
-      },
-      default: {
-        elevation: 4,
-        shadowColor: '#1c348e',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-      },
-    }),
-  } as any,
+    elevation: 4,
+    shadowColor: '#1c348e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
   eventoHeaderTitle: {
     fontSize: 20,
     fontWeight: 'bold',

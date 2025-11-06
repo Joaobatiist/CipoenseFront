@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { jwtDecode, JwtPayload } from 'jwt-decode';
-import { useEffect, useState, useRef } from 'react';
-import { Alert, Platform, FlatList } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Platform } from 'react-native';
 import { toast } from 'react-toastify';
 
 interface Item {
@@ -187,12 +187,14 @@ export const useControleEstoque = () => {
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         setItemName('');
         setQuantidade('');
+        setJustificativa('');
+        setData('');
         const successMsg = 'Item Adicionado. O item foi adicionado à lista.';
         Platform.OS === 'web' ? toast.success(successMsg) : Alert.alert('Item Adicionado', successMsg);
 
         // 2. Sincronização (Backend)
         try {
-            const newItemForBackend = { nome: newItemLocal.nome, quantidade: newQuantidade };
+            const newItemForBackend = { nome: newItemLocal.nome, quantidade: newQuantidade, justificativa: newItemLocal.justificativa, data: newItemLocal.data };
 
             const response = await fetch(`${API_BASE_URL}/api/estoque`, {
                 method: 'POST',
@@ -237,13 +239,14 @@ export const useControleEstoque = () => {
         const newQuantidade = parseInt(quantidade, 10);
         const updatedItemLocal: Item = { ...editarItem, nome: itemName, quantidade: newQuantidade };
 
-        // 1. Atualização Otimista (Local)
         setItems((prevItems) =>
             prevItems.map((item) => (item.id === updatedItemLocal.id ? updatedItemLocal : item))
         );
         setItemName('');
         setQuantidade('');
         setEditarItem(null);
+        setJustificativa('');
+        setData('');
         const successMsg = 'Item Atualizado. O item foi atualizado na lista.';
         Platform.OS === 'web' ? toast.success(successMsg) : Alert.alert('Item Atualizado', successMsg);
 
@@ -387,3 +390,4 @@ export const useControleEstoque = () => {
 
 // Exporta o tipo Item para uso no componente
 export type { Item };
+

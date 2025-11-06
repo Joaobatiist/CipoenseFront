@@ -10,9 +10,21 @@ import { EventForm, EventList } from '@/components/forms';
 import { Header, Sidebar } from '@/components/layout';
 import { useAuth, useEventos } from '@/hooks';
 import { globalStyles } from '@/Styles/themes/global';
-import { Evento } from '@/types';
+import { Evento as EventoComplete } from '@/types';
 import ComunicadosScreen from '../../components/comunicados/comunicado';
 import { ptBR } from '../../utils/localendarConfig';
+
+// Tipo compatível com EventForm (que usa campos opcionais)
+interface Evento {
+  id: string;
+  data: string;
+  descricao: string;
+  professor: string;
+  local: string;
+  horario: string;
+  subDivisao?: string;
+  atletas?: string[];
+}
 
 interface CustomJwtPayload extends JwtPayload {
   roles?: string[];
@@ -28,8 +40,20 @@ interface SectionOffsets {
 
 const UniversalDashboard: React.FC = () => {
   const { userInfo } = useAuth();
-  const { eventos, loading, addEvento, updateEvento, deleteEvento } = useEventos();
+  const { eventos: eventosComplete, loading, addEvento, updateEvento, deleteEvento } = useEventos();
   const params = useLocalSearchParams();
+  
+  // Converter eventos completos para o tipo compatível com EventForm
+  const eventos: Evento[] = eventosComplete.map(evento => ({
+    id: evento.id,
+    data: evento.data,
+    descricao: evento.descricao,
+    professor: evento.professor,
+    local: evento.local,
+    horario: evento.horario,
+    subDivisao: evento.subDivisao,
+    atletas: evento.atletas
+  }));
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Evento | null>(null);
@@ -144,12 +168,24 @@ const UniversalDashboard: React.FC = () => {
     sectionOffsetsRef.current[sectionName] = event.nativeEvent.layout.y;
   };
 
-  const handleEventSave = async (eventData: Omit<Evento, 'id'>): Promise<void> => {
+  const handleEventSave = async (eventData: Omit<Evento, 'id'> & { subDivisao?: string; atletas?: string[] }): Promise<void> => {
+    // Converter para o tipo completo esperado pelos hooks
+    const completeEventData: EventoComplete = {
+      id: '', // será preenchido pelo backend
+      data: eventData.data,
+      descricao: eventData.descricao,
+      professor: eventData.professor,
+      local: eventData.local,
+      horario: eventData.horario,
+      subDivisao: eventData.subDivisao || '',
+      atletas: eventData.atletas || []
+    };
+
     if (editingEvent) {
-      await updateEvento(editingEvent.id, eventData);
+      await updateEvento(editingEvent.id, completeEventData);
       setEditingEvent(null);
     } else {
-      await addEvento(eventData);
+      await addEvento(completeEventData);
     }
   };
 

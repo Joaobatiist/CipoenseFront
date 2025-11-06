@@ -8,13 +8,29 @@ export interface CadastroAtletaData {
   massa: string;
   posicao: string;
   isencao: boolean;
-  roles?: string[];
+  role?: string[];
   responsavel: {
     nome: string;
     telefone: string;
     email: string;
     cpf: string;
   };
+  tipoSanguineo?: string;
+  alergias?: string;
+  problemaDeSaude?: string;
+  horarioDeAula?: string;
+  escola?: string;
+  contatoEscola?: string;
+  anoEscolar?: number | null;
+  altura?: string;
+  rg?: string;
+  endereco?: string;
+  responsavel2?: {
+    nome: string;
+    telefone: string;
+    email: string;
+    cpf: string;
+  } | null;
 }
 
 export interface CadastroFuncionarioData {
@@ -24,7 +40,7 @@ export interface CadastroFuncionarioData {
   dataNascimento: string;
   cpf: string;
   telefone: string;
-  roles: string;
+  role: string;
 }
 
 export interface DropdownItem {
@@ -40,7 +56,7 @@ export interface FormFieldProps {
   placeholder?: string;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   secureTextEntry?: boolean;
-  mask?: 'cpf' | 'phone' | 'date';
+  mask?: 'cpf' | 'phone' | 'date' | 'rg';
   required?: boolean;
 }
 

@@ -407,6 +407,8 @@ const PerfilAtleta = () => {
 
             <Text style={styles.infoLabel}>Data de Nascimento:</Text>
             <Text style={styles.infoValue}>{formatarData(atleta.dataNascimento)}</Text>
+            <Text style={styles.infoLabel}>Subdivisão:</Text>
+            <Text style={styles.infoValue}>{atleta.contatoResponsavel}</Text>
 
             {atleta.contatoResponsavel && atleta.contatoResponsavel !== 'Não informado' && (
               <>

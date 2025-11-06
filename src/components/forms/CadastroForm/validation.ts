@@ -14,7 +14,9 @@ export interface ValidationResult {
 export const formatCPF = (cpf: string): string => {
   return cpf.replace(/\D/g, '');
 };
-
+export const formatRG = (rg: string): string => {
+  return rg.replace(/\D/g, '');
+};
 export const formatPhone = (phone: string): string => {
   return phone.replace(/\D/g, '');
 };

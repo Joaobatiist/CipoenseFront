@@ -77,9 +77,14 @@ export const FormField: React.FC<FormFieldProps> = ({
       );
     }
 
-    return <TextInput {...commonProps} />;
+    // Caso padrão - TextInput sem máscara
+    return (
+      <TextInput
+        {...commonProps}
+      />
+    );
   };
-
+  
   return (
     <View style={styles.fieldContainer}>
       <Text style={styles.fieldLabel}>

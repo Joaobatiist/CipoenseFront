@@ -2,15 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import axios, { isAxiosError } from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Platform, ScrollView } from 'react-native';
 import { toast } from 'react-toastify';
 import {
-  COLORS,
-  CustomJwtPayload,
-  FuncionarioDto,
-  ROLES_OPTIONS
-} from '../types/funcionariosTypes'; 
+    CustomJwtPayload,
+    FuncionarioDto,
+    ROLES_OPTIONS
+} from '../types/funcionariosTypes';
 
 // Otimização: Pegar URL da API (deve ser importado do seu .env)
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
@@ -118,7 +117,7 @@ export const useListaFuncionarios = () => {
             dataNascimento: dataNascimentoFormatada,
             cpf: funcionario.cpf,
             telefone: funcionario.telefone,
-            roles: funcionario.roles,
+            role: funcionario.role,
         });
         setOpenRolesPicker(false);
         setModalVisible(true);
@@ -126,7 +125,7 @@ export const useListaFuncionarios = () => {
 
     // Manipulador para salvar as edições
     const handleSaveEdit = useCallback(async () => {
-        if (!selectedFuncionario || !editForm.nome || !editForm.roles) {
+        if (!selectedFuncionario || !editForm.nome || !editForm.role) {
             const errorMessage = 'Nome e tipo (roles) são obrigatórios.';
             if (Platform.OS === 'web') {
                 toast.error(errorMessage);
@@ -144,7 +143,7 @@ export const useListaFuncionarios = () => {
             const updateDTO = {
                 ...editForm,
                 id: selectedFuncionario.id,
-                roles: editForm.roles,
+                roles: editForm.role,
                 dataNascimento: editForm.dataNascimento?.split('T')[0] || editForm.dataNascimento,
             };
 

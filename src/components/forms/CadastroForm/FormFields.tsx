@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { TextInputMask } from 'react-native-masked-text';
 import { styles } from './styles';
@@ -76,10 +76,8 @@ export const FormField: React.FC<FormFieldProps> = ({
         />
       );
     }
-
-    return <TextInput {...commonProps} />;
-  };
-
+  }
+  
   return (
     <View style={styles.fieldContainer}>
       <Text style={styles.fieldLabel}>

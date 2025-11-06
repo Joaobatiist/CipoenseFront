@@ -2,15 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import axios, { isAxiosError } from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, Platform, ScrollView } from 'react-native';
 import { toast } from 'react-toastify';
 import {
-  COLORS,
-  CustomJwtPayload,
-  FuncionarioDto,
-  ROLES_OPTIONS
-} from '../types/funcionariosTypes'; 
+    CustomJwtPayload,
+    FuncionarioDto,
+    ROLES_OPTIONS
+} from '../types/funcionariosTypes';
 
 // Otimização: Pegar URL da API (deve ser importado do seu .env)
 const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
